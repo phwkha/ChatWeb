@@ -26,6 +26,7 @@ Khởi chạy hệ thống (Database + Backend):
 Bash
 
 docker-compose up -d --build
+
 Backend sẽ chạy tại: http://localhost:8080
 
 Swagger API Docs: http://localhost:8080/swagger-ui.html
