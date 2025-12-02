@@ -1,0 +1,13 @@
+/mvnw text eol=lf
+*.cmd text eol=crlf
+
+# Đặt chế độ tự động cho các file text (mặc định)
+* text=auto
+
+# Các file script của Linux/Mac PHẢI dùng LF
+*.sh eol=lf
+mvnw eol=lf
+
+# Các file script của Windows PHẢI dùng CRLF
+*.cmd eol=crlf
+*.bat eol=crlf

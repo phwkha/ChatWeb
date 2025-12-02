@@ -1,0 +1,77 @@
+/* Navbar khớp với class trong Navbar.jsx */
+.navbar {
+  display: flex;
+  justify-content: center;
+  background: #4caf50;
+  color: #fff;
+}
+
+.navbar-container {
+  width: 100%;
+  max-width: 1200px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.navbar-brand {
+  color: #fff;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-brand h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.navbar-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.navbar-link {
+  color: #fff;
+  text-decoration: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+.navbar-link:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-info {
+  font-weight: 500;
+}
+
+.logout-button {
+  background: #fff;
+  color: #4caf50;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.logout-button:hover {
+  background: #e8f5e9;
+}
+
+/* Nếu trước đây có .navbar-logo, .navbar-links thì có thể xóa vì không dùng nữa */
