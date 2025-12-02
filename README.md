@@ -52,6 +52,7 @@ Chạy ứng dụng:
 Bash
 
 npm run dev
+
 Frontend sẽ chạy tại: http://localhost:5173 (hoặc port hiển thị trên terminal).
 
 🧪 Tài Khoản Demo
