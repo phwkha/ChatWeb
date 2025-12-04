@@ -3,7 +3,6 @@ package com.web.backend.service;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.model.ChatMessage;
 
-import java.util.List;
 import java.util.Map;
 
 public interface MessageService {

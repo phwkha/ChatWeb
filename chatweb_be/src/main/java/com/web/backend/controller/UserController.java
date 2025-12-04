@@ -1,7 +1,6 @@
 package com.web.backend.controller;
 
 import com.web.backend.common.Convert;
-import com.web.backend.common.Role;
 import com.web.backend.controller.request.ChangePasswordRequest;
 import com.web.backend.controller.request.CreateUserRequest;
 import com.web.backend.controller.request.UpdateUserRequest;
