@@ -61,4 +61,12 @@ public interface UserService {
     UserDTO adminUpdateUser(String username, AdminUpdateUserRequest request);
 
     void adminDeleteUser(String targetUsername, String requesterUsername);
+
+    List<AddressDTO> adminGetAllAddresses(String targetUsername);
+
+    AddressDTO adminGetAddressById(String targetUsername, Long addressId);
+
+    UserDTO adminUpdateAddress(String targetUsername, Long addressId, AddressRequest request);
+
+    UserDTO adminDeleteAddress(String targetUsername, Long addressId);
 }

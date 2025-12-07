@@ -374,6 +374,69 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<AddressDTO> adminGetAllAddresses(String targetUsername) {
+        UserEntity user = userRepository.findByUsername(targetUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+
+        log.info("Admin get all addresses for user: {}", targetUsername);
+        return user.getAddresses().stream()
+                .map(userMapper::toAddressDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AddressDTO adminGetAddressById(String targetUsername, Long addressId) {
+        UserEntity user = userRepository.findByUsername(targetUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+
+        AddressEntity address = user.getAddresses().stream()
+                .filter(a -> a.getId().equals(addressId))
+                .findFirst()
+                .orElseThrow(() -> new AccessForbiddenException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của người dùng mục tiêu."));
+
+        log.info("Admin get address {} for user: {}", addressId, targetUsername);
+        return userMapper.toAddressDTO(address);
+    }
+
+    @Override
+    @Transactional
+    public UserDTO adminUpdateAddress(String targetUsername, Long addressId, AddressRequest request) {
+        UserEntity user = userRepository.findByUsername(targetUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+
+        AddressEntity addressToUpdate = user.getAddresses().stream()
+                .filter(a -> a.getId().equals(addressId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của người dùng mục tiêu."));
+
+        userMapper.updateAddressFromRequest(request, addressToUpdate);
+
+        userRepository.save(user);
+        log.info("Admin updated address {} for user: {}", addressId, targetUsername);
+        return userMapper.toUserDTO(user);
+    }
+
+    @Override
+    @Transactional
+    public UserDTO adminDeleteAddress(String targetUsername, Long addressId) {
+        UserEntity user = userRepository.findByUsername(targetUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+
+        AddressEntity addressToDelete = user.getAddresses().stream()
+                .filter(a -> a.getId().equals(addressId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Địa chỉ không tồn tại"));
+
+        user.removeAddress(addressToDelete);
+
+        userRepository.save(user);
+        log.info("Admin deleted address {} for user: {}", addressId, targetUsername);
+        return userMapper.toUserDTO(user);
+    }
+
+    @Override
     public Optional<UserEntity> findByUsername(String username) {
         Optional<UserEntity> userOpt = userRepository.findByUsername(username);
 

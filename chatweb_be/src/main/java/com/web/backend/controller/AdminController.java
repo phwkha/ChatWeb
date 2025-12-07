@@ -1,9 +1,11 @@
 package com.web.backend.controller;
 
+import com.web.backend.controller.request.AddressRequest;
 import com.web.backend.controller.request.AdminCreateUserRequest;
 import com.web.backend.controller.request.AdminUpdateUserRequest;
 import com.web.backend.controller.response.ApiResponse;
 import com.web.backend.controller.response.PageResponse;
+import com.web.backend.model.DTO.AddressDTO;
 import com.web.backend.model.DTO.UserDTO;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.UserService;
@@ -13,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/admin")
@@ -72,5 +76,54 @@ public class AdminController {
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
                 .body(ApiResponse.success(HttpStatus.NO_CONTENT.value(), "Xóa user thành công", null));
+    }
+
+    @GetMapping("/user/{username}/addresses")
+    public ResponseEntity<ApiResponse<List<AddressDTO>>> getAllAddressesForUser(@PathVariable String username) {
+        List<AddressDTO> addresses = userService.adminGetAllAddresses(username);
+        return ResponseEntity.ok(ApiResponse.success(
+                HttpStatus.OK.value(),
+                "Lấy tất cả địa chỉ của người dùng " + username + " thành công",
+                addresses));
+    }
+
+    @GetMapping("/user/{username}/address/{addressId}")
+    public ResponseEntity<ApiResponse<AddressDTO>> getAddressByIdForUser(
+            @PathVariable String username,
+            @PathVariable Long addressId) {
+
+        AddressDTO address = userService.adminGetAddressById(username, addressId);
+        return ResponseEntity.ok(ApiResponse.success(
+                HttpStatus.OK.value(),
+                "Lấy chi tiết địa chỉ thành công",
+                address));
+    }
+
+    @PutMapping("/user/{username}/address/{addressId}")
+    public ResponseEntity<ApiResponse<UserDTO>> updateAddressForUser(
+            @PathVariable String username,
+            @PathVariable Long addressId,
+            @RequestBody @Valid AddressRequest addressRequest) {
+
+        UserDTO result = userService.adminUpdateAddress(username, addressId, addressRequest);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                HttpStatus.OK.value(),
+                "Admin đã cập nhật địa chỉ thành công cho người dùng " + username,
+                result));
+    }
+
+    @DeleteMapping("/user/{username}/address/{addressId}")
+    public ResponseEntity<ApiResponse<Void>> deleteAddressForUser(
+            @PathVariable String username,
+            @PathVariable Long addressId) {
+
+        userService.adminDeleteAddress(username, addressId);
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                .body(ApiResponse.success(
+                        HttpStatus.NO_CONTENT.value(),
+                        "Admin đã xóa địa chỉ thành công cho người dùng " + username,
+                        null));
     }
 }
