@@ -1,10 +1,12 @@
 package com.web.backend.service.impl;
 
 import com.web.backend.JWT.JwtService;
-import com.web.backend.common.Convert;
 import com.web.backend.common.UserStatus;
 import com.web.backend.controller.request.LoginRequest;
 import com.web.backend.controller.response.LoginResponse;
+import com.web.backend.exception.AccessForbiddenException;
+import com.web.backend.exception.ResourceNotFoundException;
+import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.UserEntity;
 import com.web.backend.repository.UserRepository;
 import com.web.backend.service.AuthenticationService;
@@ -27,21 +29,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final AuthenticationManager authenticationManager;
 
+    private final UserMapper userMapper;
+
     private final JwtService jwtService;
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
 
         UserEntity userEntity = userRepository.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found")); // Sai username
+                .orElseThrow(() -> new ResourceNotFoundException("Tên đăng nhập hoặc mật khẩu không chính xác"));
 
-        // 2. Kiểm tra logic xóa mềm (INACTIVE)
         if (userEntity.getUserStatus() == UserStatus.INACTIVE) {
-            throw new RuntimeException("User not found"); // Giả vờ không tìm thấy
+            throw new ResourceNotFoundException("Người dùng không tồn tại");
         }
 
-        // 3. Xác thực bằng AuthenticationManager
-        // Nếu user bị LOCKED (đã cấu hình ở bước 2), hàm này sẽ ném LockedException
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -50,7 +51,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     )
             );
         } catch (org.springframework.security.authentication.LockedException e) {
-            throw new RuntimeException("Tài khoản của bạn đã bị khóa!");
+            throw new AccessForbiddenException("Tài khoản của bạn đã bị khóa!");
         } catch (org.springframework.security.core.AuthenticationException e) {
             throw new RuntimeException("Sai mật khẩu hoặc tài khoản không tồn tại");
         }
@@ -59,21 +60,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         return LoginResponse.builder()
                 .token(jwtToken)
-                .userDTO(Convert.UserConvertToUserDTO(userEntity))
+                .userDTO(userMapper.toUserDTO(userEntity))
                 .build();
     }
 
     @Override
-    public ResponseEntity<String> logout() {
-        ResponseCookie responseCookie = ResponseCookie.from("JWT", "")
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Strict")
-                .build();
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, responseCookie.toString())
-                .body("Logged out successfully");
+    public void logout() {
+        log.info("User logout request processed");
     }
 
 }

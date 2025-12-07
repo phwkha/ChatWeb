@@ -1,13 +1,11 @@
 package com.web.backend.controller;
 
 import com.web.backend.common.MessageType;
-import com.web.backend.config.WebSocketConfig;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.service.MessageService;
 import com.web.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -19,102 +17,90 @@ import java.time.LocalDateTime;
 
 @Controller
 @RequiredArgsConstructor
+@Slf4j
 public class ChatController {
 
     private final UserService userService;
-
     private final MessageService messageService;
-
     private final SimpMessagingTemplate simpMessagingTemplate;
-
-    private static final Logger logger = LoggerFactory.getLogger(WebSocketConfig.class);
 
     @MessageMapping("/chat/addUser")
     @SendTo("/topic/public")
     public ChatMessage addUser(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
+        log.info("Request add user: {}", chatMessage.getSender());
 
-        System.out.println("addUser" + chatMessage);
-
-        if (userService.userExists(chatMessage.getSender())){
-
-            logger.info("User validated successfully: {}", chatMessage.getSender());
-            headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
-            userService.setUserOnlineStatus(chatMessage.getSender(), true);
-
-            System.out.println("user added successfully " + chatMessage.getSender() + " with session Id "
-            + headerAccessor.getSessionId());
-
-            chatMessage.setTimestamp(LocalDateTime.now());
-            if (chatMessage.getContent() == null ) {
-                chatMessage.setContent("");
+        if (userService.userExists(chatMessage.getSender())) {
+            if (headerAccessor.getSessionAttributes() != null) {
+                headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
             }
-            ChatMessage out = messageService.save(chatMessage);
-            logger.info("Saved message: {}", out);
-            return out;
+
+            userService.setUserOnlineStatus(chatMessage.getSender(), true);
+            log.info("User added successfully: {} (Session ID: {})",
+                    chatMessage.getSender(), headerAccessor.getSessionId());
+
+            normalizeMessage(chatMessage);
+
+            ChatMessage savedMessage = messageService.save(chatMessage);
+            log.debug("Saved JOIN message: {}", savedMessage.getId());
+            return savedMessage;
         }
-        logger.info("addUser called for sender={}, exists={}", chatMessage.getSender(), userService.userExists(chatMessage.getSender()));
+
+        log.warn("Add user failed: User {} does not exist", chatMessage.getSender());
         return null;
     }
 
     @MessageMapping("/chat/sendMessage")
     @SendTo("/topic/public")
     public ChatMessage sendMessage(@Payload ChatMessage chatMessage) {
+        log.debug("Public chat from: {}", chatMessage.getSender());
 
-        System.out.println("sendMessage" + chatMessage);
-
-        if (userService.userExists(chatMessage.getSender())){
-            System.out.println("user exists for sender=" + chatMessage.getSender());
+        if (userService.userExists(chatMessage.getSender())) {
             if (chatMessage.getMessageType() == MessageType.CHAT) {
-                if (chatMessage.getTimestamp() == null) {
-                    chatMessage.setTimestamp(LocalDateTime.now());
-                }
-                if (chatMessage.getContent() == null) {
-                    chatMessage.setContent("");
-                }
+                normalizeMessage(chatMessage);
                 return messageService.save(chatMessage);
             }
             return chatMessage;
         }
+
+        log.warn("Public chat rejected: Sender {} not found", chatMessage.getSender());
         return null;
     }
 
     @MessageMapping("/chat/sendPrivateMessage")
-    public void sendPrivateMessage(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
-
-        System.out.println("sendPrivateMessage (E2EE)" + chatMessage.getSender() + " to " + chatMessage.getRecipient());
+    public void sendPrivateMessage(@Payload ChatMessage chatMessage) {
+        log.info("Private message (E2EE) from {} to {}", chatMessage.getSender(), chatMessage.getRecipient());
 
         if (userService.userExists(chatMessage.getSender()) && userService.userExists(chatMessage.getRecipient())) {
 
-            if (chatMessage.getTimestamp() == null) {
-                chatMessage.setTimestamp(LocalDateTime.now());
-            }
-
-            if (chatMessage.getContent() == null) {
-                chatMessage.setContent("");
-            }
-
+            normalizeMessage(chatMessage);
             chatMessage.setMessageType(MessageType.PRIVATE_CHAT);
-
             chatMessage.setId(null);
 
             ChatMessage savedMessage = messageService.save(chatMessage);
-            System.out.println("Message saved successfully with Id" + savedMessage.getId());
+            log.debug("Private message saved with ID: {}", savedMessage.getId());
 
             try {
                 String recipientDestination = "/user/" + chatMessage.getRecipient() + "/queue/private";
-                System.out.println("Sending message to recipient destination" + recipientDestination);
                 simpMessagingTemplate.convertAndSend(recipientDestination, savedMessage);
 
                 String senderDestination = "/user/" + chatMessage.getSender() + "/queue/private";
-                System.out.println("Sending message to sender destination" + senderDestination);
                 simpMessagingTemplate.convertAndSend(senderDestination, savedMessage);
-            }  catch (Exception e) {
-                System.out.println("ERROR occured while sending the message" + e.getMessage());
-                e.printStackTrace();
+
+            } catch (Exception e) {
+                log.error("Error sending private message from {} to {}",
+                        chatMessage.getSender(), chatMessage.getRecipient(), e);
             }
         } else {
-            System.out.println("ERROR: sender " +  chatMessage.getSender() + "or recipient" + chatMessage.getRecipient() + " does not exist");
+            log.error("Send private message failed: Sender or Recipient not found");
         }
     }
 
+    private void normalizeMessage(ChatMessage chatMessage) {
+        if (chatMessage.getTimestamp() == null) {
+            chatMessage.setTimestamp(LocalDateTime.now());
+        }
+        if (chatMessage.getContent() == null) {
+            chatMessage.setContent("");
+        }
+    }
 }

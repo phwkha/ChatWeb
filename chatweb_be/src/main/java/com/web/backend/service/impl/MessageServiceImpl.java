@@ -1,6 +1,7 @@
 package com.web.backend.service.impl;
 
 import com.web.backend.controller.response.CursorResponse;
+import com.web.backend.controller.response.UnreadCountsResponse;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.repository.MessageRepository;
 import com.web.backend.service.MessageService;
@@ -38,7 +39,7 @@ public class MessageServiceImpl implements MessageService {
             messages = messageRepository.findMessagesBeforeCursor(user1, user2, cursorTime, pageable);
         }
 
-        return buildCursorResponse(messages, size); // Gọi hàm tái sử dụng
+        return buildCursorResponse(messages, size);
     }
 
     @Override
@@ -53,14 +54,15 @@ public class MessageServiceImpl implements MessageService {
             messages = messageRepository.findMessageByMessageTypeIsChat(cursorTime, pageable);
         }
 
-        return buildCursorResponse(messages, size); // Gọi hàm tái sử dụng
+        return buildCursorResponse(messages, size);
     }
 
     @Override
-    public Map<String, Long> getUnreadMessageCounts(String recipientUsername) {
+    public UnreadCountsResponse getUnreadMessageCounts(String recipientUsername) {
         List<ChatMessage> unread = messageRepository.findUnreadPrivateMessages(recipientUsername);
-        return unread.stream()
-                .collect(Collectors.groupingBy(ChatMessage::getSender, Collectors.counting()));
+        return UnreadCountsResponse.builder()
+                .unreadCounts(unread.stream().collect(Collectors.groupingBy(ChatMessage::getSender, Collectors.counting())))
+                .build();
     }
 
     @Override

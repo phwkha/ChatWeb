@@ -1,18 +1,18 @@
 package com.web.backend.controller;
 
-import com.web.backend.common.Role;
 import com.web.backend.controller.request.AdminCreateUserRequest;
 import com.web.backend.controller.request.AdminUpdateUserRequest;
+import com.web.backend.controller.response.ApiResponse;
+import com.web.backend.controller.response.PageResponse;
 import com.web.backend.model.DTO.UserDTO;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/admin")
@@ -22,61 +22,55 @@ public class AdminController {
     private final UserService userService;
 
     @GetMapping("/users")
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
-        List<UserDTO> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+    public ResponseEntity<ApiResponse<PageResponse<UserDTO>>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        PageResponse<UserDTO> users = userService.getAllUsers(page, size, sortBy);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách user thành công", users));
     }
 
     @GetMapping("/user/{username}")
-    public ResponseEntity<UserDTO> getUserByUsername(@PathVariable String username) {
+    public ResponseEntity<ApiResponse<UserDTO>> getUserByUsername(@PathVariable String username) {
         UserDTO user = userService.getUserByUsername(username);
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy thông tin user thành công", user));
     }
 
     @PostMapping("/add")
-    public ResponseEntity<UserDTO> addUser(@RequestBody AdminCreateUserRequest adminCreateUserRequest, Authentication authentication) {
-        UserDTO newUser = userService.adminCreateUser(adminCreateUserRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
+    public ResponseEntity<ApiResponse<UserDTO>> addUser(@RequestBody @Valid AdminCreateUserRequest request) {
+        UserDTO newUser = userService.adminCreateUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(HttpStatus.CREATED.value(), "Tạo user thành công", newUser));
     }
 
     @PostMapping("/{username}/unlock")
-    public ResponseEntity<UserDTO> unlockUser(@PathVariable String username, Authentication authentication) {
+    public ResponseEntity<ApiResponse<UserDTO>> unlockUser(@PathVariable String username) {
         UserDTO unlockedUser = userService.unlockUser(username);
-        return ResponseEntity.ok(unlockedUser);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Mở khóa user thành công", unlockedUser));
     }
 
     @PostMapping("/{username}/lock")
-    public ResponseEntity<UserDTO> lockUser(@PathVariable String username, Authentication authentication) {
+    public ResponseEntity<ApiResponse<UserDTO>> lockUser(@PathVariable String username) {
         UserDTO lockedUser = userService.lockUser(username);
-        return ResponseEntity.ok(lockedUser);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Khóa user thành công", lockedUser));
     }
 
     @PutMapping("/{username}")
-    public ResponseEntity<UserDTO> updateUser(
+    public ResponseEntity<ApiResponse<UserDTO>> updateUser(
             @PathVariable String username,
-            @RequestBody AdminUpdateUserRequest adminUpdateUserRequest) {
-        UserDTO updatedUser = userService.adminUpdateUser(username, adminUpdateUserRequest);
-        return ResponseEntity.ok(updatedUser);
+            @RequestBody @Valid AdminUpdateUserRequest request) {
+        UserDTO updatedUser = userService.adminUpdateUser(username, request);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật user thành công", updatedUser));
     }
 
     @DeleteMapping("/{username}")
-    public ResponseEntity<?> deleteUser(@PathVariable String username, Authentication authentication) {
-        UserDTO user = userService.getUserByUsername(username);
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable String username, Authentication authentication) {
         UserEntity adminPrincipal = (UserEntity) authentication.getPrincipal();
-        if (user.getRole() == Role.ADMIN_PRO) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("khong the xoa adminpro");
-        }
-        if (user.getRole() == Role.ADMIN) {
-            if (adminPrincipal.getRole() == Role.ADMIN_PRO) {
-                userService.deleteUser(username);
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-            } else {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body("Chỉ ADMIN_PRO mới có quyền xóa tài khoản ADMIN!");
-            }
-        }
 
-        userService.deleteUser(username);
-        return ResponseEntity.noContent().build();
+        userService.adminDeleteUser(username, adminPrincipal.getUsername());
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                .body(ApiResponse.success(HttpStatus.NO_CONTENT.value(), "Xóa user thành công", null));
     }
 }

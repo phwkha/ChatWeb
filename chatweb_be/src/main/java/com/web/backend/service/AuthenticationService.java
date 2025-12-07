@@ -5,7 +5,7 @@ import com.web.backend.controller.response.LoginResponse;
 import org.springframework.http.ResponseEntity;
 
 public interface AuthenticationService {
-    ResponseEntity<String> logout();
+    void logout();
     LoginResponse login(LoginRequest loginRequest);
 
 }

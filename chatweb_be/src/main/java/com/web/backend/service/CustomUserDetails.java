@@ -20,7 +20,7 @@ public class CustomUserDetails implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserEntity userEntity = userService.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+        UserEntity userEntity = userService.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("Người dùng không tồn tại: " + username));
 
         boolean isLocked = (userEntity.getUserStatus() == UserStatus.LOCKED);
         GrantedAuthority authority = new SimpleGrantedAuthority(userEntity.getRole().name());
