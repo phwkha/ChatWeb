@@ -1,23 +1,20 @@
-package com.web.backend.model.DTO;
+package com.web.backend.controller.response;
 
 import com.web.backend.common.GenderType;
-import com.web.backend.common.Role;
 import com.web.backend.common.UserStatus;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.util.Date;
-import java.util.List;
+import java.util.Set;
 
-@Builder
+@SuperBuilder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserDTO {
-
-    private Long id;
+public class UserResponse {
 
     private String username;
 
@@ -29,7 +26,9 @@ public class UserDTO {
 
     private UserStatus userStatus;
 
-    private Role role;
+    private Set<String> roles;
+
+    private Set<String> permissions;
 
     private String firstName;
 
@@ -45,6 +44,5 @@ public class UserDTO {
 
     private Date updateAt;
 
-    private List<AddressDTO> addresses;
 
 }

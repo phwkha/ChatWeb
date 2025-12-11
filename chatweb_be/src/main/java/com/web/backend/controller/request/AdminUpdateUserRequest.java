@@ -1,6 +1,5 @@
 package com.web.backend.controller.request;
 
-import com.web.backend.common.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
@@ -18,5 +17,5 @@ public class AdminUpdateUserRequest {
             message = "Số điện thoại không hợp lệ"
     )
     private String phone;
-    private Role role;
+    private Long roleId;
 }

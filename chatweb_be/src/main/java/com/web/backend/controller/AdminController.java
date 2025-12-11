@@ -3,10 +3,8 @@ package com.web.backend.controller;
 import com.web.backend.controller.request.AddressRequest;
 import com.web.backend.controller.request.AdminCreateUserRequest;
 import com.web.backend.controller.request.AdminUpdateUserRequest;
-import com.web.backend.controller.response.ApiResponse;
-import com.web.backend.controller.response.PageResponse;
-import com.web.backend.model.DTO.AddressDTO;
-import com.web.backend.model.DTO.UserDTO;
+import com.web.backend.controller.response.*;
+import com.web.backend.controller.response.AddressResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.UserService;
 import jakarta.validation.Valid;
@@ -26,45 +24,45 @@ public class AdminController {
     private final UserService userService;
 
     @GetMapping("/users")
-    public ResponseEntity<ApiResponse<PageResponse<UserDTO>>> getAllUsers(
+    public ResponseEntity<ApiResponse<PageResponse<UserSummaryResponse>>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy
     ) {
-        PageResponse<UserDTO> users = userService.getAllUsers(page, size, sortBy);
+        PageResponse<UserSummaryResponse> users = userService.getAllUsers(page, size, sortBy);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách user thành công", users));
     }
 
     @GetMapping("/user/{username}")
-    public ResponseEntity<ApiResponse<UserDTO>> getUserByUsername(@PathVariable String username) {
-        UserDTO user = userService.getUserByUsername(username);
+    public ResponseEntity<ApiResponse<UserDetailResponse>> getUserByUsername(@PathVariable String username) {
+        UserDetailResponse user = userService.getUserByUsername(username);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy thông tin user thành công", user));
     }
 
     @PostMapping("/add")
-    public ResponseEntity<ApiResponse<UserDTO>> addUser(@RequestBody @Valid AdminCreateUserRequest request) {
-        UserDTO newUser = userService.adminCreateUser(request);
+    public ResponseEntity<ApiResponse<UserResponse>> addUser(@RequestBody @Valid AdminCreateUserRequest request) {
+        UserResponse newUser = userService.adminCreateUser(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(HttpStatus.CREATED.value(), "Tạo user thành công", newUser));
     }
 
     @PostMapping("/{username}/unlock")
-    public ResponseEntity<ApiResponse<UserDTO>> unlockUser(@PathVariable String username) {
-        UserDTO unlockedUser = userService.unlockUser(username);
+    public ResponseEntity<ApiResponse<UserResponse>> unlockUser(@PathVariable String username) {
+        UserResponse unlockedUser = userService.unlockUser(username);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Mở khóa user thành công", unlockedUser));
     }
 
     @PostMapping("/{username}/lock")
-    public ResponseEntity<ApiResponse<UserDTO>> lockUser(@PathVariable String username) {
-        UserDTO lockedUser = userService.lockUser(username);
+    public ResponseEntity<ApiResponse<UserResponse>> lockUser(@PathVariable String username) {
+        UserResponse lockedUser = userService.lockUser(username);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Khóa user thành công", lockedUser));
     }
 
     @PutMapping("/{username}")
-    public ResponseEntity<ApiResponse<UserDTO>> updateUser(
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable String username,
             @RequestBody @Valid AdminUpdateUserRequest request) {
-        UserDTO updatedUser = userService.adminUpdateUser(username, request);
+        UserResponse updatedUser = userService.adminUpdateUser(username, request);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật user thành công", updatedUser));
     }
 
@@ -79,8 +77,8 @@ public class AdminController {
     }
 
     @GetMapping("/user/{username}/addresses")
-    public ResponseEntity<ApiResponse<List<AddressDTO>>> getAllAddressesForUser(@PathVariable String username) {
-        List<AddressDTO> addresses = userService.adminGetAllAddresses(username);
+    public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddressesForUser(@PathVariable String username) {
+        List<AddressResponse> addresses = userService.adminGetAllAddresses(username);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
                 "Lấy tất cả địa chỉ của người dùng " + username + " thành công",
@@ -88,11 +86,11 @@ public class AdminController {
     }
 
     @GetMapping("/user/{username}/address/{addressId}")
-    public ResponseEntity<ApiResponse<AddressDTO>> getAddressByIdForUser(
+    public ResponseEntity<ApiResponse<AddressResponse>> getAddressByIdForUser(
             @PathVariable String username,
             @PathVariable Long addressId) {
 
-        AddressDTO address = userService.adminGetAddressById(username, addressId);
+        AddressResponse address = userService.adminGetAddressById(username, addressId);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
                 "Lấy chi tiết địa chỉ thành công",
@@ -100,12 +98,12 @@ public class AdminController {
     }
 
     @PutMapping("/user/{username}/address/{addressId}")
-    public ResponseEntity<ApiResponse<UserDTO>> updateAddressForUser(
+    public ResponseEntity<ApiResponse<UserDetailResponse>> updateAddressForUser(
             @PathVariable String username,
             @PathVariable Long addressId,
             @RequestBody @Valid AddressRequest addressRequest) {
 
-        UserDTO result = userService.adminUpdateAddress(username, addressId, addressRequest);
+        UserDetailResponse result = userService.adminUpdateAddress(username, addressId, addressRequest);
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),

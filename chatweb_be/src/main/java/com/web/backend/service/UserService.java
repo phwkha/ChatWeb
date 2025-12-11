@@ -1,10 +1,8 @@
 package com.web.backend.service;
 
 import com.web.backend.controller.request.*;
-import com.web.backend.controller.response.OnlineUsersResponse;
-import com.web.backend.controller.response.PageResponse;
-import com.web.backend.model.DTO.AddressDTO;
-import com.web.backend.model.DTO.UserDTO;
+import com.web.backend.controller.response.*;
+import com.web.backend.controller.response.AddressResponse;
 import com.web.backend.model.UserEntity;
 
 import java.util.List;
@@ -22,51 +20,59 @@ public interface UserService {
 
     boolean userExistsByEmail(String email);
 
-    UserDTO createUser(CreateUserRequest createUserRequest);
+    UserResponse createUser(CreateUserRequest createUserRequest);
 
     OnlineUsersResponse getOnlineUsers();
 
-    UserDTO getCurrentUser(String username);
+    UserResponse getCurrentUser(String username);
+
+    UserDetailResponse getProfileUser(String username);
 
     void savePublicKey(String username, String publicKey);
 
     String getPublicKey(String username);
 
-    UserDTO updateUser(String username, UpdateUserRequest request);
+    UserDetailResponse updateUser(String username, UpdateUserRequest request);
 
-    UserDTO addAddress(String username, AddressRequest request);
+    void initiateEmailChange(String username, String newEmail, String currentPassword);
 
-    UserDTO updateAddress(String username, Long addressId, AddressRequest request);
+    void initiateForgotPassword(String email);
 
-    UserDTO deleteAddress(String username, Long addressId);
+    void initiatePhoneChange(String username, String newPhone, String currentPassword);
 
-    List<AddressDTO> getAllAddresses(String username);
+    UserDetailResponse addAddress(String username, AddressRequest request);
 
-    AddressDTO getAddressById(String username, Long addressId);
+    UserDetailResponse updateAddress(String username, Long addressId, AddressRequest request);
+
+    UserDetailResponse deleteAddress(String username, Long addressId);
+
+    List<AddressResponse> getAllAddresses(String username);
+
+    AddressResponse getAddressById(String username, Long addressId);
 
     void deleteUser(String username);
 
     void changePassword(String username, String currentPassword, String newPassword);
 
-    PageResponse<UserDTO> getAllUsers(int pageNo, int pageSize, String sortBy);
+    PageResponse<UserSummaryResponse> getAllUsers(int pageNo, int pageSize, String sortBy);
 
-    UserDTO getUserByUsername(String username);
+    UserDetailResponse getUserByUsername(String username);
 
-    UserDTO adminCreateUser(AdminCreateUserRequest request);
+    UserResponse adminCreateUser(AdminCreateUserRequest request);
 
-    UserDTO lockUser(String username);
+    UserResponse lockUser(String username);
 
-    UserDTO unlockUser(String username);
+    UserResponse unlockUser(String username);
 
-    UserDTO adminUpdateUser(String username, AdminUpdateUserRequest request);
+    UserResponse adminUpdateUser(String username, AdminUpdateUserRequest request);
 
     void adminDeleteUser(String targetUsername, String requesterUsername);
 
-    List<AddressDTO> adminGetAllAddresses(String targetUsername);
+    List<AddressResponse> adminGetAllAddresses(String targetUsername);
 
-    AddressDTO adminGetAddressById(String targetUsername, Long addressId);
+    AddressResponse adminGetAddressById(String targetUsername, Long addressId);
 
-    UserDTO adminUpdateAddress(String targetUsername, Long addressId, AddressRequest request);
+    UserDetailResponse adminUpdateAddress(String targetUsername, Long addressId, AddressRequest request);
 
-    UserDTO adminDeleteAddress(String targetUsername, Long addressId);
+    void adminDeleteAddress(String targetUsername, Long addressId);
 }

@@ -12,14 +12,12 @@ public class UpdateUserRequest {
     private String firstName;
     private String lastName;
 
-    @Email(message = "Email không hợp lệ")
-    private String email;
-
     @Pattern(
             regexp = "^(0[0-9]{9}|\\+84[0-9]{9})$",
             message = "Số điện thoại không hợp lệ"
     )
     private String phone;
+
     private String avatar;
     private Date birthday;
     private GenderType gender;

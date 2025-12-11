@@ -1,28 +1,21 @@
 package com.web.backend.model;
 
 import com.web.backend.common.GenderType;
-import com.web.backend.common.Role;
 import com.web.backend.common.UserStatus;
-import jakarta.persistence.*; // Import từ jakarta.persistence
+import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.io.Serializable;
+import java.util.*;
 
 @Entity
 @Table(name = "users")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class UserEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class UserEntity extends AbstractEntity<Long> implements Serializable, UserDetails {
 
     @Column(unique = true, nullable = false)
     private String username;
@@ -30,7 +23,7 @@ public class UserEntity {
     @Column(nullable = false)
     private String password;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true)
     private String email;
 
     @Column
@@ -43,9 +36,21 @@ public class UserEntity {
     @Enumerated(EnumType.STRING)
     private UserStatus userStatus;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
+    @ManyToMany(fetch = FetchType.EAGER) // EAGER để load quyền ngay khi login
+    @JoinTable(
+            name = "user_has_role",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<RoleEntity> roles = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "group_has_user",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "group_id")
+    )
+    private Set<GroupEntity> groups = new HashSet<>();
 
     @Column(columnDefinition = "TEXT", name = "public_key")
     private String publicKey;
@@ -68,16 +73,6 @@ public class UserEntity {
     @Enumerated(EnumType.STRING)
     private GenderType gender;
 
-    @Column(name = "crate_at")
-    @Temporal(TemporalType.TIMESTAMP)
-    @CreationTimestamp
-    private Date createAt;
-
-    @Column(name = "update_at")
-    @Temporal(TemporalType.TIMESTAMP)
-    @UpdateTimestamp
-    private Date updateAt;
-
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     private List<AddressEntity> addresses = new ArrayList<>();
@@ -90,5 +85,37 @@ public class UserEntity {
     public void removeAddress(AddressEntity address) {
         this.addresses.remove(address);
         address.setUser(null);
+    }
+
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+
+        for (RoleEntity role : roles) {
+            for (PermissionEntity permission : role.getPermissions()) {
+                authorities.add(new SimpleGrantedAuthority(permission.getName()));
+            }
+        }
+        return authorities;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return UserDetails.super.isAccountNonExpired();
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return UserDetails.super.isCredentialsNonExpired();
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return !UserStatus.LOCKED.equals(userStatus);
+    }
+    @Override
+    public boolean isEnabled() {
+        return UserStatus.ACTIVE.equals(userStatus);
     }
 }

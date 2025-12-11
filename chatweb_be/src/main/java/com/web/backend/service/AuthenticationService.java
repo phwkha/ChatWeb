@@ -7,5 +7,5 @@ import org.springframework.http.ResponseEntity;
 public interface AuthenticationService {
     void logout();
     LoginResponse login(LoginRequest loginRequest);
-
+    String refreshToken(String refreshToken);
 }

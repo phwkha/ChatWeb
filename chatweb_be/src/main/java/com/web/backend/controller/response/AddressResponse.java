@@ -1,4 +1,4 @@
-package com.web.backend.model.DTO;
+package com.web.backend.controller.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class AddressDTO {
+public class AddressResponse {
     private Long id;
     private String houseNumber;
     private String street;

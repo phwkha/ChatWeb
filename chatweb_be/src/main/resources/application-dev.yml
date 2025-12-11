@@ -18,6 +18,14 @@ spring:
     show-sql: false
     hibernate:
       ddl-auto: update
+  sendgrid:
+    api-key: ${SENDGRID_KEY}
+    from-email: ${FROM_EMAIL}
+    template-id: ${TEMPLATE_ID}
+    otp: ${TEMPLATE_OTP_ID}
+    expiration-minutes: 5
+  cors:
+    allowed-origins:
 
 springdoc:
   api-docs:
@@ -33,6 +41,9 @@ openapi:
     server: http://localhost:${server.port}
 
 jwt:
-  # Tuyet doi khong de key o day
-  secret: ${JWT_SECRET}
+  secret-key-access: ${JWT_SECRET}
+  secret-key-refresh: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  expiry-minutes: 60
+  expiry-day: 7
