@@ -17,12 +17,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/roles")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')") // Chỉ Admin mới được quản lý Roles
+@PreAuthorize("hasRole('ADMIN')")
 public class RoleController {
 
     private final RoleService roleService;
 
-    // 1. Lấy danh sách tất cả các Role
     @GetMapping
     public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles() {
         return ResponseEntity.ok(ApiResponse.success(
@@ -32,7 +31,6 @@ public class RoleController {
         ));
     }
 
-    // 2. Lấy danh sách tất cả Permissions (để hiển thị checkbox trên Frontend)
     @GetMapping("/permissions")
     public ResponseEntity<ApiResponse<List<PermissionResponse>>> getAllPermissions() {
         return ResponseEntity.ok(ApiResponse.success(
@@ -42,7 +40,6 @@ public class RoleController {
         ));
     }
 
-    // 3. Tạo Role mới
     @PostMapping
     public ResponseEntity<ApiResponse<RoleResponse>> createRole(@RequestBody @Valid RoleRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
@@ -52,7 +49,6 @@ public class RoleController {
         ));
     }
 
-    // 4. Cập nhật Role (đổi tên, gán lại quyền)
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<RoleResponse>> updateRole(@PathVariable Long id, @RequestBody @Valid RoleRequest request) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -62,7 +58,6 @@ public class RoleController {
         ));
     }
 
-    // 5. Xóa Role
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable Long id) {
         roleService.deleteRole(id);

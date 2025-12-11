@@ -13,8 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -40,18 +38,16 @@ public class DataSeeder implements CommandLineRunner {
 
         assignPermissionToRole(roleUser, pUserView);
 
-        if (!userRepository.existsByUsername("admin_pro")) {
+        if (!userRepository.existsByUsername("admin")) {
             UserEntity admin = new UserEntity();
-            admin.setUsername("admin_pro");
-            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setUsername("admin");
+            admin.setPassword(passwordEncoder.encode("admin"));
             admin.setEmail("admin@example.com");
             admin.setUserStatus(UserStatus.ACTIVE);
             admin.setFirstName("Super");
             admin.setLastName("Admin");
 
-            Set<RoleEntity> roles = new HashSet<>();
-            roles.add(roleAdmin);
-            admin.setRoles(roles);
+            admin.setRole(roleAdmin);
 
             userRepository.save(admin);
         }

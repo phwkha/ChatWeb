@@ -10,15 +10,9 @@ import java.util.Optional;
 
 public interface UserService {
 
-    Optional<UserEntity> findByUsername(String username);
-
-    Optional<UserEntity> findById(Long id);
-
     void setUserOnlineStatus(String username, boolean isOnline);
 
     boolean userExists(String username);
-
-    boolean userExistsByEmail(String email);
 
     UserResponse createUser(CreateUserRequest createUserRequest);
 

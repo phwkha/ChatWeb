@@ -15,9 +15,9 @@ import java.util.stream.Collectors;
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
 
-    @Mapping(target = "roles", source = "roles", qualifiedByName = "mapRolesToStrings")
-    @Mapping(target = "permissions", source = "entity", qualifiedByName = "mapPermissionsToStrings") // Thêm dòng này
-    UserResponse toUserDTO(UserEntity entity);
+    @Mapping(target = "role", source = "role.name")
+    @Mapping(target = "permissions", source = "entity", qualifiedByName = "mapPermissionsToStrings")
+    UserResponse toUserResponse(UserEntity entity);
 
     @Named("mapPermissionsToStrings")
     default Set<String> mapPermissionsToStrings(UserEntity entity) {
@@ -27,25 +27,14 @@ public interface UserMapper {
                 .collect(Collectors.toSet());
     }
 
-    @Named("mapRolesToStrings")
-    default Set<String> mapRolesToStrings(Set<RoleEntity> roles) {
-        if (roles == null) return null;
-        return roles.stream()
-                .map(RoleEntity::getName)
-                .collect(Collectors.toSet());
-    }
+    AddressResponse toAddressResponse(AddressEntity entity);
 
-    AddressResponse toAddressDTO(AddressEntity entity);
+    UserSummaryResponse toUserSummaryResponse(UserEntity entity);
 
-    UserSummaryResponse toUserSummaryDTO(UserEntity entity);
+    @Mapping(target = "role", source = "role.name")
+    @Mapping(target = "permissions", source = "entity", qualifiedByName = "mapPermissionsToStrings")
+    UserDetailResponse toUserDetailResponse(UserEntity entity);
 
-    UserDetailResponse toUserDetailDTO(UserEntity entity);
-
-    @Mapping(target = "roles", ignore = true)
-    @Mapping(target = "userStatus", ignore = true)
-    UserEntity toEntity(CreateUserRequest request);
-
-    @Mapping(target = "roles", ignore = true)
     @Mapping(target = "userStatus", ignore = true)
     UserEntity toEntity(AdminCreateUserRequest request);
 
@@ -57,10 +46,10 @@ public interface UserMapper {
 
     void updateAddressFromRequest(AddressRequest request, @MappingTarget AddressEntity entity);
 
-    PermissionResponse toPermissionDTO(PermissionEntity entity);
+    PermissionResponse toPermissionResponse(PermissionEntity entity);
 
     @Mapping(target = "permissions", source = "permissions")
-    RoleResponse toRoleDTO(RoleEntity entity);
+    RoleResponse toRoleResponse(RoleEntity entity);
 
     void updateRoleFromRequest(RoleRequest request, @MappingTarget RoleEntity entity);
 }

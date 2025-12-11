@@ -22,6 +22,7 @@ public class OtpController {
     public ResponseEntity<ApiResponse<Void>> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
         log.info("Verify Otp Request: {}", request);
         otpService.verifyUser(request);
+        otpService.verifyUser(request);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Kích hoạt tài khoản thành công! Bạn có thể đăng nhập ngay bây giờ.", null));
     }
 

@@ -11,6 +11,4 @@ import java.util.Optional;
 @Repository
 public interface VerificationTokenRepository extends JpaRepository<VerificationToken, Long> {
     Optional<VerificationToken> findByUserAndType(UserEntity user, OtpType type);
-
-    void deleteByUserAndType(UserEntity user, OtpType type);
 }

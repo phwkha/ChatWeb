@@ -26,7 +26,7 @@ public class UserResponse {
 
     private UserStatus userStatus;
 
-    private Set<String> roles;
+    private String role;
 
     private Set<String> permissions;
 

@@ -36,21 +36,9 @@ public class UserEntity extends AbstractEntity<Long> implements Serializable, Us
     @Enumerated(EnumType.STRING)
     private UserStatus userStatus;
 
-    @ManyToMany(fetch = FetchType.EAGER) // EAGER để load quyền ngay khi login
-    @JoinTable(
-            name = "user_has_role",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<RoleEntity> roles = new HashSet<>();
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "group_has_user",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "group_id")
-    )
-    private Set<GroupEntity> groups = new HashSet<>();
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id", nullable = false)
+    private RoleEntity role;
 
     @Column(columnDefinition = "TEXT", name = "public_key")
     private String publicKey;
@@ -92,8 +80,9 @@ public class UserEntity extends AbstractEntity<Long> implements Serializable, Us
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Set<SimpleGrantedAuthority> authorities = new HashSet<>();
 
-        for (RoleEntity role : roles) {
-            for (PermissionEntity permission : role.getPermissions()) {
+        if (this.role != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + this.role.getName()));
+            for (PermissionEntity permission : this.role.getPermissions()) {
                 authorities.add(new SimpleGrantedAuthority(permission.getName()));
             }
         }

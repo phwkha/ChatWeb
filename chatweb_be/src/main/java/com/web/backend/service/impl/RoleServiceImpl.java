@@ -31,14 +31,14 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public List<RoleResponse> getAllRoles() {
         return roleRepository.findAll().stream()
-                .map(userMapper::toRoleDTO)
+                .map(userMapper::toRoleResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<PermissionResponse> getAllPermissions() {
         return permissionRepository.findAll().stream()
-                .map(userMapper::toPermissionDTO)
+                .map(userMapper::toPermissionResponse)
                 .collect(Collectors.toList());
     }
 
@@ -61,7 +61,7 @@ public class RoleServiceImpl implements RoleService {
         }
 
         RoleEntity savedRole = roleRepository.save(role);
-        return userMapper.toRoleDTO(savedRole);
+        return userMapper.toRoleResponse(savedRole);
     }
 
     @Override
@@ -81,7 +81,7 @@ public class RoleServiceImpl implements RoleService {
         }
 
         RoleEntity savedRole = roleRepository.save(role);
-        return userMapper.toRoleDTO(savedRole);
+        return userMapper.toRoleResponse(savedRole);
     }
 
     @Override

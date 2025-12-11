@@ -14,6 +14,7 @@ import com.web.backend.repository.PendingUserRepository;
 import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
 import com.web.backend.repository.VerificationTokenRepository;
+import com.web.backend.service.EmailService;
 import com.web.backend.service.OtpService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,15 +70,11 @@ public class OtpServiceImpl implements OtpService {
         newUser.setUsername(pendingUser.getUsername());
         newUser.setEmail(pendingUser.getEmail());
         newUser.setPassword(pendingUser.getPassword());
-        newUser.setRoles(null);
         newUser.setUserStatus(UserStatus.ACTIVE);
         newUser.setCreateAt(new Date());
         RoleEntity role = roleRepository.findById(pendingUser.getRoleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
-
-        Set<RoleEntity> roles = new HashSet<>();
-        roles.add(role);
-        newUser.setRoles(roles);
+        newUser.setRole(role);
         userRepository.save(newUser);
 
         pendingUserRepository.delete(pendingUser);

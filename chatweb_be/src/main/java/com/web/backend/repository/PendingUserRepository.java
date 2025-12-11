@@ -13,8 +13,6 @@ import java.util.Optional;
 @Repository
 public interface PendingUserRepository extends JpaRepository<PendingUserEntity, Long> {
     Optional<PendingUserEntity> findByEmail(String email);
-    Optional<PendingUserEntity> findByUsername(String username);
-    boolean existsByEmail(String email);
 
     @Modifying
     @Transactional
