@@ -88,6 +88,7 @@ public class UserServiceImpl implements UserService {
 
         emailService.sendOtpEmail(pendingUser.getEmail(), pendingUser.getUsername(), otp);
 
+        log.info("Registering new user: {}", createUserRequest.getUsername());
         return UserResponse.builder()
                 .username(pendingUser.getUsername())
                 .email(pendingUser.getEmail())
@@ -103,7 +104,7 @@ public class UserServiceImpl implements UserService {
                         UserEntity::getUsername,
                         userMapper::toUserSummaryResponse
                 ));
-        log.info("Get online: users: {}", list.keySet());
+        log.info("Get online users");
         return OnlineUsersResponse.builder()
                 .users(list)
                 .build();
@@ -118,7 +119,7 @@ public class UserServiceImpl implements UserService {
             throw new ResourceNotFoundException("Người dùng không tồn tại: " + username);
         }
 
-        log.info("Get current user: {}", user.getUsername());
+        log.info("Get current user");
         return userMapper.toUserResponse(user);
     }
 
@@ -131,7 +132,7 @@ public class UserServiceImpl implements UserService {
             throw new ResourceNotFoundException("Người dùng không tồn tại: " + username);
         }
 
-        log.info("Get profile user: {}", user.getUsername());
+        log.info("Get profile user");
         return userMapper.toUserDetailResponse(user);
     }
 
@@ -139,7 +140,7 @@ public class UserServiceImpl implements UserService {
     public String getPublicKey(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
-        log.info("Get public key: {}", userEntity.getPublicKey());
+        log.info("Get public key");
         return userEntity.getPublicKey();
     }
 
@@ -148,8 +149,8 @@ public class UserServiceImpl implements UserService {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
         userEntity.setPublicKey(publicKey);
-        UserEntity user = userRepository.save(userEntity);
-        log.info("Saved public key for user: {}", username);
+        userRepository.save(userEntity);
+        log.info("Saved public key for user");
     }
 
     @Override
@@ -161,11 +162,11 @@ public class UserServiceImpl implements UserService {
         userMapper.updateUserFromRequest(request, userEntity);
 
         UserEntity updatedUser = userRepository.save(userEntity);
-        log.info("User updated profile: {}", updatedUser.getUsername());
+        log.info("User updated profile");
         return userMapper.toUserDetailResponse(updatedUser);
     }
 
-    private void generateAndSenResponseken(UserEntity user, OtpType type, String extraData, String targetEmail) {
+    private void generateAndSenResponseToken(UserEntity user, OtpType type, String extraData, String targetEmail) {
         tokenRepository.findByUserAndType(user, type).ifPresent(tokenRepository::delete);
 
         SecureRandom secureRandom = new SecureRandom();
@@ -199,9 +200,9 @@ public class UserServiceImpl implements UserService {
             throw new ResourceConflictException("Email đã tồn tại");
         }
 
-        generateAndSenResponseken(user, OtpType.EMAIL_CHANGE, newEmail, newEmail);
+        generateAndSenResponseToken(user, OtpType.EMAIL_CHANGE, newEmail, newEmail);
 
-        log.info("Email change initiated for user: {}", username);
+        log.info("Email change initiated for user");
     }
 
     @Override
@@ -210,7 +211,7 @@ public class UserServiceImpl implements UserService {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Email không tồn tại trong hệ thống"));
 
-        generateAndSenResponseken(user, OtpType.PASSWORD_RESET, null, user.getEmail());
+        generateAndSenResponseToken(user, OtpType.PASSWORD_RESET, null, user.getEmail());
 
         log.info("Password reset initiated for email: {}", email);
     }
@@ -225,9 +226,9 @@ public class UserServiceImpl implements UserService {
             throw new InvalidPasswordException("Mật khẩu không chính xác");
         }
 
-        generateAndSenResponseken(user, OtpType.PHONE_CHANGE, newPhone, user.getEmail());
+        generateAndSenResponseToken(user, OtpType.PHONE_CHANGE, newPhone, user.getEmail());
 
-        log.info("Phone change initiated for user: {}", username);
+        log.info("Phone change initiated for user");
     }
 
     @Override
@@ -240,7 +241,7 @@ public class UserServiceImpl implements UserService {
         user.addAddress(newAddress);
 
         userRepository.save(user);
-        log.info("Add address for user: {}", username);
+        log.info("Add address for user");
         return userMapper.toUserDetailResponse(user);
     }
 
@@ -258,7 +259,7 @@ public class UserServiceImpl implements UserService {
         userMapper.updateAddressFromRequest(request, addressToUpdate);
 
         userRepository.save(user);
-        log.info("Update address for user: {}", username);
+        log.info("Update address for user");
         return userMapper.toUserDetailResponse(user);
     }
 
@@ -276,7 +277,7 @@ public class UserServiceImpl implements UserService {
         user.removeAddress(addressToDelete);
 
         userRepository.save(user);
-        log.info("Delete address for user: {}", username);
+        log.info("Delete address for user");
         return userMapper.toUserDetailResponse(user);
     }
 
@@ -286,7 +287,7 @@ public class UserServiceImpl implements UserService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
 
-        log.info("Get all address for user: {}", username);
+        log.info("Get all address for user");
         return user.getAddresses().stream()
                 .map(userMapper::toAddressResponse)
                 .collect(Collectors.toList());
@@ -302,7 +303,7 @@ public class UserServiceImpl implements UserService {
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
                 .orElseThrow(() -> new AccessForbiddenException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của bạn"));
-        log.info("Get address for user: {}", username);
+        log.info("Get address for user");
         return userMapper.toAddressResponse(address);
     }
 
@@ -351,7 +352,7 @@ public class UserServiceImpl implements UserService {
 
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         UserEntity currentUser = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
         Page<UserEntity> pageResult;
 

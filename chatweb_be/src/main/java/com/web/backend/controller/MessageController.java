@@ -20,7 +20,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/messages")
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "MESSAGE-CONTROLLER")
 public class MessageController {
 
     private final MessageService messageService;

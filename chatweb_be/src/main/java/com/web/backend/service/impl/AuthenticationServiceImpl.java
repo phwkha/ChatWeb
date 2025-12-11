@@ -26,7 +26,7 @@ import java.util.List;
 
 
 @Service
-@Slf4j(topic = "USER-SERVICE")
+@Slf4j(topic = "AUTHENTICATION-SERVICE")
 @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
 

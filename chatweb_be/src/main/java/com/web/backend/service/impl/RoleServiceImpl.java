@@ -10,6 +10,7 @@ import com.web.backend.model.PermissionEntity;
 import com.web.backend.model.RoleEntity;
 import com.web.backend.repository.PermissionRepository;
 import com.web.backend.repository.RoleRepository;
+import com.web.backend.repository.UserRepository;
 import com.web.backend.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,8 @@ public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
-    private final UserMapper userMapper; // Hoặc RoleMapper nếu bạn tách riêng
+    private final UserMapper userMapper;
+    private final UserRepository userRepository;
 
     @Override
     public List<RoleResponse> getAllRoles() {
@@ -90,10 +92,9 @@ public class RoleServiceImpl implements RoleService {
         RoleEntity role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
 
-        try {
-            roleRepository.delete(role);
-        } catch (Exception e) {
-            throw new ResourceConflictException("Không thể xóa Role này vì đang có User sử dụng. Hãy gỡ Role khỏi User trước.");
+        if (userRepository.existsByRole(role)) {
+            throw new ResourceConflictException("Không thể xóa Role đang được sử dụng");
         }
+        roleRepository.delete(role);
     }
 }

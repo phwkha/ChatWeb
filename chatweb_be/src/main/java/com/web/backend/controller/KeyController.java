@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/keys")
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "KEY-CONTROLLER")
 public class KeyController {
 
     private final KeyService keyService;

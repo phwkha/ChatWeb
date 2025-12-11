@@ -6,6 +6,7 @@ import com.web.backend.model.ChatMessage;
 import com.web.backend.repository.MessageRepository;
 import com.web.backend.service.MessageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j(topic = "MESSAGE-SERVICE")
 @Service
 @RequiredArgsConstructor
 public class MessageServiceImpl implements MessageService {

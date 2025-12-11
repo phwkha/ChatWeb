@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.function.Function;
 
 @Service
-@Slf4j
+@Slf4j(topic = "JWT-SERVICE")
 public class JwtServiceImpl implements JwtService {
 
     @Value("${jwt.expiry-minutes}")

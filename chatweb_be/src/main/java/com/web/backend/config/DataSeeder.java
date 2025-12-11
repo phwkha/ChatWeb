@@ -8,6 +8,7 @@ import com.web.backend.repository.PermissionRepository;
 import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j(topic = "DATABASE-SEEDER")
 public class DataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
@@ -26,6 +28,7 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        log.info("import data start");
         PermissionEntity pUserView = createPermissionIfNotFound("USER_VIEW", "Xem danh sách user");
         PermissionEntity pUserCreate = createPermissionIfNotFound("USER_CREATE", "Tạo user mới");
         PermissionEntity pUserUpdate = createPermissionIfNotFound("USER_UPDATE", "Sửa user");
@@ -51,6 +54,7 @@ public class DataSeeder implements CommandLineRunner {
 
             userRepository.save(admin);
         }
+        log.info("import data end");
     }
 
     private PermissionEntity createPermissionIfNotFound(String name, String desc) {

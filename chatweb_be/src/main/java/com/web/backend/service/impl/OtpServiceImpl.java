@@ -31,7 +31,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "OTP-SERVICE")
 public class OtpServiceImpl implements OtpService {
 
     private final EmailService emailService;
@@ -134,7 +134,7 @@ public class OtpServiceImpl implements OtpService {
         userRepository.save(user);
 
         tokenRepository.delete(token);
-        log.info("Email changed successfully for user: {}", username);
+        log.info("Email changed successfully for user");
     }
 
     @Override
@@ -171,7 +171,7 @@ public class OtpServiceImpl implements OtpService {
         userRepository.save(user);
 
         tokenRepository.delete(token);
-        log.info("Phone changed successfully for user: {}", username);
+        log.info("Phone changed successfully for user");
     }
 
     private void validateOtp(VerificationToken token, String otp) {
@@ -235,6 +235,6 @@ public class OtpServiceImpl implements OtpService {
 
         updateTokenAndSendEmail(token, user.getEmail());
 
-        log.info("Resent Phone Change OTP for user: {}", username);
+        log.info("Resent Phone Change OTP for user");
     }
 }

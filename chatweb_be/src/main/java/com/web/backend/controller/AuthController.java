@@ -11,6 +11,7 @@ import com.web.backend.service.OtpService;
 import com.web.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Slf4j(topic = "AUTH-CONTROLLER")
 public class AuthController {
 
     private final AuthenticationService authenticationService;

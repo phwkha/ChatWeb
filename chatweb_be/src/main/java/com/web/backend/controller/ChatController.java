@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 
 @Controller
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "CHAT-CONTROLLER")
 public class ChatController {
 
     private final UserService userService;

@@ -12,9 +12,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // dich den cho client
         registry.enableSimpleBroker("/topic", "/queue", "/user");
-        // dich den cua ung dung
         registry.setApplicationDestinationPrefixes("/app");
         registry.setUserDestinationPrefix("/user");
     }
