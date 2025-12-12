@@ -4,6 +4,7 @@ import com.web.backend.controller.request.RoleRequest;
 import com.web.backend.controller.response.ApiResponse;
 import com.web.backend.controller.response.PermissionResponse;
 import com.web.backend.controller.response.RoleResponse;
+import com.web.backend.model.UserEntity;
 import com.web.backend.service.RoleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,7 +28,9 @@ public class RoleController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_VIEW_ALL')")
-    public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles() {
+    public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles(Authentication authentication) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("Get all roles: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
                 "Lấy danh sách Role thành công",
@@ -36,7 +40,9 @@ public class RoleController {
 
     @GetMapping("/permissions")
     @PreAuthorize("hasAuthority('ROLE_VIEW_ALL_PERMISSION')")
-    public ResponseEntity<ApiResponse<List<PermissionResponse>>> getAllPermissions() {
+    public ResponseEntity<ApiResponse<List<PermissionResponse>>> getAllPermissions(Authentication authentication) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("Get all permission: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
                 "Lấy danh sách Permission thành công",
@@ -46,7 +52,9 @@ public class RoleController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_ADD')")
-    public ResponseEntity<ApiResponse<RoleResponse>> createRole(@RequestBody @Valid RoleRequest request) {
+    public ResponseEntity<ApiResponse<RoleResponse>> createRole(@RequestBody @Valid RoleRequest request, Authentication authentication) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("Create role: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
                 HttpStatus.CREATED.value(),
                 "Tạo Role thành công",
@@ -56,7 +64,9 @@ public class RoleController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_UPDATE')")
-    public ResponseEntity<ApiResponse<RoleResponse>> updateRole(@PathVariable Long id, @RequestBody @Valid RoleRequest request) {
+    public ResponseEntity<ApiResponse<RoleResponse>> updateRole(@PathVariable Long id, @RequestBody @Valid RoleRequest request, Authentication authentication) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("Update role: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
                 "Cập nhật Role thành công",
@@ -66,7 +76,9 @@ public class RoleController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_DELETE')")
-    public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable Long id, Authentication authentication) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("Delete role: {}", userEntityPrincipal.getUsername());
         roleService.deleteRole(id);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.NO_CONTENT.value(),

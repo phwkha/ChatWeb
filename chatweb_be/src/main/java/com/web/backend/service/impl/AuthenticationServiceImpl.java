@@ -67,7 +67,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 loginRequest.getUsername(),
                 authorities
         );
-
+        log.info("Login with user: {}", loginRequest.getUsername());
         return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -97,7 +97,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
             throw new AccessForbiddenException("Tài khoản đã bị khóa hoặc User không tồn tại");
         }
-
+        log.info("Refresh token with user: {}", username);
         return jwtService.generateAccessToken(
                 user.getUsername(),
                 authorities

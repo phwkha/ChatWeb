@@ -40,7 +40,7 @@ public class MessageServiceImpl implements MessageService {
             LocalDateTime cursorTime = LocalDateTime.parse(cursorStr);
             messages = messageRepository.findMessagesBeforeCursor(user1, user2, cursorTime, pageable);
         }
-
+        log.info("Fetching private messages");
         return buildCursorResponse(messages, size);
     }
 
@@ -55,13 +55,14 @@ public class MessageServiceImpl implements MessageService {
             LocalDateTime cursorTime = LocalDateTime.parse(cursorStr);
             messages = messageRepository.findMessageByMessageTypeIsChat(cursorTime, pageable);
         }
-
+        log.info("Fetching group messages");
         return buildCursorResponse(messages, size);
     }
 
     @Override
     public UnreadCountsResponse getUnreadMessageCounts(String recipientUsername) {
         List<ChatMessage> unread = messageRepository.findUnreadPrivateMessages(recipientUsername);
+        log.info("Fetching unread counts for user");
         return UnreadCountsResponse.builder()
                 .unreadCounts(unread.stream().collect(Collectors.groupingBy(ChatMessage::getSender, Collectors.counting())))
                 .build();
@@ -75,6 +76,7 @@ public class MessageServiceImpl implements MessageService {
         }
         messages.forEach(msg -> msg.setRead(true));
         messageRepository.saveAll(messages);
+        log.info("User marking messages");
     }
 
     @Override

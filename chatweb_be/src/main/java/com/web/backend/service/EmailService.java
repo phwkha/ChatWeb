@@ -31,7 +31,6 @@ public class EmailService {
 
     @Async
     public void sendTextEmail(String to, String subject, String content) {
-        log.info("Sending plain text email to: {}", to);
 
         Email from = new Email(fromEmail);
         Email toAddress = new Email(to);
@@ -39,6 +38,7 @@ public class EmailService {
         Mail mail = new Mail(from, subject, toAddress, emailContent);
 
         sendInternal(mail);
+        log.info("Sending plain text email to: {}", to);
     }
 
 

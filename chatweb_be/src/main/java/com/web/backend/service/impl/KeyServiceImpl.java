@@ -21,7 +21,6 @@ public class KeyServiceImpl implements KeyService {
     @Override
     @Transactional
     public void saveRsaKey(String username, String encryptedKey) {
-        log.info("Saving RSA key for user: {}", username);
 
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -34,7 +33,6 @@ public class KeyServiceImpl implements KeyService {
 
     @Override
     public String getRsaKey(String username) {
-        log.debug("Fetching RSA key for user: {}", username);
 
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -48,7 +46,7 @@ public class KeyServiceImpl implements KeyService {
             log.warn("RSA key not found for user: {}", username);
             return null;
         }
-
+        log.debug("Fetching RSA key for user: {}", username);
         return key;
     }
 }

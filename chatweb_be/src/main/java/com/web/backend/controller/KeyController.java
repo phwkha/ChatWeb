@@ -28,7 +28,6 @@ public class KeyController {
 
         log.info("Fetching RSA key for user: {}", user.getUsername());
 
-
         return ResponseEntity.ok(
                 ApiResponse.success(HttpStatus.OK.value(), "Get RSA key successfully",
                         RsaKeyResponse.builder().privateKey(keyService.getRsaKey(user.getUsername())).build()

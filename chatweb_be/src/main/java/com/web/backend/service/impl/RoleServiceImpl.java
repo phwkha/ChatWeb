@@ -13,6 +13,7 @@ import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
 import com.web.backend.service.RoleService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j(topic = "ROLE-SERVICE")
 public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
@@ -32,6 +34,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public List<RoleResponse> getAllRoles() {
+        log.info("Get all roles");
         return roleRepository.findAll().stream()
                 .map(userMapper::toRoleResponse)
                 .collect(Collectors.toList());
@@ -39,6 +42,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public List<PermissionResponse> getAllPermissions() {
+        log.info("Get all permission");
         return permissionRepository.findAll().stream()
                 .map(userMapper::toPermissionResponse)
                 .collect(Collectors.toList());
@@ -63,6 +67,7 @@ public class RoleServiceImpl implements RoleService {
         }
 
         RoleEntity savedRole = roleRepository.save(role);
+        log.info("Create role");
         return userMapper.toRoleResponse(savedRole);
     }
 
@@ -83,6 +88,7 @@ public class RoleServiceImpl implements RoleService {
         }
 
         RoleEntity savedRole = roleRepository.save(role);
+        log.info("Update role");
         return userMapper.toRoleResponse(savedRole);
     }
 
@@ -96,5 +102,6 @@ public class RoleServiceImpl implements RoleService {
             throw new ResourceConflictException("Không thể xóa Role đang được sử dụng");
         }
         roleRepository.delete(role);
+        log.info("Delete role");
     }
 }

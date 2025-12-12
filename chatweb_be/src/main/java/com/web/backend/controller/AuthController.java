@@ -6,6 +6,7 @@ import com.web.backend.controller.request.ResetPasswordRequest;
 import com.web.backend.controller.response.ApiResponse;
 import com.web.backend.controller.response.LoginResponse;
 import com.web.backend.controller.response.UserResponse;
+import com.web.backend.model.UserEntity;
 import com.web.backend.service.AuthenticationService;
 import com.web.backend.service.OtpService;
 import com.web.backend.service.UserService;
@@ -16,6 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -33,6 +35,8 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<UserResponse>> login(@RequestBody @Valid LoginRequest loginRequest) {
+        
+        log.info("Login with user: {}", loginRequest.getUsername());
 
         LoginResponse loginResponse = authenticationService.login(loginRequest);
 
@@ -59,7 +63,9 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<String>> logout() {
+    public ResponseEntity<ApiResponse<String>> logout(Authentication authentication) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("User logout {}", userEntityPrincipal.getUsername());
         authenticationService.logout();
 
         ResponseCookie deleteAccess = ResponseCookie.from("accessToken", "")
@@ -78,6 +84,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<String>> refreshToken(
             @CookieValue(name = "refreshToken", required = false) String refreshToken) {
 
+        log.info("Refresh token with user");
         String newAccessToken = authenticationService.refreshToken(refreshToken);
 
         ResponseCookie newAccessCookie = ResponseCookie.from("accessToken", newAccessToken)
@@ -95,14 +102,17 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+        log.info("Password reset initiated for email");
         userService.initiateForgotPassword(request.getEmail());
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Mã xác nhận đã được gửi đến email của bạn.", null));
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
+        log.info("Password reset successfully for user");
         otpService.verifyPasswordReset(request.getEmail(), request.getOtp(), request.getNewPassword());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đặt lại mật khẩu thành công. Vui lòng đăng nhập.", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Đặt lại mật khẩu thành công. Vui lòng đăng nhập.", null));
     }
 
     @PostMapping("/resend-forgot-password")

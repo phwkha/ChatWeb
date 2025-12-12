@@ -362,6 +362,7 @@ public class UserServiceImpl implements UserService {
                 .map(userMapper::toUserSummaryResponse)
                 .collect(Collectors.toList());
 
+        log.info("Get all user");
         return PageResponse.<UserSummaryResponse>builder()
                 .content(content)
                 .pageNo(pageResult.getNumber())
@@ -380,7 +381,7 @@ public class UserServiceImpl implements UserService {
         if (userEntity.getUserStatus() == UserStatus.INACTIVE) {
             throw new ResourceNotFoundException("Người dùng không tồn tại: " + username);
         }
-
+        log.info("Get user");
         return userMapper.toUserDetailResponse(userEntity);
     }
 
@@ -409,7 +410,7 @@ public class UserServiceImpl implements UserService {
 
         user.setRole(role);
         UserEntity savedUser = userRepository.save(user);
-        log.info("Admin created new user: {}", savedUser.getUsername());
+        log.info("Created new user: {}", savedUser.getUsername());
 
         return userMapper.toUserResponse(savedUser);
     }
@@ -424,7 +425,7 @@ public class UserServiceImpl implements UserService {
         userEntity.setOnline(false);
 
         UserEntity savedUser = userRepository.save(userEntity);
-        log.info("Admin locked user: {}", username);
+        log.info("Locked user: {}", username);
 
         return userMapper.toUserResponse(savedUser);
     }
@@ -438,12 +439,12 @@ public class UserServiceImpl implements UserService {
         if (userEntity.getUserStatus() == UserStatus.LOCKED) {
             userEntity.setUserStatus(UserStatus.ACTIVE);
             UserEntity savedUser = userRepository.save(userEntity);
-            log.info("Admin unlocked user: {}", username);
+            log.info("Unlocked user: {}", username);
 
             return userMapper.toUserResponse(savedUser);
         }
 
-        log.warn("Admin tried to unlock user {} who was not LOCKED (Status: {})", username, userEntity.getUserStatus());
+        log.warn("Tried to unlock user {} who was not LOCKED (Status: {})", username, userEntity.getUserStatus());
 
         return userMapper.toUserResponse(userEntity);
     }
@@ -468,6 +469,7 @@ public class UserServiceImpl implements UserService {
         }
 
         UserEntity saved = userRepository.save(userEntity);
+        log.info("Update user");
         return userMapper.toUserResponse(saved);
     }
 
@@ -475,6 +477,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void adminDeleteUser(String targetUsername, String requesterUsername) {
         this.deleteUser(targetUsername);
+        log.info("Delete user");
     }
 
     @Override
@@ -483,7 +486,7 @@ public class UserServiceImpl implements UserService {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
 
-        log.info("Admin get all addresses for user: {}", targetUsername);
+        log.info("Get all address for user");
         return user.getAddresses().stream()
                 .map(userMapper::toAddressResponse)
                 .collect(Collectors.toList());
@@ -500,7 +503,7 @@ public class UserServiceImpl implements UserService {
                 .findFirst()
                 .orElseThrow(() -> new AccessForbiddenException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của người dùng mục tiêu."));
 
-        log.info("Admin get address {} for user: {}", addressId, targetUsername);
+        log.info("Get address with id for user");
         return userMapper.toAddressResponse(address);
     }
 
@@ -551,5 +554,6 @@ public class UserServiceImpl implements UserService {
             userEntity.setOnline(isOnline);
             userRepository.save(userEntity);
         }
+        log.info("Set user online status");
     }
 }
