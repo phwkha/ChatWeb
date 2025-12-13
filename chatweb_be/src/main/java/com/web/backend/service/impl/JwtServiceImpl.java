@@ -36,21 +36,23 @@ public class JwtServiceImpl implements JwtService {
     private String secretKeyRefresh;
 
     @Override
-    public String generateAccessToken(String username, List<String> authorities) {
+    public String generateAccessToken(String username, List<String> authorities, Integer tokenVersion) {
         log.info("generate access token for user {} with authorities {}", username, authorities);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", authorities);
+        claims.put("v", tokenVersion);
 
         return generateToken(claims, username);
     }
 
     @Override
-    public String generateRefreshToken(String username, List<String> authorities) {
+    public String generateRefreshToken(String username, List<String> authorities, Integer tokenVersion) {
         log.info("generate refresh token for user {} with authorities {}", username, authorities);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", authorities);
+        claims.put("v", tokenVersion);
 
         return generateRefreshToken(claims, username);
     }
@@ -59,6 +61,12 @@ public class JwtServiceImpl implements JwtService {
     public String extractUsername(String token, TokenType type) {
         log.info("extract username from token {} with type {}", token, type);
         return extractClaims(type, token, Claims::getSubject);
+    }
+
+    @Override
+    public <T> T extractClaim(String token, TokenType type, Function<Claims, T> claimsResolver) {
+        final Claims claims = extraAllClaim(token, type);
+        return claimsResolver.apply(claims);
     }
 
     private <T> T extractClaims(TokenType type, String token, Function<Claims, T> claimsExtractor) {

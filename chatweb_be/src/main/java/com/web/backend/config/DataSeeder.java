@@ -44,7 +44,7 @@ public class DataSeeder implements CommandLineRunner {
         if (!userRepository.existsByUsername("admin")) {
             UserEntity admin = new UserEntity();
             admin.setUsername("admin");
-            admin.setPassword(passwordEncoder.encode("admin"));
+            admin.setPassword(passwordEncoder.encode("admin123"));
             admin.setEmail("admin@example.com");
             admin.setUserStatus(UserStatus.ACTIVE);
             admin.setFirstName("Super");

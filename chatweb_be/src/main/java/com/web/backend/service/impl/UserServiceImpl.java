@@ -18,6 +18,7 @@ import com.web.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -145,6 +146,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @CacheEvict(value = "user_details", key = "#username")
     public void savePublicKey(String username, String publicKey) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -155,6 +157,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse updateUser(String username, UpdateUserRequest request) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -247,6 +250,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse updateAddress(String username, Long addressId, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -265,6 +269,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse deleteAddress(String username, Long addressId) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -309,6 +314,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public void deleteUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -329,6 +335,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public void changePassword(String username, String currentPassword, String newPassword) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -342,6 +349,10 @@ public class UserServiceImpl implements UserService {
         }
 
         userEntity.setPassword(passwordEncoder.encode(newPassword));
+
+        int currentVersion = userEntity.getTokenVersion() == null ? 0 : userEntity.getTokenVersion();
+        userEntity.setTokenVersion(currentVersion + 1);
+
         userRepository.save(userEntity);
         log.info("User {} changed password successfully", username);
     }
@@ -417,6 +428,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public UserResponse lockUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -432,6 +444,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public UserResponse unlockUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -451,6 +464,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public UserResponse adminUpdateUser(String username, AdminUpdateUserRequest request) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
@@ -475,6 +489,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public void adminDeleteUser(String targetUsername, String requesterUsername) {
         this.deleteUser(targetUsername);
         log.info("Delete user");
@@ -486,7 +501,7 @@ public class UserServiceImpl implements UserService {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
 
-        log.info("Get all address for user");
+        log.info("Get all address for user by admin");
         return user.getAddresses().stream()
                 .map(userMapper::toAddressResponse)
                 .collect(Collectors.toList());
@@ -509,6 +524,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse adminUpdateAddress(String targetUsername, Long addressId, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
@@ -527,6 +543,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
     public void adminDeleteAddress(String targetUsername, Long addressId) {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
@@ -547,6 +564,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @CacheEvict(value = "user_details", key = "#username")
     public void setUserOnlineStatus(String username, boolean isOnline) {
         Optional<UserEntity> userOpt = userRepository.findByUsername(username);
         if (userOpt.isPresent()) {

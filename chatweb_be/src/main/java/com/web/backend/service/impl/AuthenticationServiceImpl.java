@@ -41,6 +41,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
         List<String> authorities = new ArrayList<>();
+
+        Integer tokenVersion;
+
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -48,9 +51,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                             loginRequest.getPassword()
                     )
             );
-
             authorities.add(authentication.getAuthorities().toString());
-
+            UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
+            tokenVersion = userPrincipal.getTokenVersion();
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (org.springframework.security.authentication.LockedException e) {
             throw new AccessForbiddenException("Tài khoản của bạn đã bị khóa!");
@@ -60,12 +63,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String accessToken = jwtService.generateAccessToken(
                 loginRequest.getUsername(),
-                authorities
+                authorities,
+                tokenVersion
+
         );
 
         String refreshToken = jwtService.generateRefreshToken(
                 loginRequest.getUsername(),
-                authorities
+                authorities,
+                tokenVersion
         );
         log.info("Login with user: {}", loginRequest.getUsername());
         return LoginResponse.builder()
@@ -90,6 +96,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
+        Integer tokenVersionInJwt = jwtService.extractClaim(refreshToken, TokenType.REFRESH_TOKEN, claims -> claims.get("v", Integer.class));
+        Integer currentVersion = user.getTokenVersion() == null ? 0 : user.getTokenVersion();
+
+        if (tokenVersionInJwt == null || !tokenVersionInJwt.equals(currentVersion)) {
+            throw new AccessForbiddenException("Refresh token đã hết hạn do thay đổi mật khẩu/đăng xuất");
+        }
+
         List<String> authorities = new ArrayList<>();
 
         user.getAuthorities().forEach(authority -> authorities.add(authority.getAuthority()));
@@ -100,7 +113,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         log.info("Refresh token with user: {}", username);
         return jwtService.generateAccessToken(
                 user.getUsername(),
-                authorities
+                authorities,
+                currentVersion
         );
     }
 }

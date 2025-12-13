@@ -1,5 +1,6 @@
 package com.web.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -36,5 +37,6 @@ public class AddressEntity extends AbstractEntity<Long> implements Serializable 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     @ToString.Exclude
+    @JsonIgnore
     private UserEntity user;
 }

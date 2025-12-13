@@ -29,6 +29,19 @@ services:
     networks:
       - default
 
+  # --- REDIS ---
+  redis:
+    image: redis:6.2-alpine
+    container_name: redis
+    hostname: redis
+    ports:
+      - '6379:6379'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB:FLUSHALL
+    networks:
+      - default
+
   # --- SPRING BOOT BACKEND ---
   backend:
     container_name: backend
@@ -57,12 +70,16 @@ services:
       SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB}?authSource=admin
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
 
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - default
     depends_on:
       - mongo
       - postgres
+      - redis
 
 networks:
   default:

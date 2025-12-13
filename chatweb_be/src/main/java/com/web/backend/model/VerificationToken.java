@@ -4,6 +4,7 @@ import com.web.backend.common.OtpType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 @RequiredArgsConstructor
 @AllArgsConstructor
-public class VerificationToken {
+public class VerificationToken implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

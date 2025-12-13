@@ -61,6 +61,9 @@ public class UserEntity extends AbstractEntity<Long> implements Serializable, Us
     @Enumerated(EnumType.STRING)
     private GenderType gender;
 
+    @Column(name = "token_version", columnDefinition = "integer default 0")
+    private Integer tokenVersion = 0;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     private List<AddressEntity> addresses = new ArrayList<>();

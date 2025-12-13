@@ -1,6 +1,7 @@
 package com.web.backend.JWT;
 
 import com.web.backend.common.TokenType;
+import com.web.backend.model.UserEntity;
 import com.web.backend.service.JwtService;
 import com.web.backend.service.UserServiceDetail;
 import jakarta.servlet.FilterChain;
@@ -10,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,7 +28,10 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+
     private final UserServiceDetail userServiceDetail;
+
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -39,7 +44,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 if (username != null) {
 
-                    UserDetails userDetails = userServiceDetail.UserServiceDetail().loadUserByUsername(username);
+                    UserDetails userDetails = userServiceDetail.loadUserByUsername(username);
+
+                    if (userDetails instanceof UserEntity userEntity) {
+                        Integer tokenVersionInJwt = jwtService.extractClaim(jwt,TokenType.ACCESS_TOKEN ,claims -> claims.get("v", Integer.class));
+
+                        Integer currentVersion = userEntity.getTokenVersion();
+                        if (currentVersion == null) currentVersion = 0;
+
+                        if (tokenVersionInJwt == null || !tokenVersionInJwt.equals(currentVersion)) {
+                            log.warn("Token version mismatch for user {}. Token: {}, Server: {}", username, tokenVersionInJwt, currentVersion);
+                            filterChain.doFilter(request, response);
+                            return;
+                        }
+                    }
 
                     SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
 

@@ -3,13 +3,14 @@ package com.web.backend.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pending_users")
 @Getter
 @Setter
-public class PendingUserEntity {
+public class PendingUserEntity implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

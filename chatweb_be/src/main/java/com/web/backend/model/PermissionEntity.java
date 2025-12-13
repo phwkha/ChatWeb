@@ -1,5 +1,6 @@
 package com.web.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,5 +21,6 @@ public class PermissionEntity extends AbstractEntity<Long> implements Serializab
     private String description;
 
     @ManyToMany(mappedBy = "permissions")
+    @JsonIgnore
     private Set<RoleEntity> roles = new HashSet<>();
 }
