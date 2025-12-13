@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatusCode;
 public class ApiResponse<T> {
 
     private int code;
+    private String status;
     private String message;
     private T data;
 
@@ -23,6 +24,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> success(int statusCode, String message, T data) {
         return ApiResponse.<T>builder()
                 .code(statusCode)
+                .status("success")
                 .message(message)
                 .data(data)
                 .build();
@@ -32,6 +34,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> error(int code, String message) {
         return ApiResponse.<T>builder()
                 .code(code)
+                .status("error")
                 .message(message)
                 .build();
     }

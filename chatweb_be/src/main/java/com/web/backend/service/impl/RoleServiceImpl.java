@@ -14,6 +14,7 @@ import com.web.backend.repository.UserRepository;
 import com.web.backend.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,6 +74,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", allEntries = true)
     public RoleResponse updateRole(Long roleId, RoleRequest request) {
         RoleEntity role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
@@ -88,12 +90,13 @@ public class RoleServiceImpl implements RoleService {
         }
 
         RoleEntity savedRole = roleRepository.save(role);
-        log.info("Update role");
+        log.info("Update role and cleared all user cache");
         return userMapper.toRoleResponse(savedRole);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = "user_details", allEntries = true)
     public void deleteRole(Long roleId) {
         RoleEntity role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
@@ -102,6 +105,6 @@ public class RoleServiceImpl implements RoleService {
             throw new ResourceConflictException("Không thể xóa Role đang được sử dụng");
         }
         roleRepository.delete(role);
-        log.info("Delete role");
+        log.info("Delete role and cleared all user cache");
     }
 }
