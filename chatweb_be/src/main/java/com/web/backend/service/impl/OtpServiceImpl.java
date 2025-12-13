@@ -3,22 +3,21 @@ package com.web.backend.service.impl;
 import com.web.backend.common.OtpType;
 import com.web.backend.common.UserStatus;
 import com.web.backend.controller.request.VerifyOtpRequest;
+import com.web.backend.model.RegisterData;
+import com.web.backend.exception.InvalidDataException;
 import com.web.backend.exception.InvalidOtpException;
 import com.web.backend.exception.ResourceConflictException;
 import com.web.backend.exception.ResourceNotFoundException;
-import com.web.backend.model.PendingUserEntity;
 import com.web.backend.model.RoleEntity;
 import com.web.backend.model.UserEntity;
-import com.web.backend.model.VerificationToken;
-import com.web.backend.repository.PendingUserRepository;
 import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
-import com.web.backend.repository.VerificationTokenRepository;
 import com.web.backend.service.EmailService;
 import com.web.backend.service.OtpService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.util.Date;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -34,15 +34,13 @@ public class OtpServiceImpl implements OtpService {
 
     private final EmailService emailService;
 
-    private final PendingUserRepository pendingUserRepository;
-
     private final UserRepository userRepository;
-
-    private final VerificationTokenRepository tokenRepository;
 
     private final PasswordEncoder passwordEncoder;
 
     private final RoleRepository roleRepository;
+
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${spring.sendgrid.expiration-minutes}")
     private int expirationMinutes;
@@ -50,32 +48,36 @@ public class OtpServiceImpl implements OtpService {
     @Override
     @Transactional
     public void verifyUser(VerifyOtpRequest request) {
-        PendingUserEntity pendingUser = pendingUserRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu đăng ký không tồn tại hoặc đã hết hạn"));
+        String redisKey = "register:" + request.getEmail();
 
-        if (!pendingUser.getOtpCode().equals(request.getOtp())) {
+        RegisterData data = (RegisterData) redisTemplate.opsForValue().get(redisKey);
+
+        if (data == null) {
+            throw new ResourceNotFoundException("Mã OTP đã hết hạn hoặc email không tồn tại");
+        }
+
+        if (!data.getOtp().equals(request.getOtp())) {
             throw new InvalidOtpException("Mã OTP không chính xác");
         }
-        if (pendingUser.getOtpExpiry().isBefore(java.time.LocalDateTime.now())) {
-            throw new InvalidOtpException("Mã OTP đã hết hạn");
-        }
 
-        if (userRepository.existsByUsername(pendingUser.getUsername()) || userRepository.existsByEmail(pendingUser.getEmail())) {
-            throw new ResourceConflictException("Tài khoản hoặc Email đã bị đăng ký bởi người khác trong lúc chờ.");
+        if (userRepository.existsByUsername(data.getUsername()) || userRepository.existsByEmail(data.getEmail())) {
+            throw new ResourceConflictException("Tài khoản đã bị đăng ký bởi người khác.");
         }
 
         UserEntity newUser = new UserEntity();
-        newUser.setUsername(pendingUser.getUsername());
-        newUser.setEmail(pendingUser.getEmail());
-        newUser.setPassword(pendingUser.getPassword());
+        newUser.setUsername(data.getUsername());
+        newUser.setEmail(data.getEmail());
+        newUser.setPassword(data.getPassword());
         newUser.setUserStatus(UserStatus.ACTIVE);
         newUser.setCreateAt(new Date());
-        RoleEntity role = roleRepository.findById(pendingUser.getRoleId())
+
+        RoleEntity role = roleRepository.findById(data.getRoleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
         newUser.setRole(role);
+
         userRepository.save(newUser);
 
-        pendingUserRepository.delete(pendingUser);
+        redisTemplate.delete(redisKey);
 
         log.info("User {} activated with role {}", newUser.getUsername(), role.getName());
     }
@@ -83,26 +85,22 @@ public class OtpServiceImpl implements OtpService {
     @Override
     @Transactional
     public void resendOtp(String email) {
-        Optional<PendingUserEntity> pendingUserOpt = pendingUserRepository.findByEmail(email);
+        String redisKey = "register:" + email;
+        RegisterData data = (RegisterData) redisTemplate.opsForValue().get(redisKey);
 
-        if (pendingUserOpt.isPresent()) {
-            PendingUserEntity pendingUser = pendingUserOpt.get();
-
+        if (data != null) {
             SecureRandom secureRandom = new SecureRandom();
-            int otpValue = 100000 + secureRandom.nextInt(900000);
-            String otp = String.valueOf(otpValue);
-            pendingUser.setOtpCode(otp);
-            pendingUser.setOtpExpiry(java.time.LocalDateTime.now().plusMinutes(expirationMinutes));
+            String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
 
-            pendingUserRepository.save(pendingUser);
+            data.setOtp(otp);
+            redisTemplate.opsForValue().set(redisKey, data, expirationMinutes, TimeUnit.MINUTES);
 
-            emailService.sendOtpEmail(pendingUser.getEmail(), pendingUser.getUsername(), otp);
-            log.info("Resend OTP to pending user: {}", pendingUser.getUsername());
+            emailService.sendOtpEmail(data.getEmail(), data.getUsername(), otp);
+            log.info("Resend Register OTP to Redis user: {}", data.getUsername());
             return;
         }
 
         Optional<UserEntity> userOpt = userRepository.findByEmail(email);
-
         if (userOpt.isPresent()) {
             UserEntity user = userOpt.get();
             if (user.getUserStatus() == UserStatus.ACTIVE) {
@@ -116,80 +114,100 @@ public class OtpServiceImpl implements OtpService {
         throw new ResourceNotFoundException("Yêu cầu đăng ký không tồn tại hoặc đã hết hạn. Vui lòng đăng ký lại.");
     }
 
+    private String validateRedisOtp(String identifier, OtpType type, String inputOtp) {
+        String redisKey = "otp:" + type.name() + ":" + identifier;
+        String value = (String) redisTemplate.opsForValue().get(redisKey);
+
+        if (value == null) {
+            throw new InvalidOtpException("Mã OTP đã hết hạn hoặc yêu cầu không tồn tại");
+        }
+
+        String[] parts = value.split(":");
+        String savedOtp = parts[0];
+        String extraData = parts.length > 1 ? parts[1] : null;
+
+        if (!savedOtp.equals(inputOtp)) {
+            throw new InvalidOtpException("Mã OTP không chính xác");
+        }
+
+        redisTemplate.delete(redisKey);
+        return extraData;
+    }
+
     @Override
     @Transactional
     public void verifyEmailChange(String username, String otp) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-        VerificationToken token = tokenRepository.findByUserAndType(user, OtpType.EMAIL_CHANGE)
-                .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu không tồn tại hoặc đã hết hạn"));
+        String newEmail = validateRedisOtp(username, OtpType.EMAIL_CHANGE, otp);
 
-        validateOtp(token, otp);
+        if (newEmail == null || newEmail.isEmpty()) {
+            throw new InvalidDataException("Dữ liệu email mới bị lỗi");
+        }
 
-        String newEmail = token.getExtraData();
         user.setEmail(newEmail);
         userRepository.save(user);
-
-        tokenRepository.delete(token);
-        log.info("Email changed successfully for user");
+        log.info("Email changed successfully via Redis OTP for user: {}", username);
     }
 
     @Override
     @Transactional
     public void verifyPasswordReset(String email, String otp, String newPassword) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-        VerificationToken token = tokenRepository.findByUserAndType(user, OtpType.PASSWORD_RESET)
-                .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu không tồn tại hoặc đã hết hạn"));
-
-        validateOtp(token, otp);
+        validateRedisOtp(email, OtpType.PASSWORD_RESET, otp);
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-
-        tokenRepository.delete(token);
-        log.info("Password reset successfully for user: {}", user.getUsername());
+        log.info("Password reset successfully via Redis OTP for user: {}", user.getUsername());
     }
 
     @Override
     @Transactional
     public void verifyPhoneChange(String username, String otp) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-        VerificationToken token = tokenRepository.findByUserAndType(user, OtpType.PHONE_CHANGE)
-                .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu không tồn tại hoặc đã hết hạn"));
+        String newPhone = validateRedisOtp(username, OtpType.PHONE_CHANGE, otp);
 
-        validateOtp(token, otp);
+        if (newPhone == null || newPhone.isEmpty()) {
+            throw new InvalidDataException("Dữ liệu số điện thoại mới bị lỗi");
+        }
 
-        String newPhone = token.getExtraData();
         user.setPhone(newPhone);
         userRepository.save(user);
-
-        tokenRepository.delete(token);
-        log.info("Phone changed successfully for user");
+        log.info("Phone changed successfully via Redis OTP for user: {}", username);
     }
 
-    private void validateOtp(VerificationToken token, String otp) {
-        if (!token.getToken().equals(otp)) {
-            throw new InvalidOtpException("Mã OTP không chính xác");
-        }
-        if (token.getExpiryDate().isBefore(new java.util.Date().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime())) {
-            throw new InvalidOtpException("Mã OTP đã hết hạn");
-        }
-    }
+    private void resendRedisOtp(String identifier, OtpType type, String emailToSend) {
+        String redisKey = "otp:" + type.name() + ":" + identifier;
+        String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
 
-    private void updateTokenAndSendEmail(VerificationToken token, String targetEmail) {
+        if (oldValue == null) {
+            throw new ResourceNotFoundException("Yêu cầu không tồn tại hoặc đã hết hạn. Vui lòng thực hiện lại.");
+        }
+
+        String[] parts = oldValue.split(":");
+        String extraData = parts.length > 1 ? parts[1] : "";
+
         SecureRandom secureRandom = new SecureRandom();
-        String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
+        String newOtp = String.valueOf(100000 + secureRandom.nextInt(900000));
 
-        token.setToken(otp);
-        token.setExpiryDate(java.time.LocalDateTime.now().plusMinutes(expirationMinutes));
-        tokenRepository.save(token);
+        String newValue = newOtp + (extraData.isEmpty() ? "" : ":" + extraData);
 
-        emailService.sendOtpEmail(targetEmail, token.getUser().getUsername(), otp);
+        redisTemplate.opsForValue().set(redisKey, newValue, expirationMinutes, TimeUnit.MINUTES);
+
+        String usernameForMail = identifier;
+
+        if (type == OtpType.PASSWORD_RESET) {
+            Optional<UserEntity> u = userRepository.findByEmail(identifier);
+            if (u.isPresent()) usernameForMail = u.get().getUsername();
+        }
+
+        emailService.sendOtpEmail(emailToSend, usernameForMail, newOtp);
+        log.info("Resent {} OTP to {}", type, emailToSend);
     }
 
     @Override
@@ -198,28 +216,22 @@ public class OtpServiceImpl implements OtpService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-        VerificationToken token = tokenRepository.findByUserAndType(user, OtpType.EMAIL_CHANGE)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu đổi email nào đang chờ xử lý."));
+        String redisKey = "otp:" + OtpType.EMAIL_CHANGE.name() + ":" + username;
+        String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
+        if (oldValue == null) throw new ResourceNotFoundException("Yêu cầu không tồn tại");
 
-        String newEmail = token.getExtraData();
+        String[] parts = oldValue.split(":");
+        String newEmail = parts.length > 1 ? parts[1] : null;
 
-        updateTokenAndSendEmail(token, newEmail);
+        if (newEmail == null) throw new InvalidDataException("Không tìm thấy email mới trong yêu cầu");
 
-        log.info("Resent Email Change OTP to {} for user {}", newEmail, username);
+        resendRedisOtp(username, OtpType.EMAIL_CHANGE, newEmail);
     }
 
     @Override
     @Transactional
     public void resendForgotPasswordOtp(String email) {
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Email không tồn tại trong hệ thống"));
-
-        VerificationToken token = tokenRepository.findByUserAndType(user, OtpType.PASSWORD_RESET)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu quên mật khẩu nào. Vui lòng thực hiện lại từ đầu."));
-
-        updateTokenAndSendEmail(token, user.getEmail());
-
-        log.info("Resent Forgot Password OTP to email: {}", email);
+        resendRedisOtp(email, OtpType.PASSWORD_RESET, email);
     }
 
     @Override
@@ -228,11 +240,6 @@ public class OtpServiceImpl implements OtpService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-        VerificationToken token = tokenRepository.findByUserAndType(user, OtpType.PHONE_CHANGE)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu đổi số điện thoại nào."));
-
-        updateTokenAndSendEmail(token, user.getEmail());
-
-        log.info("Resent Phone Change OTP for user");
+        resendRedisOtp(username, OtpType.PHONE_CHANGE, user.getEmail());
     }
 }

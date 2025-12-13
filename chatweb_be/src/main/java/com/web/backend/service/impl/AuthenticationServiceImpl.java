@@ -15,6 +15,7 @@ import com.web.backend.service.AuthenticationService;
 import com.web.backend.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 @Service
@@ -34,7 +36,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final AuthenticationManager authenticationManager;
 
-    private final UserMapper userMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private final JwtService jwtService;
 
@@ -81,8 +83,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public void logout() {
-        log.info("User logout request processed");
+    public void logout(String accessToken) {
+        long remainingTime = jwtService.getRemainingTime(accessToken);
+
+        if (remainingTime > 0) {
+            // 2. Lưu vào Redis (Blacklist)
+            String key = "blacklist:" + accessToken;
+            redisTemplate.opsForValue().set(key, "logged_out", remainingTime, TimeUnit.MILLISECONDS);
+        }
+
+        log.info("Token added to blacklist with TTL: {} ms", remainingTime);
     }
 
     @Override

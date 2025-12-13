@@ -10,6 +10,7 @@ import com.web.backend.model.UserEntity;
 import com.web.backend.service.AuthenticationService;
 import com.web.backend.service.OtpService;
 import com.web.backend.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,10 +64,11 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<String>> logout(Authentication authentication) {
+    public ResponseEntity<ApiResponse<String>> logout(Authentication authentication, HttpServletRequest request) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("User logout {}", userEntityPrincipal.getUsername());
-        authenticationService.logout();
+        String token = request.getHeader("Authorization").substring(7);
+        authenticationService.logout(token);
 
         ResponseCookie deleteAccess = ResponseCookie.from("accessToken", "")
                 .path("/").maxAge(0).build();

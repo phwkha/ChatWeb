@@ -40,6 +40,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
+                String key = "blacklist:" + jwt;
+                if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"code\": 401,\"status\": \"error\", \"message\": \"Token đã đăng xuất (Blacklisted)\"}");
+                    return;
+                }
+
                 String username = jwtService.extractUsername(jwt, TokenType.ACCESS_TOKEN);
 
                 if (username != null) {

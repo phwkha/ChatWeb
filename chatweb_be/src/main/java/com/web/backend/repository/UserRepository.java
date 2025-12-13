@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,7 +23,7 @@ public interface UserRepository extends JpaRepository<UserEntity,Long> {
 
     Optional<UserEntity> findByEmail(String email);
 
-    List<UserEntity> findByIsOnlineTrue();
+    List<UserEntity> findByUsernameIn(Collection<String> usernames);
 
     Page<UserEntity> findAllByUserStatusNot(UserStatus status, Pageable pageable);
 

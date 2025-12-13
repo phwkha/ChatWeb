@@ -8,10 +8,8 @@ import com.web.backend.exception.*;
 import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.*;
 import com.web.backend.controller.response.UserDetailResponse;
-import com.web.backend.repository.PendingUserRepository;
 import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
-import com.web.backend.repository.VerificationTokenRepository;
 import com.web.backend.service.EmailService;
 import com.web.backend.service.MessageService;
 import com.web.backend.service.UserService;
@@ -23,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -48,11 +48,10 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
 
-    private final PendingUserRepository pendingUserRepository;
-
-    private final VerificationTokenRepository tokenRepository;
-
     private final RoleRepository roleRepository;
+
+    private final RedisTemplate<String, Object> redisTemplate;
+    private static final String ONLINE_USERS_KEY = "online_users";
 
     @Value("${spring.sendgrid.expiration-minutes}")
     private int expirationMinutes;
@@ -68,47 +67,50 @@ public class UserServiceImpl implements UserService {
             throw new ResourceConflictException("Email đã được sử dụng");
         }
 
-        PendingUserEntity pendingUser = pendingUserRepository.findByEmail(createUserRequest.getEmail())
-                .orElse(new PendingUserEntity());
-
-        pendingUser.setUsername(createUserRequest.getUsername());
-        pendingUser.setEmail(createUserRequest.getEmail());
-        pendingUser.setPassword(passwordEncoder.encode(createUserRequest.getPassword()));
-        RoleEntity defaultRole = roleRepository.findByName("USER")
-                .orElseThrow(() -> new ResourceNotFoundException("Role mặc định 'USER' chưa được khởi tạo trong DB"));
-
-        pendingUser.setRoleId(defaultRole.getId());
-
         SecureRandom secureRandom = new SecureRandom();
-        int otpValue = 100000 + secureRandom.nextInt(900000);
-        String otp = String.valueOf(otpValue);
-        pendingUser.setOtpCode(otp);
-        pendingUser.setOtpExpiry(java.time.LocalDateTime.now().plusMinutes(5));
+        String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
+        RoleEntity defaultRole = roleRepository.findByName("USER")
+                .orElseThrow(() -> new ResourceNotFoundException("Role USER chưa có"));
 
-        pendingUserRepository.save(pendingUser);
+        RegisterData data = RegisterData.builder()
+                .username(createUserRequest.getUsername())
+                .email(createUserRequest.getEmail())
+                .password(passwordEncoder.encode(createUserRequest.getPassword()))
+                .roleId(defaultRole.getId())
+                .otp(otp)
+                .build();
 
-        emailService.sendOtpEmail(pendingUser.getEmail(), pendingUser.getUsername(), otp);
+        String redisKey = "register:" + createUserRequest.getEmail();
+        redisTemplate.opsForValue().set(redisKey, data, 5, TimeUnit.MINUTES);
+
+        emailService.sendOtpEmail(createUserRequest.getEmail(), createUserRequest.getUsername(), otp);
 
         log.info("Registering new user: {}", createUserRequest.getUsername());
         return UserResponse.builder()
-                .username(pendingUser.getUsername())
-                .email(pendingUser.getEmail())
+                .username(createUserRequest.getUsername())
+                .email(createUserRequest.getEmail())
                 .userStatus(UserStatus.UNVERIFIED)
                 .build();
     }
 
     @Override
     public OnlineUsersResponse getOnlineUsers() {
-        List<UserEntity> userEntities = userRepository.findByIsOnlineTrue();
+        Set<Object> onlineUsernames = redisTemplate.opsForSet().members(ONLINE_USERS_KEY);
+
+        if (onlineUsernames == null || onlineUsernames.isEmpty()) {
+            return OnlineUsersResponse.builder().users(Collections.emptyMap()).build();
+        }
+
+        List<String> usernames = onlineUsernames.stream().map(Object::toString).toList();
+        List<UserEntity> userEntities = userRepository.findByUsernameIn(usernames);
         Map<String, UserSummaryResponse> list = userEntities.stream()
+                .peek(entity -> entity.setOnline(true))
                 .collect(Collectors.toMap(
                         UserEntity::getUsername,
                         userMapper::toUserSummaryResponse
                 ));
-        log.info("Get online users");
-        return OnlineUsersResponse.builder()
-                .users(list)
-                .build();
+
+        return OnlineUsersResponse.builder().users(list).build();
     }
 
     @Override
@@ -170,21 +172,15 @@ public class UserServiceImpl implements UserService {
     }
 
     private void generateAndSenResponseToken(UserEntity user, OtpType type, String extraData, String targetEmail) {
-        tokenRepository.findByUserAndType(user, type).ifPresent(tokenRepository::delete);
 
         SecureRandom secureRandom = new SecureRandom();
-        int otpValue = 100000 + secureRandom.nextInt(900000);
-        String otp = String.valueOf(otpValue);
+        String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
 
-        VerificationToken token = VerificationToken.builder()
-                .user(user)
-                .token(otp)
-                .type(type)
-                .extraData(extraData)
-                .expiryDate(java.time.LocalDateTime.now().plusMinutes(expirationMinutes))
-                .build();
+        String redisKey = "otp:" + type.name() + ":" + user.getUsername();
 
-        tokenRepository.save(token);
+        String redisValue = otp + (extraData != null ? ":" + extraData : "");
+
+        redisTemplate.opsForValue().set(redisKey, redisValue, expirationMinutes, TimeUnit.MINUTES);
 
         emailService.sendOtpEmail(targetEmail, user.getUsername(), otp);
     }

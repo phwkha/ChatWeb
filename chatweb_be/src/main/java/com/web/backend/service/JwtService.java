@@ -15,4 +15,6 @@ public interface JwtService {
     String extractUsername(String token, TokenType type);
 
     <T> T extractClaim(String token, TokenType type, Function<Claims, T> claimsResolver);
+
+    public long getRemainingTime(String token);
 }
