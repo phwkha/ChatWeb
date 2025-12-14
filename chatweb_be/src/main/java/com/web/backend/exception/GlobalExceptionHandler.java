@@ -1,60 +1,86 @@
 package com.web.backend.exception;
 
 import com.web.backend.controller.response.ApiResponse;
+import com.web.backend.controller.response.ErrorDebugInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Slf4j
+@Slf4j(topic = "GLOBAL-EXCEPTION-HANDLER")
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    @ExceptionHandler(DisabledException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResponse<Void> handleDisabledException(DisabledException ex) {
+        log.error("Account Disabled");
+        return ApiResponse.error(HttpStatus.FORBIDDEN.value(), ex.getMessage());
+    }
+
+    @ExceptionHandler(LockedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResponse<Void> handleLockedException(LockedException ex) {
+        log.error("Account Locked");
+        return ApiResponse.error(HttpStatus.FORBIDDEN.value(), ex.getMessage());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
-    public ApiResponse<Void> handleHttpRequestMethodNotSupportedException(org.springframework.web.HttpRequestMethodNotSupportedException ex) {
+    public ApiResponse<Void> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
+        log.error("Http Request Method Not Supported: {}", ex.getMessage());
         return ApiResponse.error(HttpStatus.METHOD_NOT_ALLOWED.value(), "Phương thức " + ex.getMethod() + " không được hỗ trợ cho endpoint này");
     }
 
-    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleMissingServletRequestParameterException(org.springframework.web.bind.MissingServletRequestParameterException ex) {
+    public ApiResponse<Void> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
+        log.error("Missing Servlet Request Parameter: {}", ex.getMessage());
         return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Thiếu tham số bắt buộc: " + ex.getParameterName());
     }
 
-    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleMethodArgumentTypeMismatchException(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+    public ApiResponse<Void> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        log.error("Method Argument Type Mismatch: {}", ex.getMessage());
         String message = String.format("Tham số '%s' không đúng định dạng mong muốn", ex.getName());
         return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), message);
     }
 
-    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleHttpMessageNotReadableException(org.springframework.http.converter.HttpMessageNotReadableException ex) {
-        log.warn("Malformed JSON Request: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Định dạng dữ liệu gửi lên không đúng (JSON lỗi)");
+    public ApiResponse<Void> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        log.warn("Bad JSON: {}", ex.getMessage());
+        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Dữ liệu gửi lên không đúng định dạng.");
     }
 
-    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ApiResponse<Void> handleDataIntegrityViolationException(org.springframework.dao.DataIntegrityViolationException ex) {
-        log.error("Database constraint violation: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.CONFLICT.value(), "Dữ liệu bị trùng lặp hoặc vi phạm ràng buộc cơ sở dữ liệu");
+    public ApiResponse<Void> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        log.error("DB Constraint: {}", ex.getMessage());
+        return ApiResponse.error(HttpStatus.CONFLICT.value(), "Dữ liệu không hợp lệ hoặc đã tồn tại trong hệ thống.");
     }
 
-    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ApiResponse<Void> handleSpringAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
-        return ApiResponse.error(HttpStatus.FORBIDDEN.value(), "Bạn không có quyền truy cập tài nguyên này (Role Denied)");
+    public ApiResponse<Void> handleSpringAccessDeniedException(AccessDeniedException ex) {
+        log.error("Spring Access Denied: {}" ,ex.getMessage());
+        return ApiResponse.error(HttpStatus.FORBIDDEN.value(), ex.getMessage());
     }
 
     @ExceptionHandler(AuthenticationFailedException.class)
@@ -87,7 +113,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidDataException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleInvalidDataException(InvalidOtpException ex) {
+    public ApiResponse<Void> handleInvalidDataException(InvalidDataException ex) {
         log.warn("Invalid Data Failed: {}", ex.getMessage());
         return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
     }
@@ -115,13 +141,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException ex) {
-        log.error("Generic Logic Error: {}", ex.getMessage());
+        log.error("Logic Error: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Đã xảy ra lỗi xử lý, vui lòng thử lại."));
     }
 
-    // Bắt lỗi Validate (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -135,12 +160,27 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.success(HttpStatus.BAD_REQUEST.value(), "Dữ liệu đầu vào không hợp lệ",errors));
     }
 
-    // Bắt lỗi hệ thống khác
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception ex) {
-        log.error("System Error: ", ex);
+        log.error("System Error (Uncaught): ", ex);
+
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "Lỗi hệ thống: " + ex.getMessage()));
+                .body(ApiResponse.error(500, "Hệ thống đang bận, vui lòng thử lại sau."));
+    }
+
+    private ApiResponse<ErrorDebugInfo> buildErrorForDev(HttpStatus status, Exception ex, String userMessage) {
+
+        ErrorDebugInfo debugInfo = ErrorDebugInfo.builder()
+                .exceptionType(ex.getClass().getSimpleName())
+                .devMessage(ex.getMessage())
+                .build();
+
+        return ApiResponse.<ErrorDebugInfo>builder()
+                .code(status.value())
+                .status("error")
+                .message(userMessage)
+                .data(debugInfo)
+                .build();
     }
 }

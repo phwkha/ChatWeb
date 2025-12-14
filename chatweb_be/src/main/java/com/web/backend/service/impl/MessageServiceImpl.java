@@ -1,6 +1,7 @@
 package com.web.backend.service.impl;
 
 import com.web.backend.controller.response.CursorResponse;
+import com.web.backend.controller.response.UnreadCountResultResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.repository.MessageRepository;
@@ -61,10 +62,17 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public UnreadCountsResponse getUnreadMessageCounts(String recipientUsername) {
-        List<ChatMessage> unread = messageRepository.findUnreadPrivateMessages(recipientUsername);
-        log.info("Fetching unread counts for user");
+        List<UnreadCountResultResponse> results = messageRepository.countUnreadMessagesBySender(recipientUsername);
+
+        Map<String, Long> countMap = results.stream()
+                .collect(Collectors.toMap(
+                        UnreadCountResultResponse::getSenderId,
+                        UnreadCountResultResponse::getCount
+                ));
+
+        log.info("Fetching unread counts for user (Optimized)");
         return UnreadCountsResponse.builder()
-                .unreadCounts(unread.stream().collect(Collectors.groupingBy(ChatMessage::getSender, Collectors.counting())))
+                .unreadCounts(countMap)
                 .build();
     }
 
