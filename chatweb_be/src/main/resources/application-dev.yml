@@ -14,7 +14,8 @@ spring:
     cache:
       type: redis
       redis:
-        time-to-live: 600000
+        time-to-live: 10m
+        cache-null-values: false
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/${POSTGRES_DB:postgres}
     username: ${POSTGRES_USER}

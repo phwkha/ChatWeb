@@ -10,6 +10,7 @@ import com.web.backend.model.*;
 import com.web.backend.controller.response.UserDetailResponse;
 import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
+import com.web.backend.service.CuckooFilterService;
 import com.web.backend.service.EmailService;
 import com.web.backend.service.MessageService;
 import com.web.backend.service.UserService;
@@ -56,15 +57,28 @@ public class UserServiceImpl implements UserService {
     @Value("${spring.sendgrid.expiration-minutes}")
     private int expirationMinutes;
 
+    private final CuckooFilterService cuckooFilterService;
+
+    private static final String EMAIL_FILTER_KEY = "filter:emails";
+
+    private static final String USERNAME_FILTER_KEY = "filter:usernames";
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UserResponse createUser(CreateUserRequest createUserRequest) {
 
-        if (userRepository.existsByUsername(createUserRequest.getUsername())) {
-            throw new ResourceConflictException("Tên đăng nhập đã tồn tại");
+        boolean mightExistEmail = cuckooFilterService.exists(EMAIL_FILTER_KEY, createUserRequest.getEmail());
+        if (mightExistEmail) {
+            if (userRepository.existsByEmail(createUserRequest.getEmail())) {
+                throw new ResourceConflictException("Email đã được sử dụng");
+            }
         }
-        if (userRepository.existsByEmail(createUserRequest.getEmail())) {
-            throw new ResourceConflictException("Email đã được sử dụng");
+
+        boolean mightExistUsername = cuckooFilterService.exists(USERNAME_FILTER_KEY, createUserRequest.getUsername());
+        if (mightExistUsername) {
+            if (userRepository.existsByUsername(createUserRequest.getUsername())) {
+                throw new ResourceConflictException("Tên đăng nhập đã tồn tại");
+            }
         }
 
         SecureRandom secureRandom = new SecureRandom();

@@ -1,5 +1,6 @@
 package com.web.backend.config;
 
+import com.mongodb.RequestContext;
 import com.web.backend.common.UserStatus;
 import com.web.backend.model.PermissionEntity;
 import com.web.backend.model.RoleEntity;
@@ -7,12 +8,16 @@ import com.web.backend.model.UserEntity;
 import com.web.backend.repository.PermissionRepository;
 import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
+import com.web.backend.service.CuckooFilterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 
 @Component
@@ -24,6 +29,8 @@ public class DataSeeder implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CuckooFilterService cuckooFilterService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
     @Transactional
@@ -55,6 +62,17 @@ public class DataSeeder implements CommandLineRunner {
             userRepository.save(admin);
         }
         log.info("import data end");
+
+        if (!redisTemplate.hasKey("filter:emails")) {
+            log.info("Initializing Cuckoo Filter...");
+            List<UserEntity> allUsers = userRepository.findAll();
+            for (UserEntity u : allUsers) {
+                cuckooFilterService.add("filter:emails", u.getEmail());
+                cuckooFilterService.add("filter:usernames", u.getUsername());
+            }
+            log.info("Cuckoo Filter initialized with {} users", allUsers.size());
+        }
+
     }
 
     private PermissionEntity createPermissionIfNotFound(String name, String desc) {

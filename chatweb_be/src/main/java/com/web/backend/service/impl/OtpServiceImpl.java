@@ -12,6 +12,7 @@ import com.web.backend.model.RoleEntity;
 import com.web.backend.model.UserEntity;
 import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
+import com.web.backend.service.CuckooFilterService;
 import com.web.backend.service.EmailService;
 import com.web.backend.service.OtpService;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +46,11 @@ public class OtpServiceImpl implements OtpService {
     @Value("${spring.sendgrid.expiration-minutes}")
     private int expirationMinutes;
 
+    private final CuckooFilterService cuckooFilterService;
+
+    private static final String EMAIL_FILTER_KEY = "filter:emails";
+    private static final String USERNAME_FILTER_KEY = "filter:usernames";
+
     @Override
     @Transactional
     public void verifyUser(VerifyOtpRequest request) {
@@ -76,6 +82,9 @@ public class OtpServiceImpl implements OtpService {
         newUser.setRole(role);
 
         userRepository.save(newUser);
+
+        cuckooFilterService.add(USERNAME_FILTER_KEY, newUser.getUsername());
+        cuckooFilterService.add(EMAIL_FILTER_KEY, newUser.getEmail());
 
         redisTemplate.delete(redisKey);
 
@@ -140,6 +149,7 @@ public class OtpServiceImpl implements OtpService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
+        String oldEmail = user.getEmail();
         String newEmail = validateRedisOtp(username, OtpType.EMAIL_CHANGE, otp);
 
         if (newEmail == null || newEmail.isEmpty()) {
@@ -148,6 +158,9 @@ public class OtpServiceImpl implements OtpService {
 
         user.setEmail(newEmail);
         userRepository.save(user);
+
+        cuckooFilterService.delete(EMAIL_FILTER_KEY, oldEmail);
+        cuckooFilterService.add(EMAIL_FILTER_KEY, newEmail);
         log.info("Email changed successfully via Redis OTP for user: {}", username);
     }
 

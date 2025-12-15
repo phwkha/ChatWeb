@@ -1,6 +1,8 @@
 package com.web.backend.JWT;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.web.backend.common.TokenType;
+import com.web.backend.controller.response.ApiResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.JwtService;
 import com.web.backend.service.UserServiceDetail;
@@ -12,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,7 +46,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String key = "blacklist:" + jwt;
                 if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.getWriter().write("{\"code\": 401,\"status\": \"error\", \"message\": \"Token đã đăng xuất (Blacklisted)\"}");
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+
+                    ApiResponse<?> apiResponse = ApiResponse.error(
+                            HttpStatus.UNAUTHORIZED.value(),
+                            "Token đã đăng xuất (Blacklisted)"
+                    );
+
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+
+                    response.flushBuffer();
                     return;
                 }
 
