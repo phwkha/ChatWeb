@@ -1,7 +1,7 @@
 package com.web.backend.controller;
 
 import com.web.backend.controller.request.MarkReadRequest;
-import com.web.backend.controller.response.ApiResponse;
+import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
 import com.web.backend.model.ChatMessage;
@@ -14,8 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/messages")

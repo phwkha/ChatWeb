@@ -95,6 +95,13 @@ public class OtpServiceImpl implements OtpService {
     @Transactional
     public void resendOtp(String email) {
         String redisKey = "register:" + email;
+
+        String cooldownKey = "cooldown:resend:" + email;
+
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(cooldownKey))) {
+            throw new ResourceConflictException("Vui lòng đợi 60 giây trước khi gửi lại OTP.");
+        }
+
         RegisterData data = (RegisterData) redisTemplate.opsForValue().get(redisKey);
 
         if (data != null) {
@@ -103,7 +110,7 @@ public class OtpServiceImpl implements OtpService {
 
             data.setOtp(otp);
             redisTemplate.opsForValue().set(redisKey, data, expirationMinutes, TimeUnit.MINUTES);
-
+            redisTemplate.opsForValue().set(cooldownKey, "1", 60, TimeUnit.SECONDS);
             emailService.sendOtpEmail(data.getEmail(), data.getUsername(), otp);
             log.info("Resend Register OTP to Redis user: {}", data.getUsername());
             return;
@@ -125,6 +132,9 @@ public class OtpServiceImpl implements OtpService {
 
     private String validateRedisOtp(String identifier, OtpType type, String inputOtp) {
         String redisKey = "otp:" + type.name() + ":" + identifier;
+
+        String attemptKey = redisKey + ":attempts";
+
         String value = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (value == null) {
@@ -136,10 +146,20 @@ public class OtpServiceImpl implements OtpService {
         String extraData = parts.length > 1 ? parts[1] : null;
 
         if (!savedOtp.equals(inputOtp)) {
-            throw new InvalidOtpException("Mã OTP không chính xác");
+            Long attempts = redisTemplate.opsForValue().increment(attemptKey);
+            redisTemplate.expire(attemptKey, 5, TimeUnit.MINUTES);
+
+            if (attempts != null && attempts >= 5) {
+                redisTemplate.delete(redisKey);
+                redisTemplate.delete(attemptKey);
+                throw new InvalidOtpException("Bạn đã nhập sai quá 5 lần. Mã OTP đã bị hủy.");
+            }
+
+            throw new InvalidOtpException("Mã OTP không chính xác (Lần thử " + attempts + "/5)");
         }
 
         redisTemplate.delete(redisKey);
+        redisTemplate.delete(attemptKey);
         return extraData;
     }
 
@@ -170,7 +190,7 @@ public class OtpServiceImpl implements OtpService {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-        validateRedisOtp(email, OtpType.PASSWORD_RESET, otp);
+        validateRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, otp);
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
@@ -196,6 +216,13 @@ public class OtpServiceImpl implements OtpService {
 
     private void resendRedisOtp(String identifier, OtpType type, String emailToSend) {
         String redisKey = "otp:" + type.name() + ":" + identifier;
+
+        String cooldownKey = "cooldown:resend:" + identifier;
+
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(cooldownKey))) {
+            throw new ResourceConflictException("Vui lòng đợi 60 giây trước khi gửi lại OTP.");
+        }
+
         String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (oldValue == null) {
@@ -218,7 +245,7 @@ public class OtpServiceImpl implements OtpService {
             Optional<UserEntity> u = userRepository.findByEmail(identifier);
             if (u.isPresent()) usernameForMail = u.get().getUsername();
         }
-
+        redisTemplate.opsForValue().set(cooldownKey, "1", 60, TimeUnit.SECONDS);
         emailService.sendOtpEmail(emailToSend, usernameForMail, newOtp);
         log.info("Resent {} OTP to {}", type, emailToSend);
     }
@@ -229,7 +256,7 @@ public class OtpServiceImpl implements OtpService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
-        String redisKey = "otp:" + OtpType.EMAIL_CHANGE.name() + ":" + username;
+        String redisKey = "otp:" + OtpType.EMAIL_CHANGE.name() + ":" + user.getUsername();
         String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
         if (oldValue == null) throw new ResourceNotFoundException("Yêu cầu không tồn tại");
 
@@ -244,7 +271,9 @@ public class OtpServiceImpl implements OtpService {
     @Override
     @Transactional
     public void resendForgotPasswordOtp(String email) {
-        resendRedisOtp(email, OtpType.PASSWORD_RESET, email);
+        UserEntity user = userRepository.findByEmail(email)
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng email"));
+        resendRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, email);
     }
 
     @Override

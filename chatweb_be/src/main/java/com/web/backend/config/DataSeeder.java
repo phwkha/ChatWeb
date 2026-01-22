@@ -12,6 +12,7 @@ import com.web.backend.service.CuckooFilterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -100,5 +101,21 @@ public class DataSeeder implements CommandLineRunner {
             role.getPermissions().add(p);
         }
         roleRepository.save(role);
+    }
+
+    @Bean
+    public CommandLineRunner cleanupOnlineStatus() {
+        return args -> {
+            String ONLINE_USERS_KEY = "online_users";
+            String ONLINE_USERS_COUNT_KEY = "online_users_count";
+
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(ONLINE_USERS_KEY))) {
+                redisTemplate.delete(ONLINE_USERS_KEY);
+            }
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(ONLINE_USERS_COUNT_KEY))) {
+                redisTemplate.delete(ONLINE_USERS_COUNT_KEY);
+            }
+            log.info(">>> CLEANUP: Đã reset trạng thái Online Users trong Redis để tránh dữ liệu ảo.");
+        };
     }
 }

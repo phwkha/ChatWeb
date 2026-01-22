@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -115,8 +116,13 @@ public class UserServiceImpl implements UserService {
             return OnlineUsersResponse.builder().users(Collections.emptyMap()).build();
         }
 
-        List<String> usernames = onlineUsernames.stream().map(Object::toString).toList();
+        List<String> usernames = onlineUsernames.stream()
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .collect(Collectors.toList());
+
         List<UserEntity> userEntities = userRepository.findByUsernameIn(usernames);
+
         Map<String, UserSummaryResponse> list = userEntities.stream()
                 .peek(entity -> entity.setOnline(true))
                 .collect(Collectors.toMap(
@@ -371,10 +377,6 @@ public class UserServiceImpl implements UserService {
     public PageResponse<UserSummaryResponse> getAllUsers(int pageNo, int pageSize, String sortBy) {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by(Sort.Direction.DESC, sortBy != null ? sortBy : "id"));
 
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        UserEntity currentUser = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
-
         Page<UserEntity> pageResult;
 
         pageResult = userRepository.findAllByUserStatusNot(UserStatus.INACTIVE, pageable);
@@ -575,13 +577,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @CacheEvict(value = "user_details", key = "#username")
+    @Async
     public void setUserOnlineStatus(String username, boolean isOnline) {
-        Optional<UserEntity> userOpt = userRepository.findByUsername(username);
-        if (userOpt.isPresent()) {
-            UserEntity userEntity = userOpt.get();
-            userEntity.setOnline(isOnline);
-            userRepository.save(userEntity);
-        }
+        userRepository.updateOnlineStatus(username, isOnline);
         log.info("Set user online status");
     }
 }

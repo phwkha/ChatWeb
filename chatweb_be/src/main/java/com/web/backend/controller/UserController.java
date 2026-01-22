@@ -3,6 +3,7 @@ package com.web.backend.controller;
 import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.*;
 import com.web.backend.controller.response.AddressResponse;
+import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.OtpService;
 import com.web.backend.service.UserService;
@@ -36,15 +37,6 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(HttpStatus.CREATED.value(),
                         "Đăng ký thành công. Vui lòng kiểm tra email để nhập mã OTP.", newUser));
-    }
-
-    @GetMapping("/online")
-    public ResponseEntity<ApiResponse<OnlineUsersResponse>> getOnlineUsers(Authentication authentication) {
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("Get online users: {}", userEntityPrincipal.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Lấy danh sách người dùng trực tuyến thành công",
-                userService.getOnlineUsers()));
     }
 
     @GetMapping("/current")

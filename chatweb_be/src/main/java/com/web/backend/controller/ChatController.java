@@ -1,29 +1,29 @@
 package com.web.backend.controller;
 
+import com.web.backend.common.MessageStatus;
 import com.web.backend.common.MessageType;
 import com.web.backend.controller.request.ChatMessageRequest;
-import com.web.backend.controller.response.ApiResponse;
 import com.web.backend.controller.response.ChatMessageResponse;
+import com.web.backend.controller.response.form.SocketResponse;
+import com.web.backend.exception.AccessForbiddenException;
 import com.web.backend.exception.ResourceNotFoundException;
 import com.web.backend.mapper.MessageMapper;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.model.UserEntity;
+import com.web.backend.service.FriendService;
 import com.web.backend.service.MessageService;
 import com.web.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
@@ -38,9 +38,11 @@ public class ChatController {
 
     private final MessageMapper messageMapper;
 
+    private final FriendService friendService;
+
     @MessageMapping("/chat/addUser")
     @SendTo("/topic/public")
-    public ChatMessageResponse addUser(@Payload ChatMessageRequest request, SimpMessageHeaderAccessor headerAccessor, Authentication authentication) {
+    public ChatMessageResponse addUser(@Payload ChatMessageRequest request, Authentication authentication) {
 
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Request add user: {}", userPrincipal.getUsername());
@@ -49,12 +51,9 @@ public class ChatController {
         chatMessage.setSender(userPrincipal.getUsername());
 
         if (userService.userExists(chatMessage.getSender())) {
-            if (headerAccessor.getSessionAttributes() != null) {
-                headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
-            }
 
-            userService.setUserOnlineStatus(chatMessage.getSender(), true);
             normalizeMessage(chatMessage);
+            chatMessage.setLocalId(request.getLocalId());
 
             ChatMessage savedMessage = messageService.save(chatMessage);
             return messageMapper.toResponse(savedMessage);
@@ -64,6 +63,7 @@ public class ChatController {
 
     @MessageMapping("/chat/sendMessage")
     @SendTo("/topic/public")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
     public ChatMessageResponse sendMessage(@Payload ChatMessageRequest request, Authentication authentication) {
 
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
@@ -80,7 +80,8 @@ public class ChatController {
 
                 normalizeMessage(chatMessage);
                 chatMessage.setId(null);
-                chatMessage.setRead(false);
+                chatMessage.setStatus(MessageStatus.SENT);
+                chatMessage.setLocalId(request.getLocalId());
 
                 ChatMessage savedMessage = messageService.save(chatMessage);
                 return messageMapper.toResponse(savedMessage);
@@ -95,57 +96,36 @@ public class ChatController {
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String senderUsername = userPrincipal.getUsername();
 
-        String localId = request.getLocalId();
-
         try {
             log.info("Private from {} to {}", senderUsername, request.getRecipient());
 
             if ( !userService.userExists(request.getRecipient())) {
                 throw new ResourceNotFoundException("Người nhận không tồn tại");
             }
+
+            if (!friendService.isFriend(senderUsername, request.getRecipient())) {
+                throw new AccessForbiddenException("Hai người chưa kết bạn, không thể nhắn tin.");
+            }
+
                 ChatMessage chatMessage = messageMapper.toEntity(request);
                 chatMessage.setSender(senderUsername);
 
                 normalizeMessage(chatMessage);
                 chatMessage.setMessageType(MessageType.PRIVATE_CHAT);
                 chatMessage.setId(null);
-                chatMessage.setRead(false);
+                chatMessage.setStatus(MessageStatus.SENT);
+                chatMessage.setLocalId(request.getLocalId());
+                messageService.save(chatMessage);
 
-                ChatMessage savedMessage = messageService.save(chatMessage);
-                ChatMessageResponse response = messageMapper.toResponse(savedMessage);
-                response.setLocalId(localId);
-
-                simpMessagingTemplate.convertAndSendToUser(request.getRecipient(), "/queue/private", response);
-                simpMessagingTemplate.convertAndSendToUser(senderUsername, "/queue/private", response);
-
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             log.error("Error sending private message: {}", e.getMessage());
-            handleChatException(senderUsername, localId, e);
+            handleChatException(senderUsername, request, e);
         }
     }
 
-    private void handleChatException(String username, String localId, Exception e) {
-        int code = HttpStatus.INTERNAL_SERVER_ERROR.value();
-        String message = "Lỗi hệ thống không xác định";
-
-        if (e instanceof ResourceNotFoundException) {
-            code = HttpStatus.NOT_FOUND.value();
-            message = e.getMessage();
-        } else if (e instanceof IllegalArgumentException) {
-            code = HttpStatus.BAD_REQUEST.value();
-            message = e.getMessage();
-        } else {
-            message = e.getMessage();
-        }
-
-        ApiResponse<Map<String, String>> errorResponse = ApiResponse.<Map<String, String>>builder()
-                .code(code)
-                .status("error")
-                .message(message)
-                .data(Map.of("localId", localId != null ? localId : ""))
-                .build();
-
-        simpMessagingTemplate.convertAndSendToUser(username, "/queue/errors", errorResponse);
+    private void handleChatException(String username, ChatMessageRequest request, Exception e) {
+        simpMessagingTemplate.convertAndSendToUser(username,
+                "/queue/errors", SocketResponse.error(e.getMessage(), request));
     }
 
     private void normalizeMessage(ChatMessage chatMessage) {

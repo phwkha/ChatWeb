@@ -3,7 +3,7 @@ package com.web.backend.controller;
 import com.web.backend.controller.request.ForgotPasswordRequest;
 import com.web.backend.controller.request.LoginRequest;
 import com.web.backend.controller.request.ResetPasswordRequest;
-import com.web.backend.controller.response.ApiResponse;
+import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.controller.response.LoginResponse;
 import com.web.backend.controller.response.UserResponse;
 import com.web.backend.model.UserEntity;

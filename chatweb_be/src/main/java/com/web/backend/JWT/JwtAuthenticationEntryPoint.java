@@ -1,7 +1,7 @@
 package com.web.backend.JWT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.web.backend.controller.response.ApiResponse;
+import com.web.backend.controller.response.form.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;

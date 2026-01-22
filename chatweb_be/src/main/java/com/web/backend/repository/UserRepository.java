@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -32,4 +31,9 @@ public interface UserRepository extends JpaRepository<UserEntity,Long> {
     boolean existsByEmail(String email);
 
     boolean existsByRole(RoleEntity role);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE UserEntity u SET u.isOnline = :isOnline WHERE u.username = :username")
+    void updateOnlineStatus(String username, boolean isOnline);
 }

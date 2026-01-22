@@ -1,6 +1,6 @@
 package com.web.backend.exception;
 
-import com.web.backend.controller.response.ApiResponse;
+import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.controller.response.ErrorDebugInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;

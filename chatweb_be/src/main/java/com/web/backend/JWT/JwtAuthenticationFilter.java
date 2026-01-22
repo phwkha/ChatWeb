@@ -2,7 +2,7 @@ package com.web.backend.JWT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.web.backend.common.TokenType;
-import com.web.backend.controller.response.ApiResponse;
+import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.JwtService;
 import com.web.backend.service.UserServiceDetail;
@@ -27,7 +27,7 @@ import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "JWT-AUTHENTICATION-FLITER")
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;

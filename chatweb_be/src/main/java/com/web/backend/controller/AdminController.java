@@ -5,6 +5,7 @@ import com.web.backend.controller.request.AdminCreateUserRequest;
 import com.web.backend.controller.request.AdminUpdateUserRequest;
 import com.web.backend.controller.response.*;
 import com.web.backend.controller.response.AddressResponse;
+import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.UserService;
 import jakarta.validation.Valid;
@@ -39,6 +40,16 @@ public class AdminController {
         log.info("Get all user by: {}", userEntityPrincipal.getUsername());
         PageResponse<UserSummaryResponse> users = userService.getAllUsers(page, size, sortBy);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách user thành công", users));
+    }
+
+    @GetMapping("/online")
+    @PreAuthorize("hasAuthority('USER_VIEW')")
+    public ResponseEntity<ApiResponse<OnlineUsersResponse>> getOnlineUsers(Authentication authentication) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("Get online users: {}", userEntityPrincipal.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Lấy danh sách người dùng trực tuyến thành công",
+                userService.getOnlineUsers()));
     }
 
     @GetMapping("/user/{username}")
