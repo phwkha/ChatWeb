@@ -1,6 +1,5 @@
 package com.web.backend.config;
 
-import com.mongodb.RequestContext;
 import com.web.backend.common.UserStatus;
 import com.web.backend.model.PermissionEntity;
 import com.web.backend.model.RoleEntity;
@@ -8,7 +7,7 @@ import com.web.backend.model.UserEntity;
 import com.web.backend.repository.PermissionRepository;
 import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
-import com.web.backend.service.CuckooFilterService;
+import com.web.backend.service.util.CuckooFilterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

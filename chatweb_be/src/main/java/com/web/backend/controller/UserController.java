@@ -5,14 +5,12 @@ import com.web.backend.controller.response.*;
 import com.web.backend.controller.response.AddressResponse;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.model.UserEntity;
-import com.web.backend.service.OtpService;
 import com.web.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,24 +18,11 @@ import java.util.List;
 
 @Slf4j(topic = "USER-CONTROLLER")
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
-
-    private final OtpService otpService;
-
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<UserResponse>> registerUser(@RequestBody @Valid CreateUserRequest createUserRequest) {
-        log.info("Registering new user: {}", createUserRequest.getUsername());
-
-        UserResponse newUser = userService.createUser(createUserRequest);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(HttpStatus.CREATED.value(),
-                        "Đăng ký thành công. Vui lòng kiểm tra email để nhập mã OTP.", newUser));
-    }
 
     @GetMapping("/current")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(Authentication authentication) {
@@ -55,111 +40,42 @@ public class UserController {
                 userService.getProfileUser(userEntityPrincipal.getUsername())));
     }
 
-    @GetMapping("/public-key/{username}")
-    public ResponseEntity<ApiResponse<String>> getPublicKey(Authentication authentication, @PathVariable String username) {
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("Get public key: {}", userEntityPrincipal.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Lấy khóa công khai thành công",
-                userService.getPublicKey(username)));
-    }
-
-    @PostMapping("/public-key")
-    public ResponseEntity<ApiResponse<Void>> savePublicKey(Authentication authentication, @RequestBody @Valid SavePublicKeyRequest request) {
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("Saved public key for user: {}", userEntityPrincipal.getUsername());
-        userService.savePublicKey(userEntityPrincipal.getUsername(), request.getPublicKey());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lưu khóa công khai thành công", null));
-    }
-
-    @PutMapping("/{username}")
-    @PreAuthorize("#username == authentication.name")
+    @PutMapping("/profile")
     public ResponseEntity<ApiResponse<UserDetailResponse>> updateUser(
-            @PathVariable String username,
             @RequestBody @Valid UpdateUserRequest updateUserRequest,
             Authentication authentication) {
 
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-
-        if (!userEntityPrincipal.getUsername().equals(username)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.error(HttpStatus.FORBIDDEN.value(), "Bạn không có quyền chỉnh sửa hồ sơ này"));
-        }
+        String username = userEntityPrincipal.getUsername();
 
         log.info("Updating profile for user: {}", username);
+
         UserDetailResponse updatedUser = userService.updateUser(username, updateUserRequest);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật hồ sơ thành công", updatedUser));
     }
 
-    @PostMapping("/initiate-email-change")
-    public ResponseEntity<ApiResponse<Void>> initiateEmailChange(
-            Authentication authentication,
-            @RequestBody @Valid InitiateEmailChangeRequest request) {
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse<String>> changePassword(
+            @RequestBody @Valid ChangePasswordRequest request,
+            Authentication authentication) {
 
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-        log.info("Email change initiated for user: {}", user.getUsername());
-        userService.initiateEmailChange(user.getUsername(), request.getNewEmail(), request.getCurrentPassword());
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("User {} changed password successfully", userEntityPrincipal.getUsername());
+        userService.changePassword(userEntityPrincipal.getUsername(), request.getCurrentPassword(), request.getNewPassword());
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Mã xác thực đã được gửi đến email mới: " + request.getNewEmail(), null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đổi mật khẩu thành công", null));
     }
 
-    @PostMapping("/verify-email-change")
-    public ResponseEntity<ApiResponse<Void>> verifyEmailChange(
-            Authentication authentication,
-            @RequestBody @Valid VerifyOtpRequest request) {
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<Void>> deleteUser(Authentication authentication) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
 
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-        log.info("Email changed successfully for user: {}", user.getUsername());
-        otpService.verifyEmailChange(user.getUsername(), request.getOtp());
+        String username = userEntityPrincipal.getUsername();
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật email thành công!", null));
-    }
+        log.warn("User {} is deleting their account", username);
+        userService.deleteUser(username);
 
-    @PostMapping("/resend-email-verification")
-    public ResponseEntity<ApiResponse<Void>> resendEmailVerification(Authentication authentication) {
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-        log.info("Resent Email Change OTP for user {}", user.getUsername());
-        otpService.resendEmailChangeOtp(user.getUsername());
-
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Đã gửi lại mã xác thực vào email mới.", null));
-    }
-
-    @PostMapping("/initiate-phone-change")
-    public ResponseEntity<ApiResponse<Void>> initiatePhoneChange(
-            Authentication authentication,
-            @RequestBody @Valid InitiatePhoneChangeRequest request) {
-
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-        log.info("Phone change initiated for user: {}", user.getUsername());
-        userService.initiatePhoneChange(user.getUsername(), request.getNewPhone(), request.getCurrentPassword());
-
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Mã xác thực đã được gửi để xác nhận đổi số điện thoại.", null));
-    }
-
-    @PostMapping("/verify-phone-change")
-    public ResponseEntity<ApiResponse<Void>> verifyPhoneChange(
-            Authentication authentication,
-            @RequestBody @Valid VerifyOtpRequest request) {
-
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-        log.info("Phone changed successfully for user: {}", user.getUsername());
-        otpService.verifyPhoneChange(user.getUsername(), request.getOtp());
-
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Cập nhật số điện thoại thành công!", null));
-    }
-
-    @PostMapping("/resend-phone-change-verification")
-    public ResponseEntity<ApiResponse<Void>> resendPhoneVerification(Authentication authentication) {
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-
-        otpService.resendPhoneChangeOtp(user.getUsername());
-        log.info("Resent Phone Change OTP for user: {}", user.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Đã gửi lại mã xác thực đổi số điện thoại.", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa tài khoản thành công", null));
     }
 
     @PostMapping("/address")
@@ -200,7 +116,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa địa chỉ thành công", result));
     }
 
-    @GetMapping("/address")
+    @GetMapping("/addresses")
     public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddresses(Authentication authentication) {
         UserEntity currentUser = (UserEntity) authentication.getPrincipal();
         log.info("Get all address for user: {}", currentUser.getUsername());
@@ -218,31 +134,75 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy chi tiết địa chỉ thành công", address));
     }
 
-    @DeleteMapping("/{username}")
-    @PreAuthorize("#username == authentication.name")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable String username, Authentication authentication) {
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+    @PostMapping("/initiate-email-change")
+    public ResponseEntity<ApiResponse<Void>> initiateEmailChange(
+            Authentication authentication,
+            @RequestBody @Valid InitiateEmailChangeRequest request) {
 
-        if (!userEntityPrincipal.getUsername().equals(username)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.error(HttpStatus.FORBIDDEN.value(), "Bạn chỉ có thể xóa tài khoản của chính mình"));
-        }
+        UserEntity user = (UserEntity) authentication.getPrincipal();
+        log.info("Email change initiated for user: {}", user.getUsername());
+        userService.initiateEmailChange(user.getUsername(), request.getNewEmail(), request.getCurrentPassword());
 
-        log.warn("User {} is deleting their account", username);
-        userService.deleteUser(username);
-
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa tài khoản thành công", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Mã xác thực đã được gửi đến email mới: " + request.getNewEmail(), null));
     }
 
-    @PostMapping("/change-password")
-    public ResponseEntity<ApiResponse<String>> changePassword(
-            @RequestBody @Valid ChangePasswordRequest request,
-            Authentication authentication) {
+    @PostMapping("/verify-email-change")
+    public ResponseEntity<ApiResponse<Void>> verifyEmailChange(
+            Authentication authentication,
+            @RequestBody @Valid VerifyOtpRequest request) {
 
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("User {} changed password successfully", userEntityPrincipal.getUsername());
-        userService.changePassword(userEntityPrincipal.getUsername(), request.getCurrentPassword(), request.getNewPassword());
+        UserEntity user = (UserEntity) authentication.getPrincipal();
+        log.info("Email changed successfully for user: {}", user.getUsername());
+        userService.verifyEmailChange(user.getUsername(), request.getOtp());
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đổi mật khẩu thành công", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật email thành công!", null));
     }
+
+    @PostMapping("/resend-email-verification")
+    public ResponseEntity<ApiResponse<Void>> resendEmailVerification(Authentication authentication) {
+        UserEntity user = (UserEntity) authentication.getPrincipal();
+        log.info("Resent Email Change OTP for user {}", user.getUsername());
+        userService.resendEmailChangeOtp(user.getUsername());
+
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Đã gửi lại mã xác thực vào email mới.", null));
+    }
+
+    @PostMapping("/initiate-phone-change")
+    public ResponseEntity<ApiResponse<Void>> initiatePhoneChange(
+            Authentication authentication,
+            @RequestBody @Valid InitiatePhoneChangeRequest request) {
+
+        UserEntity user = (UserEntity) authentication.getPrincipal();
+        log.info("Phone change initiated for user: {}", user.getUsername());
+        userService.initiatePhoneChange(user.getUsername(), request.getNewPhone(), request.getCurrentPassword());
+
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Mã xác thực đã được gửi để xác nhận đổi số điện thoại.", null));
+    }
+
+    @PostMapping("/verify-phone-change")
+    public ResponseEntity<ApiResponse<Void>> verifyPhoneChange(
+            Authentication authentication,
+            @RequestBody @Valid VerifyOtpRequest request) {
+
+        UserEntity user = (UserEntity) authentication.getPrincipal();
+        log.info("Phone changed successfully for user: {}", user.getUsername());
+        userService.verifyPhoneChange(user.getUsername(), request.getOtp());
+
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Cập nhật số điện thoại thành công!", null));
+    }
+
+    @PostMapping("/resend-phone-change-verification")
+    public ResponseEntity<ApiResponse<Void>> resendPhoneVerification(Authentication authentication) {
+        UserEntity user = (UserEntity) authentication.getPrincipal();
+
+        userService.resendPhoneChangeOtp(user.getUsername());
+        log.info("Resent Phone Change OTP for user: {}", user.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Đã gửi lại mã xác thực đổi số điện thoại.", null));
+    }
+
 }

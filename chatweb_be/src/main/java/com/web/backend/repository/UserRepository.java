@@ -5,6 +5,7 @@ import com.web.backend.model.RoleEntity;
 import com.web.backend.model.UserEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,12 +19,14 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity,Long> {
 
+    @EntityGraph(attributePaths = {"role", "role.permissions"})
     Optional<UserEntity> findByUsername(String username);
 
     Optional<UserEntity> findByEmail(String email);
 
     List<UserEntity> findByUsernameIn(Collection<String> usernames);
 
+    @EntityGraph(attributePaths = {"role", "role.permissions"})
     Page<UserEntity> findAllByUserStatusNot(UserStatus status, Pageable pageable);
 
     boolean existsByUsername(String username);

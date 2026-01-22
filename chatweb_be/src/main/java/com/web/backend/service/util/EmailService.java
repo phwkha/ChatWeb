@@ -1,4 +1,4 @@
-package com.web.backend.service;
+package com.web.backend.service.util;
 
 import com.sendgrid.Method;
 import com.sendgrid.Request;

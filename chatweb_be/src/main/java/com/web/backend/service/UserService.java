@@ -14,23 +14,13 @@ public interface UserService {
 
     boolean userExists(String username);
 
-    UserResponse createUser(CreateUserRequest createUserRequest);
-
-    OnlineUsersResponse getOnlineUsers();
-
     UserResponse getCurrentUser(String username);
 
     UserDetailResponse getProfileUser(String username);
 
-    void savePublicKey(String username, String publicKey);
-
-    String getPublicKey(String username);
-
     UserDetailResponse updateUser(String username, UpdateUserRequest request);
 
     void initiateEmailChange(String username, String newEmail, String currentPassword);
-
-    void initiateForgotPassword(String email);
 
     void initiatePhoneChange(String username, String newPhone, String currentPassword);
 
@@ -48,25 +38,11 @@ public interface UserService {
 
     void changePassword(String username, String currentPassword, String newPassword);
 
-    PageResponse<UserSummaryResponse> getAllUsers(int pageNo, int pageSize, String sortBy);
+    void verifyPhoneChange(String username, String otp);
 
-    UserDetailResponse getUserByUsername(String username);
+    void verifyEmailChange(String username, String otp);
 
-    UserResponse adminCreateUser(AdminCreateUserRequest request);
+    void resendPhoneChangeOtp(String username);
 
-    UserResponse lockUser(String username);
-
-    UserResponse unlockUser(String username);
-
-    UserResponse adminUpdateUser(String username, AdminUpdateUserRequest request);
-
-    void adminDeleteUser(String targetUsername, String requesterUsername);
-
-    List<AddressResponse> adminGetAllAddresses(String targetUsername);
-
-    AddressResponse adminGetAddressById(String targetUsername, Long addressId);
-
-    UserDetailResponse adminUpdateAddress(String targetUsername, Long addressId, AddressRequest request);
-
-    void adminDeleteAddress(String targetUsername, Long addressId);
+    void resendEmailChangeOtp(String username);
 }

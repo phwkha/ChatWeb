@@ -1,10 +1,12 @@
 package com.web.backend.controller;
 
 import com.web.backend.controller.request.SaveKeyRequest;
+import com.web.backend.controller.request.SavePublicKeyRequest;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.controller.response.RsaKeyResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.KeyService;
+import com.web.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,4 +52,22 @@ public class KeyController {
                 ApiResponse.success(HttpStatus.OK.value(), "RSA key saved successfully", null)
         );
     }
+
+    @GetMapping("/public-key/{username}")
+    public ResponseEntity<ApiResponse<String>> getPublicKey(Authentication authentication, @PathVariable String username) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("Get public key: {}", userEntityPrincipal.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Lấy khóa công khai thành công",
+                keyService.getPublicKey(username)));
+    }
+
+    @PostMapping("/public-key")
+    public ResponseEntity<ApiResponse<Void>> savePublicKey(Authentication authentication, @RequestBody @Valid SavePublicKeyRequest request) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("Saved public key for user: {}", userEntityPrincipal.getUsername());
+        keyService.savePublicKey(userEntityPrincipal.getUsername(), request.getPublicKey());
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lưu khóa công khai thành công", null));
+    }
+
 }

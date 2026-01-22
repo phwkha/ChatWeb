@@ -5,7 +5,7 @@ import com.web.backend.common.TokenType;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.JwtService;
-import com.web.backend.service.UserServiceDetail;
+import com.web.backend.service.util.UserServiceDetail;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;

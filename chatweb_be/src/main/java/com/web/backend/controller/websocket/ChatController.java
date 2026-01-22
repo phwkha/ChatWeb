@@ -1,4 +1,4 @@
-package com.web.backend.controller;
+package com.web.backend.controller.websocket;
 
 import com.web.backend.common.MessageStatus;
 import com.web.backend.common.MessageType;

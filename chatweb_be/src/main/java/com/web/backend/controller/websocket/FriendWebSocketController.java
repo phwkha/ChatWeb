@@ -1,4 +1,4 @@
-package com.web.backend.controller;
+package com.web.backend.controller.websocket;
 
 import com.web.backend.common.NotificationsStatus;
 import com.web.backend.controller.response.NotificationMessageResponse;
@@ -12,7 +12,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
-import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor

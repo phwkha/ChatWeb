@@ -5,7 +5,7 @@ import com.sendgrid.SendGrid;
 import com.web.backend.JWT.JwtAccessDeniedHandler;
 import com.web.backend.JWT.JwtAuthenticationEntryPoint;
 import com.web.backend.JWT.JwtAuthenticationFilter;
-import com.web.backend.service.UserServiceDetail;
+import com.web.backend.service.util.UserServiceDetail;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,10 +56,9 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/otp/**").permitAll()
-                        .requestMatchers("/user/register").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/api/auth/logout").authenticated()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())

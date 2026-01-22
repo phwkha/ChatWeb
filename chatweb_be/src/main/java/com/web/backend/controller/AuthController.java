@@ -1,15 +1,12 @@
 package com.web.backend.controller;
 
-import com.web.backend.controller.request.ForgotPasswordRequest;
-import com.web.backend.controller.request.LoginRequest;
-import com.web.backend.controller.request.ResetPasswordRequest;
+import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.controller.response.LoginResponse;
 import com.web.backend.controller.response.UserResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.AuthenticationService;
-import com.web.backend.service.OtpService;
-import com.web.backend.service.UserService;
+import com.web.backend.service.util.RateLimitingService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,20 +20,25 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth/")
 @RequiredArgsConstructor
 @Slf4j(topic = "AUTH-CONTROLLER")
 public class AuthController {
 
     private final AuthenticationService authenticationService;
 
-    private final UserService userService;
-
-    private final OtpService otpService;
+    private final RateLimitingService rateLimitingService;
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<UserResponse>> login(@RequestBody @Valid LoginRequest loginRequest) {
-        
+    public ResponseEntity<ApiResponse<UserResponse>> login(@RequestBody @Valid LoginRequest loginRequest, HttpServletRequest request) {
+
+        String ip = request.getRemoteAddr();
+
+        if (!rateLimitingService.allowRequest(ip, "login", 5, 60)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(ApiResponse.error(429, "Bạn đã thử quá nhiều lần. Vui lòng đợi 1 phút."));
+        }
+
         log.info("Login with user: {}", loginRequest.getUsername());
 
         LoginResponse loginResponse = authenticationService.login(loginRequest);
@@ -63,23 +65,29 @@ public class AuthController {
                 .body(ApiResponse.success(HttpStatus.OK.value(), "Đăng nhập thành công",null));
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<String>> logout(Authentication authentication, HttpServletRequest request) {
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("User logout {}", userEntityPrincipal.getUsername());
-        String token = request.getHeader("Authorization").substring(7);
-        authenticationService.logout(token);
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<UserResponse>> registerUser(@RequestBody @Valid CreateUserRequest createUserRequest) {
+        log.info("Registering new user: {}", createUserRequest.getUsername());
 
-        ResponseCookie deleteAccess = ResponseCookie.from("accessToken", "")
-                .path("/").maxAge(0).build();
+        UserResponse newUser = authenticationService.createUser(createUserRequest);
 
-        ResponseCookie deleteRefresh = ResponseCookie.from("refreshToken", "")
-                .path("/auth/refresh-token").maxAge(0).build();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(HttpStatus.CREATED.value(),
+                        "Đăng ký thành công. Vui lòng kiểm tra email để nhập mã OTP.", newUser));
+    }
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
-                .header(HttpHeaders.SET_COOKIE, deleteRefresh.toString())
-                .body(ApiResponse.success(200, "Đăng xuất thành công", null));
+    @PostMapping("/verify-account")
+    public ResponseEntity<ApiResponse<Void>> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
+        log.info("Verify Otp Request: {}", request);
+        authenticationService.verifyUser(request);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Kích hoạt tài khoản thành công! Bạn có thể đăng nhập ngay bây giờ.", null));
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<ApiResponse<Void>> resendOtp(@RequestParam String email) {
+        log.info("Resend Otp Request: {}", email);
+        authenticationService.resendOtp(email);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đã gửi lại mã OTP.", null));
     }
 
     @PostMapping("/refresh-token")
@@ -105,21 +113,40 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
         log.info("Password reset initiated for email");
-        userService.initiateForgotPassword(request.getEmail());
+        authenticationService.initiateForgotPassword(request.getEmail());
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Mã xác nhận đã được gửi đến email của bạn.", null));
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
         log.info("Password reset successfully for user");
-        otpService.verifyPasswordReset(request.getEmail(), request.getOtp(), request.getNewPassword());
+        authenticationService.verifyPasswordReset(request.getEmail(), request.getOtp(), request.getNewPassword());
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
                 "Đặt lại mật khẩu thành công. Vui lòng đăng nhập.", null));
     }
 
     @PostMapping("/resend-forgot-password")
     public ResponseEntity<ApiResponse<Void>> resendForgotPassword(@RequestParam String email) {
-        otpService.resendForgotPasswordOtp(email);
+        authenticationService.resendForgotPasswordOtp(email);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đã gửi lại mã xác nhận vào email.", null));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(Authentication authentication, HttpServletRequest request) {
+        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+        log.info("User logout {}", userEntityPrincipal.getUsername());
+        String token = request.getHeader("Authorization").substring(7);
+        authenticationService.logout(token);
+
+        ResponseCookie deleteAccess = ResponseCookie.from("accessToken", "")
+                .path("/").maxAge(0).build();
+
+        ResponseCookie deleteRefresh = ResponseCookie.from("refreshToken", "")
+                .path("/auth/refresh-token").maxAge(0).build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
+                .header(HttpHeaders.SET_COOKIE, deleteRefresh.toString())
+                .body(ApiResponse.success(200, "Đăng xuất thành công", null));
     }
 }

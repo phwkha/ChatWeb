@@ -1,4 +1,4 @@
-package com.web.backend.service;
+package com.web.backend.service.util;
 
 import com.web.backend.model.UserEntity;
 import com.web.backend.repository.UserRepository;
