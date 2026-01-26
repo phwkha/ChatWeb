@@ -1,5 +1,6 @@
 package com.web.backend.model;
 
+import com.web.backend.common.ContentType;
 import com.web.backend.common.MessageType;
 import com.web.backend.common.MessageStatus;
 import lombok.Data;
@@ -28,6 +29,7 @@ public class ChatMessage {
     private String recipient;
 
     private String content;
+    private ContentType contentType;
     private MessageType messageType;
     private String color;
 
@@ -44,11 +46,11 @@ public class ChatMessage {
     private boolean isEdited;
     private boolean isDeleted;
 
+    private Map<String, String> reactions;
+
     private String iv;
     private String wrappedKeyRecipient;
     private String wrappedKeySender;
-
-    private Map<String, String> reactions;
 
     @org.springframework.data.annotation.Transient
     private String localId;

@@ -39,4 +39,6 @@ public interface UserRepository extends JpaRepository<UserEntity,Long> {
     @Transactional
     @Query("UPDATE UserEntity u SET u.isOnline = :isOnline WHERE u.username = :username")
     void updateOnlineStatus(String username, boolean isOnline);
+
+
 }

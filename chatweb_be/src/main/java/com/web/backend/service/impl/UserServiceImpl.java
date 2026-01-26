@@ -10,6 +10,7 @@ import com.web.backend.model.*;
 import com.web.backend.controller.response.UserDetailResponse;
 import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
+import com.web.backend.service.StorageService;
 import com.web.backend.service.util.CuckooFilterService;
 import com.web.backend.service.util.EmailService;
 import com.web.backend.service.MessageService;
@@ -27,6 +28,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.SecureRandom;
 import java.util.*;
@@ -46,6 +48,8 @@ public class UserServiceImpl implements UserService {
     private final MessageService messageService;
 
     private final EmailService emailService;
+
+    private final StorageService storageService;
 
     private final UserMapper userMapper;
 
@@ -96,6 +100,26 @@ public class UserServiceImpl implements UserService {
         UserEntity updatedUser = userRepository.save(userEntity);
         log.info("User updated profile");
         return userMapper.toUserDetailResponse(updatedUser);
+    }
+
+    @Override
+    @CacheEvict(value = "user_details", key = "#username")
+    public String updateAvatar(String username, MultipartFile avatarFile) {
+        UserEntity userEntity = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+        String oldAvatar = userEntity.getAvatar();
+        String newUrl = storageService.upload(avatarFile, "avatars");
+
+        if (oldAvatar != null) {
+            try {
+                storageService.delete(oldAvatar, "avatars");
+            } catch (Exception e) {
+                log.warn("Không xóa được ảnh cũ, nhưng vẫn tiếp tục update");
+            }
+        }
+        userEntity.setAvatar(newUrl);
+        log.info("User update avatar");
+        return userRepository.save(userEntity).getAvatar();
     }
 
     private void generateAndSenResponseToken(UserEntity user, OtpType type, String extraData, String targetEmail) {

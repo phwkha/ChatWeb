@@ -21,6 +21,8 @@ public interface AdminService {
 
     UserResponse unlockUser(String username);
 
+    void deleteAvatar(String username);
+
     UserResponse adminUpdateUser(String username, AdminUpdateUserRequest request);
 
     void adminDeleteUser(String targetUsername, String requesterUsername);

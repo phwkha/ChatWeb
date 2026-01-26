@@ -89,6 +89,15 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Khóa user thành công", lockedUser));
     }
 
+    @PostMapping("/{username}/delete-avatar")
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    public ResponseEntity<ApiResponse<Void>> deleteAvatar(Authentication authentication, @PathVariable String username) {
+        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
+        log.info("delete avatar by: {}", userEntity.getUsername());
+        adminService.deleteAvatar(username);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa avatar thành công",null));
+    }
+
     @PutMapping("/{username}")
     @PreAuthorize("hasAuthority('USER_UPDATE')")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(

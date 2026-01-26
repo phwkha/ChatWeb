@@ -4,6 +4,7 @@ import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.*;
 import com.web.backend.controller.response.AddressResponse;
 import com.web.backend.model.UserEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +20,8 @@ public interface UserService {
     UserDetailResponse getProfileUser(String username);
 
     UserDetailResponse updateUser(String username, UpdateUserRequest request);
+
+    String updateAvatar(String username, MultipartFile avatarFile);
 
     void initiateEmailChange(String username, String newEmail, String currentPassword);
 

@@ -51,3 +51,13 @@ jwt:
   secret-key-refresh: ${JWT_SECRET_REFRESH}
   expiry-minutes: 60
   expiry-day: 7
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
+app:
+  upload:
+    avatar:
+      max-size: 5242880

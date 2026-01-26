@@ -40,6 +40,7 @@ public interface UserMapper {
 
     AddressEntity toAddressEntity(AddressRequest request);
 
+    @Mapping(target = "avatar", ignore = true)
     void updateUserFromRequest(UpdateUserRequest request, @MappingTarget UserEntity entity);
 
     void updateAdminUserFromRequest(AdminUpdateUserRequest request, @MappingTarget UserEntity entity);

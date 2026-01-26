@@ -1,5 +1,6 @@
 package com.web.backend.controller.websocket;
 
+import com.web.backend.common.ContentType;
 import com.web.backend.common.MessageStatus;
 import com.web.backend.common.MessageType;
 import com.web.backend.controller.request.ChatMessageRequest;
@@ -112,6 +113,7 @@ public class ChatController {
 
                 normalizeMessage(chatMessage);
                 chatMessage.setMessageType(MessageType.PRIVATE_CHAT);
+                if (chatMessage.getContentType() == null) chatMessage.setContentType(ContentType.TEXT);
                 chatMessage.setId(null);
                 chatMessage.setStatus(MessageStatus.SENT);
                 chatMessage.setLocalId(request.getLocalId());

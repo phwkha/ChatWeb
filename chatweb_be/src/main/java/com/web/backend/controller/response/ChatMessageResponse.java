@@ -1,20 +1,42 @@
 package com.web.backend.controller.response;
 
+import com.web.backend.common.ContentType;
+import com.web.backend.common.MessageStatus;
 import com.web.backend.common.MessageType;
 import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @Builder
 public class ChatMessageResponse {
+
     private String id;
-    private String content;
+    private String conversationId;
+
     private String sender;
     private String recipient;
-    private LocalDateTime timestamp;
-    private boolean isRead;
+
+    private String content;
+    private ContentType contentType;
     private MessageType messageType;
+    private String color;
+
+    private String replyToId;
+
+    private String fileUrl;
+    private String fileName;
+    private Long fileSize;
+
+    private LocalDateTime timestamp;
+
+    private MessageStatus status;
+
+    private boolean isEdited;
+    private boolean isDeleted;
+
+    private Map<String, String> reactions;
 
     private String iv;
     private String wrappedKeyRecipient;

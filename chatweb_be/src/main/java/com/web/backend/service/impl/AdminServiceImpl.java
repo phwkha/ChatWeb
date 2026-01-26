@@ -16,6 +16,7 @@ import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
 import com.web.backend.service.AdminService;
 import com.web.backend.service.MessageService;
+import com.web.backend.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -45,6 +46,8 @@ public class AdminServiceImpl implements AdminService {
     private final UserMapper userMapper;
 
     private final RoleRepository roleRepository;
+
+    private final StorageService storageService;
 
     private final RedisTemplate<String, Object> redisTemplate;
     private static final String ONLINE_USERS_KEY = "online_users";
@@ -173,6 +176,22 @@ public class AdminServiceImpl implements AdminService {
         log.warn("Tried to unlock user {} who was not LOCKED (Status: {})", username, userEntity.getUserStatus());
 
         return userMapper.toUserResponse(userEntity);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "user_details", key = "#username")
+    public void deleteAvatar(String username) {
+        UserEntity userEntity = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+
+        String urlAvatar = userEntity.getAvatar();
+
+        userEntity.setAvatar(null);
+
+        storageService.delete(urlAvatar, "avatars");
+
+        log.info("delete avatar for user {}", username);
     }
 
     @Override

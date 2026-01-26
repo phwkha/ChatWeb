@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -52,6 +53,18 @@ public class UserController {
 
         UserDetailResponse updatedUser = userService.updateUser(username, updateUserRequest);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật hồ sơ thành công", updatedUser));
+    }
+
+    @PatchMapping("/avatar")
+    public ResponseEntity<ApiResponse<String>> updateAvatar(
+            @RequestParam("file") MultipartFile avatarFile,
+            Authentication authentication) {
+
+        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
+
+        String urlAvatar = userService.updateAvatar(userEntity.getUsername(), avatarFile);
+
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật ảnh đại diện thành công", urlAvatar));
     }
 
     @PostMapping("/change-password")

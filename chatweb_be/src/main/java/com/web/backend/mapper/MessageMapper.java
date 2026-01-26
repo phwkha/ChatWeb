@@ -12,7 +12,6 @@ public interface MessageMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "timestamp", ignore = true)
-    @Mapping(target = "read", ignore = true)
     ChatMessage toEntity(ChatMessageRequest request);
 
     ChatMessageResponse toResponse(ChatMessage entity);

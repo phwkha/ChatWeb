@@ -17,8 +17,6 @@ public class UpdateUserRequest {
             message = "Số điện thoại không hợp lệ"
     )
     private String phone;
-
-    private String avatar;
     private Date birthday;
     private GenderType gender;
 }
