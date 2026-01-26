@@ -8,10 +8,18 @@ import java.util.List;
 import java.util.Map;
 
 public interface MessageService {
-    ChatMessage save(ChatMessage chatMessage);
+    void saveMessage(ChatMessage chatMessage);
+
+    void messageTyping(ChatMessage chatMessage);
+
     CursorResponse<ChatMessage> findPrivateMessageWithCursor(String user1, String user2, String cursorStr, int size);
+
     CursorResponse<ChatMessage> findMessageByMessageTypeIsChat(String cursorStr, int size);
+
     UnreadCountsResponse getUnreadMessageCounts(String recipientUsername);
+
     void markMessagesAsRead(String recipientUsername, String senderUsername);
+
     boolean hasMessages(String username);
+
 }

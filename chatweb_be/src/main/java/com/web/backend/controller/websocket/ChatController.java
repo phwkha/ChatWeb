@@ -14,6 +14,7 @@ import com.web.backend.model.UserEntity;
 import com.web.backend.service.FriendService;
 import com.web.backend.service.MessageService;
 import com.web.backend.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -41,27 +42,6 @@ public class ChatController {
 
     private final FriendService friendService;
 
-    @MessageMapping("/chat/addUser")
-    @SendTo("/topic/public")
-    public ChatMessageResponse addUser(@Payload ChatMessageRequest request, Authentication authentication) {
-
-        UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("Request add user: {}", userPrincipal.getUsername());
-
-        ChatMessage chatMessage = messageMapper.toEntity(request);
-        chatMessage.setSender(userPrincipal.getUsername());
-
-        if (userService.userExists(chatMessage.getSender())) {
-
-            normalizeMessage(chatMessage);
-            chatMessage.setLocalId(request.getLocalId());
-
-            ChatMessage savedMessage = messageService.save(chatMessage);
-            return messageMapper.toResponse(savedMessage);
-        }
-        return null;
-    }
-
     @MessageMapping("/chat/sendMessage")
     @SendTo("/topic/public")
     @PreAuthorize("hasAuthority('USER_CREATE')")
@@ -73,7 +53,7 @@ public class ChatController {
         log.debug("Public chat from: {}", currentUsername);
 
         if (userService.userExists(currentUsername)) {
-            if (request.getMessageType() == MessageType.MESSAGE) {
+            if (request.getMessageType() == MessageType.CHAT) {
 
                 ChatMessage chatMessage = messageMapper.toEntity(request);
 
@@ -84,54 +64,36 @@ public class ChatController {
                 chatMessage.setStatus(MessageStatus.SENT);
                 chatMessage.setLocalId(request.getLocalId());
 
-                ChatMessage savedMessage = messageService.save(chatMessage);
-                return messageMapper.toResponse(savedMessage);
+                messageService.saveMessage(chatMessage);
+                return messageMapper.toResponse(chatMessage);
             }
         }
         return null;
     }
 
     @MessageMapping("/chat/sendPrivateMessage")
-    public void sendPrivateMessage(@Payload ChatMessageRequest request, Authentication authentication) {
+    public void sendPrivateMessage(@Payload @Valid ChatMessageRequest request, Authentication authentication) {
 
-            UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
-            String senderUsername = userPrincipal.getUsername();
+        UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
+        String senderUsername = userPrincipal.getUsername();
 
-            switch (request.getMessageType()) {
+        try {
+            log.info("Private from {} to {}", senderUsername, request.getRecipient());
 
-                case MESSAGE -> {
-                    try {
-                        log.info("Private from {} to {}", senderUsername, request.getRecipient());
-
-                        if ( !userService.userExists(request.getRecipient())) {
-                            throw new ResourceNotFoundException("Người nhận không tồn tại");
-                        }
-
-                        if (!friendService.isFriend(senderUsername, request.getRecipient())) {
-                            throw new AccessForbiddenException("Hai người chưa kết bạn, không thể nhắn tin.");
-                        }
-
-                        ChatMessage chatMessage = messageMapper.toEntity(request);
-                        chatMessage.setSender(senderUsername);
-
-                        normalizeMessage(chatMessage);
-                        if (chatMessage.getContentType() == null) chatMessage.setContentType(ContentType.TEXT);
-                        chatMessage.setId(null);
-                        chatMessage.setStatus(MessageStatus.SENT);
-                        chatMessage.setLocalId(request.getLocalId());
-                        messageService.save(chatMessage);
-
-                    } catch (Exception e) {
-                        log.error("Error sending private message: {}", e.getMessage());
-                        handleChatException(senderUsername, request, e);
-                    }
-                }
-
-                case TYPING -> {
-                    log.info("{} typing", senderUsername);
-                }
-                default -> log.warn("Unknown status");
+            if ( !userService.userExists(request.getRecipient())) {
+                throw new ResourceNotFoundException("Người nhận không tồn tại");
             }
+
+            if (!friendService.isFriend(senderUsername, request.getRecipient())) {
+                throw new AccessForbiddenException("Hai người chưa kết bạn, không thể nhắn tin.");
+            }
+
+            sendMessage(senderUsername, request);
+
+        } catch (Exception e) {
+            log.error("Error sending private message: {}", e.getMessage());
+            handleChatException(senderUsername, request, e);
+        }
     }
 
     private void handleChatException(String username, ChatMessageRequest request, Exception e) {
@@ -145,6 +107,27 @@ public class ChatController {
         }
         if (chatMessage.getContent() == null) {
             chatMessage.setContent("");
+        }
+    }
+
+    private void sendMessage(String senderUsername, ChatMessageRequest request) {
+        switch (request.getMessageType()) {
+            case CHAT -> {
+                ChatMessage chatMessage = messageMapper.toEntity(request);
+                chatMessage.setSender(senderUsername);
+
+                normalizeMessage(chatMessage);
+                if (chatMessage.getContentType() == null) chatMessage.setContentType(ContentType.TEXT);
+                chatMessage.setId(null);
+                chatMessage.setStatus(MessageStatus.SENT);
+                chatMessage.setLocalId(request.getLocalId());
+                messageService.saveMessage(chatMessage);
+            }
+            case TYPING -> {
+                ChatMessage chatMessage = messageMapper.toEntity(request);
+                messageService.messageTyping(chatMessage);
+            }
+            default -> log.warn("Unknown status");
         }
     }
 }

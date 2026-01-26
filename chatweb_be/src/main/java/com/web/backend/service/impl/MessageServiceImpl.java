@@ -45,12 +45,10 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public ChatMessage save(ChatMessage chatMessage) {
+    public void saveMessage(ChatMessage chatMessage) {
 
-        if (chatMessage.getMessageType() == MessageType.PRIVATE_CHAT) {
-            String convId = generateConversationId(chatMessage.getSender(), chatMessage.getRecipient());
-            chatMessage.setConversationId(convId);
-        }
+        String convId = generateConversationId(chatMessage.getSender(), chatMessage.getRecipient());
+        chatMessage.setConversationId(convId);
 
         ChatMessage savedMessage = messageRepository.save(chatMessage);
 
@@ -66,9 +64,21 @@ public class MessageServiceImpl implements MessageService {
                 savedMessage.getSender(),
                 savedMessage.getRecipient()
         ));
-
-        return savedMessage;
+        log.info("save message success");
     }
+
+    @Override
+    public void messageTyping(ChatMessage chatMessage) {
+        ChatMessageResponse response = messageMapper.toResponse(chatMessage);
+        eventPublisher.publishEvent(new NewChatMessageEvent(
+                this,
+                response,
+                chatMessage.getSender(),
+                chatMessage.getRecipient()
+        ));
+        log.info("typing success");
+    }
+
 
     @Override
     public CursorResponse<ChatMessage> findPrivateMessageWithCursor(String user1, String user2, String cursorStr, int size) {
