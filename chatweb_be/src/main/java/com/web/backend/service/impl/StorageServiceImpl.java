@@ -26,26 +26,51 @@ public class StorageServiceImpl implements StorageService {
     private Long maxSize;
 
     @Override
-    public String upload(MultipartFile avatarFile, String folder) {
+    public String uploadAvatar(MultipartFile avatar) {
         try {
-            if (avatarFile.isEmpty()) throw new InvalidDataException("avatar không được để trống");
+            if (avatar.isEmpty()) throw new InvalidDataException("ảnh avatar không được để trống");
 
-            if (!avatarFile.getContentType().startsWith("image/")) throw new InvalidDataException("Chỉ được phép tải ảnh");
+            if (!avatar.getContentType().startsWith("image/")) throw new InvalidDataException("Chỉ được phép tải ảnh");
 
-            if (avatarFile.getSize() > maxSize) {
-                throw new InvalidDataException("File ảnh quá lớn. Vui lòng chọn ảnh < 5MB");
+            if (avatar.getSize() > maxSize) {
+                throw new InvalidDataException("ảnh avatar quá lớn. Vui lòng chọn ảnh < 5MB");
             }
 
-            Map upLoadResult = cloudinary.uploader().upload(avatarFile.getBytes(),
+            Map upLoadResult = cloudinary.uploader().upload(avatar.getBytes(),
                     ObjectUtils.asMap(
-                            "folder", folder,
+                            "folder", "avatars",
                             "public_id", UUID.randomUUID().toString()
                     ));
             String url = (String) upLoadResult.get("secure_url");
-            log.info("Upload file success: {}", url);
+            log.info("Upload avatar success: {}", url);
             return url;
         } catch (IOException e) {
-            log.error("Upload failed: {}" , e.getMessage());
+            log.error("Upload avatar failed: {}" , e.getMessage());
+            throw new RuntimeException("Lỗi upload file: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public String upLoadImage(MultipartFile image) {
+        try {
+            if (image.isEmpty()) throw new InvalidDataException("ảnh không được để trống");
+
+            if (!image.getContentType().startsWith("image/")) throw new InvalidDataException("Chỉ được phép tải ảnh");
+
+            if (image.getSize() > maxSize) {
+                throw new InvalidDataException("ảnh quá lớn. Vui lòng chọn ảnh < 5MB");
+            }
+
+            Map upLoadResult = cloudinary.uploader().upload(image.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "images",
+                            "public_id", UUID.randomUUID().toString()
+                    ));
+            String url = (String) upLoadResult.get("secure_url");
+            log.info("Upload image success: {}", url);
+            return url;
+        } catch (IOException e) {
+            log.error("Upload image failed: {}" , e.getMessage());
             throw new RuntimeException("Lỗi upload file: " + e.getMessage());
         }
     }

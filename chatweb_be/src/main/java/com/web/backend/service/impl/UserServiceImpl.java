@@ -108,7 +108,7 @@ public class UserServiceImpl implements UserService {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
         String oldAvatar = userEntity.getAvatar();
-        String newUrl = storageService.upload(avatarFile, "avatars");
+        String newUrl = storageService.uploadAvatar(avatarFile);
 
         if (oldAvatar != null) {
             try {

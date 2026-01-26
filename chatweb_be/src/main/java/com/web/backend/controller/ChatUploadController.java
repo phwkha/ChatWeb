@@ -24,7 +24,7 @@ public class ChatUploadController {
     @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<String>> uploadChatImage(@RequestParam("image") MultipartFile file) {
         log.info("upload image");
-        String url = storageService.upload(file, "chat_images");
+        String url = storageService.upLoadImage(file);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Upload thành công", url));
     }
 }
