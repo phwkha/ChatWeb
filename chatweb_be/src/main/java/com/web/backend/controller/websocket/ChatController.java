@@ -73,7 +73,7 @@ public class ChatController {
         log.debug("Public chat from: {}", currentUsername);
 
         if (userService.userExists(currentUsername)) {
-            if (request.getMessageType() == MessageType.CHAT) {
+            if (request.getMessageType() == MessageType.MESSAGE) {
 
                 ChatMessage chatMessage = messageMapper.toEntity(request);
 
@@ -94,35 +94,44 @@ public class ChatController {
     @MessageMapping("/chat/sendPrivateMessage")
     public void sendPrivateMessage(@Payload ChatMessageRequest request, Authentication authentication) {
 
-        UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
-        String senderUsername = userPrincipal.getUsername();
+            UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
+            String senderUsername = userPrincipal.getUsername();
 
-        try {
-            log.info("Private from {} to {}", senderUsername, request.getRecipient());
+            switch (request.getMessageType()) {
 
-            if ( !userService.userExists(request.getRecipient())) {
-                throw new ResourceNotFoundException("Người nhận không tồn tại");
+                case MESSAGE -> {
+                    try {
+                        log.info("Private from {} to {}", senderUsername, request.getRecipient());
+
+                        if ( !userService.userExists(request.getRecipient())) {
+                            throw new ResourceNotFoundException("Người nhận không tồn tại");
+                        }
+
+                        if (!friendService.isFriend(senderUsername, request.getRecipient())) {
+                            throw new AccessForbiddenException("Hai người chưa kết bạn, không thể nhắn tin.");
+                        }
+
+                        ChatMessage chatMessage = messageMapper.toEntity(request);
+                        chatMessage.setSender(senderUsername);
+
+                        normalizeMessage(chatMessage);
+                        if (chatMessage.getContentType() == null) chatMessage.setContentType(ContentType.TEXT);
+                        chatMessage.setId(null);
+                        chatMessage.setStatus(MessageStatus.SENT);
+                        chatMessage.setLocalId(request.getLocalId());
+                        messageService.save(chatMessage);
+
+                    } catch (Exception e) {
+                        log.error("Error sending private message: {}", e.getMessage());
+                        handleChatException(senderUsername, request, e);
+                    }
+                }
+
+                case TYPING -> {
+                    log.info("{} typing", senderUsername);
+                }
+                default -> log.warn("Unknown status");
             }
-
-            if (!friendService.isFriend(senderUsername, request.getRecipient())) {
-                throw new AccessForbiddenException("Hai người chưa kết bạn, không thể nhắn tin.");
-            }
-
-                ChatMessage chatMessage = messageMapper.toEntity(request);
-                chatMessage.setSender(senderUsername);
-
-                normalizeMessage(chatMessage);
-                chatMessage.setMessageType(MessageType.PRIVATE_CHAT);
-                if (chatMessage.getContentType() == null) chatMessage.setContentType(ContentType.TEXT);
-                chatMessage.setId(null);
-                chatMessage.setStatus(MessageStatus.SENT);
-                chatMessage.setLocalId(request.getLocalId());
-                messageService.save(chatMessage);
-
-        } catch (Exception e) {
-            log.error("Error sending private message: {}", e.getMessage());
-            handleChatException(senderUsername, request, e);
-        }
     }
 
     private void handleChatException(String username, ChatMessageRequest request, Exception e) {
