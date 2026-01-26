@@ -25,6 +25,9 @@ public class StorageServiceImpl implements StorageService {
     @Value("${app.upload.avatar.max-size}")
     private Long maxSize;
 
+    @Value("${app.upload.avatar.max-size-video}")
+    private Long maxSizeVideo;
+
     @Override
     public String uploadAvatar(MultipartFile avatar) {
         try {
@@ -32,9 +35,7 @@ public class StorageServiceImpl implements StorageService {
 
             if (!avatar.getContentType().startsWith("image/")) throw new InvalidDataException("Chỉ được phép tải ảnh");
 
-            if (avatar.getSize() > maxSize) {
-                throw new InvalidDataException("ảnh avatar quá lớn. Vui lòng chọn ảnh < 5MB");
-            }
+            if (avatar.getSize() > maxSize) throw new InvalidDataException("ảnh avatar quá lớn. Vui lòng chọn ảnh < 5MB");
 
             Map upLoadResult = cloudinary.uploader().upload(avatar.getBytes(),
                     ObjectUtils.asMap(
@@ -57,9 +58,7 @@ public class StorageServiceImpl implements StorageService {
 
             if (!image.getContentType().startsWith("image/")) throw new InvalidDataException("Chỉ được phép tải ảnh");
 
-            if (image.getSize() > maxSize) {
-                throw new InvalidDataException("ảnh quá lớn. Vui lòng chọn ảnh < 5MB");
-            }
+            if (image.getSize() > maxSize) throw new InvalidDataException("ảnh quá lớn. Vui lòng chọn ảnh < 5MB");
 
             Map upLoadResult = cloudinary.uploader().upload(image.getBytes(),
                     ObjectUtils.asMap(
@@ -71,6 +70,29 @@ public class StorageServiceImpl implements StorageService {
             return url;
         } catch (IOException e) {
             log.error("Upload image failed: {}" , e.getMessage());
+            throw new RuntimeException("Lỗi upload file: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public String uploadVideo(MultipartFile video) {
+        try {
+            if (video.isEmpty()) throw new InvalidDataException("video không được để trống");
+
+            if (!video.getContentType().startsWith("video")) throw new InvalidDataException("chỉ được phép tải video ");
+
+            if (video.getSize() > maxSizeVideo) throw new InvalidDataException("video quá lớn. Vui lòng chọn video dưới 20MB");
+
+            Map upLoadResult = cloudinary.uploader().upload(video.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "videos",
+                            "public_id", UUID.randomUUID().toString()
+                    ));
+            String url = (String) upLoadResult.get("secure_url");
+            log.info("Upload video success: {}", url);
+            return url;
+        } catch (IOException e) {
+            log.error("Upload video failed: {}" , e.getMessage());
             throw new RuntimeException("Lỗi upload file: " + e.getMessage());
         }
     }
