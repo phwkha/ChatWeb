@@ -37,18 +37,6 @@ public class MessageController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Get private messages success", response));
     }
 
-    @GetMapping("/group")
-    public ResponseEntity<ApiResponse<CursorResponse<ChatMessage>>> getGroupMessage(
-            @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int size
-    ) {
-        log.info("Fetching group messages with cursor: {}", cursor);
-
-        CursorResponse<ChatMessage> response = messageService.findMessageByMessageTypeIsChat(cursor, size);
-
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Get group messages success", response));
-    }
-
     @GetMapping("/unread-counts")
     public ResponseEntity<ApiResponse<UnreadCountsResponse>> getUnreadCounts(Authentication auth) {
         UserEntity user = (UserEntity) auth.getPrincipal();

@@ -1,15 +1,16 @@
 package com.web.backend.service.impl;
 
 import com.web.backend.common.MessageStatus;
-import com.web.backend.common.MessageType;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
-import com.web.backend.controller.response.UnreadCountResultResponse;
+import com.web.backend.repository.projection.UnreadCountProjection;
 import com.web.backend.controller.response.UnreadCountsResponse;
 import com.web.backend.event.NewChatMessageEvent;
 import com.web.backend.mapper.MessageMapper;
 import com.web.backend.model.ChatMessage;
+import com.web.backend.model.SystemMessage;
 import com.web.backend.repository.MessageRepository;
+import com.web.backend.repository.SystemMessageRepository;
 import com.web.backend.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,8 @@ import java.util.stream.Collectors;
 public class MessageServiceImpl implements MessageService {
 
     private final MessageRepository messageRepository;
+
+    private final SystemMessageRepository systemMessageRepository;
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -68,6 +71,12 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
+    public void saveSystemMessage(SystemMessage systemMessage) {
+         systemMessageRepository.save(systemMessage);
+         log.info("{} Chat system message success", systemMessage.getSender());
+    }
+
+    @Override
     public void messageTyping(ChatMessage chatMessage) {
         ChatMessageResponse response = messageMapper.toResponse(chatMessage);
         eventPublisher.publishEvent(new NewChatMessageEvent(
@@ -99,24 +108,10 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public CursorResponse<ChatMessage> findMessageByMessageTypeIsChat(String cursorStr, int size) {
-        Pageable pageable = PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "timestamp"));
-        List<ChatMessage> messages;
-
-        if (cursorStr == null || cursorStr.isEmpty()) {
-            messages = messageRepository.findInitialMessageByMessageTypeIsChat(pageable);
-        } else {
-            LocalDateTime cursorTime = LocalDateTime.parse(cursorStr);
-            messages = messageRepository.findMessageByMessageTypeIsChat(cursorTime, pageable);
-        }
-        log.info("Fetching group messages");
-        return buildCursorResponse(messages, size);
-    }
-
-    @Override
     public UnreadCountsResponse getUnreadMessageCounts(String recipientUsername) {
 
         String key = "unread_counts:" + recipientUsername;
+
         Map<Object, Object> redisCounts = redisTemplate.opsForHash().entries(key);
 
         if (!redisCounts.isEmpty()) {
@@ -129,17 +124,24 @@ public class MessageServiceImpl implements MessageService {
             return UnreadCountsResponse.builder().unreadCounts(result).build();
         }
 
-        List<UnreadCountResultResponse> dbResults = messageRepository.countUnreadMessagesBySender(recipientUsername);
+        List<UnreadCountProjection> dbResults = messageRepository.countUnreadMessagesBySender(recipientUsername);
 
-        Map<String, Long> countMap = new HashMap<>();
-        for (UnreadCountResultResponse r : dbResults) {
-            countMap.put(r.getSenderId(), r.getCount());
-            redisTemplate.opsForHash().put(key, r.getSenderId(), r.getCount());
+        Map<String, Long> resultMap = new HashMap<>();
+        Map<String, Object> redisMap = new HashMap<>();
+
+        for (UnreadCountProjection r : dbResults) {
+            resultMap.put(r.getSender(), r.getCount());
+            redisMap.put(r.getSender(), r.getCount());
         }
-        redisTemplate.expire(key, 7, TimeUnit.DAYS);
-        log.info("Fetching unread counts for user (Optimized)");
+
+        if (!redisMap.isEmpty()) {
+            redisTemplate.opsForHash().putAll(key, redisMap);
+            redisTemplate.expire(key, 7, TimeUnit.DAYS);
+        }
+
+        log.info("Fetching unread counts for user (From DB)");
         return UnreadCountsResponse.builder()
-                .unreadCounts(countMap)
+                .unreadCounts(resultMap)
                 .build();
     }
 

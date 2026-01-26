@@ -4,12 +4,15 @@ import com.web.backend.common.ContentType;
 import com.web.backend.common.MessageStatus;
 import com.web.backend.common.MessageType;
 import com.web.backend.controller.request.ChatMessageRequest;
+import com.web.backend.controller.request.MessageSystemRequest;
 import com.web.backend.controller.response.ChatMessageResponse;
+import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.form.SocketResponse;
 import com.web.backend.exception.AccessForbiddenException;
 import com.web.backend.exception.ResourceNotFoundException;
 import com.web.backend.mapper.MessageMapper;
 import com.web.backend.model.ChatMessage;
+import com.web.backend.model.SystemMessage;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.FriendService;
 import com.web.backend.service.MessageService;
@@ -42,31 +45,29 @@ public class ChatController {
 
     private final FriendService friendService;
 
-    @MessageMapping("/chat/sendMessage")
+    @MessageMapping("/chat/sendMessageSystem")
     @SendTo("/topic/public")
     @PreAuthorize("hasAuthority('USER_CREATE')")
-    public ChatMessageResponse sendMessage(@Payload ChatMessageRequest request, Authentication authentication) {
+    public MessageSystemResponse sendMessage(@Payload @Valid MessageSystemRequest request, Authentication authentication) {
 
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String currentUsername = userPrincipal.getUsername();
 
-        log.debug("Public chat from: {}", currentUsername);
+        try {
+                log.debug("Public chat from: {}", currentUsername);
 
-        if (userService.userExists(currentUsername)) {
-            if (request.getMessageType() == MessageType.CHAT) {
+                SystemMessage systemMessage = new SystemMessage();
+                systemMessage.setSender(currentUsername);
+                systemMessage.setContent(request.getContent());
+                messageService.saveSystemMessage(systemMessage);
+                return MessageSystemResponse.builder()
+                        .sender(systemMessage.getSender())
+                        .content(systemMessage.getContent())
+                        .build();
 
-                ChatMessage chatMessage = messageMapper.toEntity(request);
-
-                chatMessage.setSender(currentUsername);
-
-                normalizeMessage(chatMessage);
-                chatMessage.setId(null);
-                chatMessage.setStatus(MessageStatus.SENT);
-                chatMessage.setLocalId(request.getLocalId());
-
-                messageService.saveMessage(chatMessage);
-                return messageMapper.toResponse(chatMessage);
-            }
+        } catch (Exception e) {
+            log.error("Error sending system message: {}", e.getMessage());
+            handleChatException(currentUsername, request, "Lỗi không thể nhắn tin hệ thống");
         }
         return null;
     }
@@ -92,13 +93,13 @@ public class ChatController {
 
         } catch (Exception e) {
             log.error("Error sending private message: {}", e.getMessage());
-            handleChatException(senderUsername, request, e);
+            handleChatException(senderUsername, request, e.getMessage());
         }
     }
 
-    private void handleChatException(String username, ChatMessageRequest request, Exception e) {
+    private void handleChatException(String username, Object request, String mes) {
         simpMessagingTemplate.convertAndSendToUser(username,
-                "/queue/errors", SocketResponse.error(e.getMessage(), request));
+                "/queue/errors", SocketResponse.error(mes, request));
     }
 
     private void normalizeMessage(ChatMessage chatMessage) {
