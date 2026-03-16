@@ -62,4 +62,5 @@ app:
   upload:
     avatar:
       max-size: 5242880
-      max-size-video: 20971520
+    max-size-video: 20971520
+    max-size-image: 20971520

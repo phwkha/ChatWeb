@@ -25,8 +25,11 @@ public class StorageServiceImpl implements StorageService {
     @Value("${app.upload.avatar.max-size}")
     private Long maxAvatarSize;
 
-    @Value("${app.upload.avatar.max-size-video}")
+    @Value("${app.upload.max-size-video}")
     private Long maxVideoSize;
+
+    @Value("${app.upload.max-size-image}")
+    private Long maxImageSize;
 
     @Override
     public String uploadAvatar(MultipartFile avatar) {
@@ -35,12 +38,12 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public String upLoadImage(MultipartFile image) {
-        return uploadFile(image, "images", maxAvatarSize, "image");
+        return uploadFile(image, "images", maxImageSize, "raw");
     }
 
     @Override
     public String uploadVideo(MultipartFile video) {
-        return uploadFile(video, "videos", maxVideoSize, "video");
+        return uploadFile(video, "videos", maxVideoSize, "raw");
     }
 
     private String uploadFile(MultipartFile file, String folder, Long maxSize, String resourceType) {
@@ -49,9 +52,11 @@ public class StorageServiceImpl implements StorageService {
                 throw new InvalidDataException("File không được để trống");
             }
 
-            String contentType = file.getContentType();
-            if (contentType == null || !contentType.startsWith(resourceType + "/")) {
-                throw new InvalidDataException("Định dạng file không hợp lệ. Chỉ chấp nhận: " + resourceType);
+            if (!resourceType.equals("raw")){
+                String contentType = file.getContentType();
+                if (contentType == null || !contentType.startsWith(resourceType + "/")) {
+                    throw new InvalidDataException("Định dạng file không hợp lệ. Chỉ chấp nhận: " + resourceType);
+                }
             }
 
             if (file.getSize() > maxSize) {
@@ -82,7 +87,7 @@ public class StorageServiceImpl implements StorageService {
         try {
             if (url == null || url.isEmpty()) return;
 
-            String resourceType = folder.equals("videos") ? "video" : "image";
+            String resourceType = folder.equals("avatars") ? "image" : "raw";
             String publicId = extractPublicId(url, folder);
 
             if (publicId != null) {
