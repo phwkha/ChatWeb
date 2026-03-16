@@ -2,9 +2,10 @@ package com.web.backend.model;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Document("system_message")
 @Data
@@ -16,6 +17,9 @@ public class SystemMessage {
 
     private String content;
 
-    private LocalDateTime timestamp;
+    private Instant timestamp;
+
+    @Indexed(expireAfter = "0s")
+    private Instant expiresAt;
 }
 

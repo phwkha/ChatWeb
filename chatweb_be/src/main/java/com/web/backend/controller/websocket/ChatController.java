@@ -28,7 +28,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Controller
 @RequiredArgsConstructor
@@ -47,7 +49,7 @@ public class ChatController {
 
     @MessageMapping("/chat/sendMessageSystem")
     @SendTo("/topic/public")
-    @PreAuthorize("hasAuthority('USER_CREATE')")
+    @PreAuthorize("hasAuthority('ADMIN_SEND-MESSAGE')")
     public MessageSystemResponse sendMessage(@Payload @Valid MessageSystemRequest request, Authentication authentication) {
 
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
@@ -58,11 +60,14 @@ public class ChatController {
 
                 SystemMessage systemMessage = new SystemMessage();
                 systemMessage.setSender(currentUsername);
+                systemMessage.setTimestamp(Instant.now());
+                systemMessage.setExpiresAt(request.getSurvivalTime() == null ? null : Instant.now().plus(request.getSurvivalTime(), ChronoUnit.SECONDS));
                 systemMessage.setContent(request.getContent());
                 messageService.saveSystemMessage(systemMessage);
                 return MessageSystemResponse.builder()
                         .sender(systemMessage.getSender())
                         .content(systemMessage.getContent())
+                        .timestamp(systemMessage.getTimestamp())
                         .build();
 
         } catch (Exception e) {
@@ -79,7 +84,7 @@ public class ChatController {
         String senderUsername = userPrincipal.getUsername();
 
         try {
-            log.info("Private from {} to {}", senderUsername, request.getRecipient());
+            log.debug("Private from {} to {}", senderUsername, request.getRecipient());
 
             if ( !userService.userExists(request.getRecipient())) {
                 throw new ResourceNotFoundException("Người nhận không tồn tại");

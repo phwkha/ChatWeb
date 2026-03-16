@@ -2,9 +2,9 @@ package com.web.backend.config;
 
 
 import com.sendgrid.SendGrid;
-import com.web.backend.JWT.JwtAccessDeniedHandler;
-import com.web.backend.JWT.JwtAuthenticationEntryPoint;
-import com.web.backend.JWT.JwtAuthenticationFilter;
+import com.web.backend.jwt.JwtAccessDeniedHandler;
+import com.web.backend.jwt.JwtAuthenticationEntryPoint;
+import com.web.backend.jwt.JwtAuthenticationFilter;
 import com.web.backend.service.util.UserServiceDetail;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

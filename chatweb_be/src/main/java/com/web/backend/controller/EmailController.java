@@ -23,7 +23,7 @@ public class EmailController {
     private final EmailService emailService;
 
     @PostMapping("/send")
-    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAuthority('SEND_EMAIL')")
     public ResponseEntity<ApiResponse<Void>> sendEmail(@RequestBody @Valid EmailRequest request) {
         log.info("Request to send email to: {}", request.getTo());
 

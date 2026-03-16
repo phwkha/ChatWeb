@@ -17,4 +17,6 @@ public interface MessageMapper {
     ChatMessage toEntity(ChatMessageRequest request);
 
     ChatMessageResponse toResponse(ChatMessage entity);
+
+    MessageSystemResponse systemMessageToResponse(SystemMessage entity);
 }

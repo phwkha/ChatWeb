@@ -29,7 +29,7 @@ public class AdminController {
     private final AdminService adminService;
 
     @GetMapping("/users")
-    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     public ResponseEntity<ApiResponse<PageResponse<UserSummaryResponse>>> getAllUsers(
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
@@ -43,7 +43,7 @@ public class AdminController {
     }
 
     @GetMapping("/online")
-    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     public ResponseEntity<ApiResponse<OnlineUsersResponse>> getOnlineUsers(Authentication authentication) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get online users: {}", userEntityPrincipal.getUsername());
@@ -53,7 +53,7 @@ public class AdminController {
     }
 
     @GetMapping("/user/{username}")
-    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     public ResponseEntity<ApiResponse<UserDetailResponse>> getUserByUsername(Authentication authentication, @PathVariable String username) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get user by: {}", userEntityPrincipal.getUsername());
@@ -62,7 +62,7 @@ public class AdminController {
     }
 
     @PostMapping("/add")
-    @PreAuthorize("hasAuthority('USER_CREATE')")
+    @PreAuthorize("hasAuthority('ADMIN_CREATE')")
     public ResponseEntity<ApiResponse<UserResponse>> addUser(Authentication authentication, @RequestBody @Valid AdminCreateUserRequest request) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Add user by: {}", userEntityPrincipal.getUsername());
@@ -72,7 +72,7 @@ public class AdminController {
     }
 
     @PostMapping("/{username}/unlock")
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAuthority('ADMIN_UNLOCK')")
     public ResponseEntity<ApiResponse<UserResponse>> unlockUser(Authentication authentication, @PathVariable String username) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Unlock user by: {}", userEntityPrincipal.getUsername());
@@ -81,7 +81,7 @@ public class AdminController {
     }
 
     @PostMapping("/{username}/lock")
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAuthority('ADMIN_LOCK')")
     public ResponseEntity<ApiResponse<UserResponse>> lockUser(Authentication authentication, @PathVariable String username) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Lock user by: {}", userEntityPrincipal.getUsername());
@@ -90,7 +90,7 @@ public class AdminController {
     }
 
     @PostMapping("/{username}/delete-avatar")
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAuthority('ADMIN_DELETE_AVATAR')")
     public ResponseEntity<ApiResponse<Void>> deleteAvatar(Authentication authentication, @PathVariable String username) {
         UserEntity userEntity = (UserEntity) authentication.getPrincipal();
         log.info("delete avatar by: {}", userEntity.getUsername());
@@ -99,7 +99,7 @@ public class AdminController {
     }
 
     @PutMapping("/{username}")
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAuthority('ADMIN_UPDATE')")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             Authentication authentication,
             @PathVariable String username,
@@ -111,7 +111,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/{username}")
-    @PreAuthorize("hasAuthority('USER_DELETE')")
+    @PreAuthorize("hasAuthority('ADMIN_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable String username, Authentication authentication) {
         UserEntity adminPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Delete user by {}", adminPrincipal.getUsername());
@@ -123,7 +123,7 @@ public class AdminController {
     }
 
     @GetMapping("/user/{username}/addresses")
-    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddressesForUser(
             Authentication authentication,
             @PathVariable String username) {
@@ -137,7 +137,7 @@ public class AdminController {
     }
 
     @GetMapping("/user/{username}/address/{addressId}")
-    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     public ResponseEntity<ApiResponse<AddressResponse>> getAddressByIdForUser(
             Authentication authentication,
             @PathVariable String username,
@@ -153,7 +153,7 @@ public class AdminController {
     }
 
     @PutMapping("/user/{username}/address/{addressId}")
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAuthority('ADMIN_UPDATE')")
     public ResponseEntity<ApiResponse<UserDetailResponse>> updateAddressForUser(
             Authentication authentication,
             @PathVariable String username,
@@ -171,7 +171,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/user/{username}/address/{addressId}")
-    @PreAuthorize("hasAuthority('USER_DELETE')")
+    @PreAuthorize("hasAuthority('ADMIN_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteAddressForUser(
             Authentication authentication,
             @PathVariable String username,

@@ -1,6 +1,7 @@
 package com.web.backend.controller;
 
 import com.web.backend.controller.request.MarkReadRequest;
+import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
@@ -24,7 +25,7 @@ public class MessageController {
     private final MessageService messageService;
 
     @GetMapping("/private")
-    public ResponseEntity<ApiResponse<CursorResponse<ChatMessage>>> getPrivateMessage(
+    public ResponseEntity<ApiResponse<CursorResponse<ChatMessageResponse>>> getPrivateMessage(
             @RequestParam String user1,
             @RequestParam String user2,
             @RequestParam(required = false) String cursor,
@@ -32,7 +33,7 @@ public class MessageController {
     ) {
         log.info("Fetching private messages between {} and {}", user1, user2);
 
-        CursorResponse<ChatMessage> response = messageService.findPrivateMessageWithCursor(user1, user2, cursor, size);
+        CursorResponse<ChatMessageResponse> response = messageService.findPrivateMessageWithCursor(user1, user2, cursor, size);
 
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Get private messages success", response));
     }

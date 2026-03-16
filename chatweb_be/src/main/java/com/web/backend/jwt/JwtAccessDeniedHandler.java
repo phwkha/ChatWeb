@@ -1,4 +1,4 @@
-package com.web.backend.JWT;
+package com.web.backend.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.web.backend.controller.response.form.ApiResponse;

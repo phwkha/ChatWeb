@@ -1,4 +1,4 @@
-package com.web.backend.JWT;
+package com.web.backend.jwt;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;

@@ -23,8 +23,8 @@ public class CuckooFilterService {
         String script = "return redis.call('CF.ADD', KEYS[1], ARGV[1])";
         redisTemplate.execute(
                 new DefaultRedisScript<>(script, Long.class),
-                RedisSerializer.string(), // Serializer cho arguments (item)
-                null,                     // Serializer cho result (để null để nhận về Long)
+                RedisSerializer.string(),
+                null,
                 Collections.singletonList(key),
                 item
         );

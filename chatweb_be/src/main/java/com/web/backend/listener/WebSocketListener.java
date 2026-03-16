@@ -22,7 +22,9 @@ import java.util.Objects;
 public class WebSocketListener {
 
     private final UserService userService;
+
     private final SimpMessageSendingOperations messagingTemplate;
+
     private final RedisTemplate<String, Object> redisTemplate;
 
     private static final String ONLINE_USERS_KEY = "online_users";
@@ -44,6 +46,7 @@ public class WebSocketListener {
 
             if (count != null && count == 1) {
                 userService.setUserOnlineStatus(username, true);
+
                 log.info("User Online (First Session): {}", username);
             } else {
                 log.debug("User opened new tab/device: {}, total sessions: {}", username, count);
@@ -71,11 +74,6 @@ public class WebSocketListener {
                 redisTemplate.opsForHash().delete(ONLINE_USERS_COUNT_KEY, username);
 
                 userService.setUserOnlineStatus(username, false);
-
-                ChatMessage chatMessage = new ChatMessage();
-                chatMessage.setMessageType(MessageType.LEAVE);
-                chatMessage.setSender(username);
-                messagingTemplate.convertAndSend("/topic/public", chatMessage);
 
                 log.info("User Disconnected Completely (All sessions closed): {}", username);
             } else {

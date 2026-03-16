@@ -3,6 +3,7 @@ package com.web.backend.service.impl;
 import com.web.backend.common.MessageStatus;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
+import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.repository.projection.UnreadCountProjection;
 import com.web.backend.controller.response.UnreadCountsResponse;
 import com.web.backend.event.NewChatMessageEvent;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -90,7 +92,7 @@ public class MessageServiceImpl implements MessageService {
 
 
     @Override
-    public CursorResponse<ChatMessage> findPrivateMessageWithCursor(String user1, String user2, String cursorStr, int size) {
+    public CursorResponse<ChatMessageResponse> findPrivateMessageWithCursor(String user1, String user2, String cursorStr, int size) {
 
         String conversationId = generateConversationId(user1, user2);
 
@@ -105,6 +107,36 @@ public class MessageServiceImpl implements MessageService {
         }
         log.info("Fetching private messages");
         return buildCursorResponse(messages, size);
+    }
+
+    @Override
+    public CursorResponse<MessageSystemResponse> findSystemMessageWithCursor(String cursorStr, int size) {
+
+        Pageable pageable = PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        List<SystemMessage> messages;
+
+        if (cursorStr == null || cursorStr.isEmpty()) {
+            messages = systemMessageRepository.findInitialMessage(pageable);
+        } else {
+            Instant cursorTime = Instant.parse(cursorStr);
+            messages = systemMessageRepository.findMessage(cursorTime, pageable);
+        }
+
+        String nextCursor = null;
+        boolean hasMore = false;
+
+        if (!messages.isEmpty()) {
+            Instant lastMessageTime = messages.get(messages.size() - 1).getTimestamp();
+            nextCursor = lastMessageTime.toString();
+            hasMore = messages.size() == size;
+        }
+
+        List<MessageSystemResponse> responseList = messages.stream()
+                .map(messageMapper::systemMessageToResponse )
+                .toList();
+
+        log.info("Fetching system messages");
+        return new CursorResponse<>(responseList, nextCursor, hasMore);
     }
 
     @Override
@@ -162,7 +194,7 @@ public class MessageServiceImpl implements MessageService {
         return messageRepository.existsBySenderOrRecipient(username);
     }
 
-    private CursorResponse<ChatMessage> buildCursorResponse(List<ChatMessage> messages, int size) {
+    private CursorResponse<ChatMessageResponse> buildCursorResponse(List<ChatMessage> messages, int size) {
         String nextCursor = null;
         boolean hasMore = false;
 
@@ -172,6 +204,10 @@ public class MessageServiceImpl implements MessageService {
             hasMore = messages.size() == size;
         }
 
-        return new CursorResponse<>(messages, nextCursor, hasMore);
+        List<ChatMessageResponse> responseList = messages.stream()
+                .map(messageMapper::toResponse)
+                .toList();
+
+        return new CursorResponse<>(responseList, nextCursor, hasMore);
     }
 }
