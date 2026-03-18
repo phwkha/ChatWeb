@@ -1,7 +1,7 @@
 services:
   # --- MONGODB ---
-  mongo:
-    image: mongo:7
+  cw_mongo:
+    image: mongo:latest
     container_name: mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
@@ -15,8 +15,8 @@ services:
       - default
 
   # --- POSTGRESQL ---
-  postgres:
-    image: postgres
+  cw_postgres:
+    image: postgres:latest
     container_name: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -24,19 +24,19 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./initdb.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - default
 
   # --- REDIS ---
-  redis:
+  cw_redis:
     image: redis/redis-stack:latest
     container_name: redis
     hostname: redis
     ports:
-      - '6379:6379'
-      - '8001:8001'
+      - "6379:6379"
+      - "8001:8001"
     environment:
       - REDIS_ARGS=--requirepass ${REDIS_PASSWORD}
     volumes:
@@ -45,7 +45,7 @@ services:
       - default
 
   # --- SPRING BOOT BACKEND ---
-  backend:
+  cw_backend:
     container_name: backend
     build:
       context: ./
@@ -58,7 +58,7 @@ services:
       MONGO_DB: ${MONGO_DB}
       MONGO_USER: ${MONGO_USER}
       MONGO_PASSWORD: ${MONGO_PASSWORD}
-      
+
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB}
@@ -68,20 +68,28 @@ services:
       JWT_SECRET_ACCESS: ${JWT_SECRET_ACCESS}
       JWT_SECRET_REFRESH: ${JWT_SECRET_REFRESH}
 
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@cw_mongo:27017/${MONGO_DB}?authSource=admin
+      SPRING_DATASOURCE_URL: jdbc:postgresql://cw_postgres:5432/${POSTGRES_DB}
 
-      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB}?authSource=admin
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-
-      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_HOST: cw_redis
       SPRING_DATA_REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
 
-      SPRING_PROFILES_ACTIVE: prod
+      SENDGRID_KEY: ${SENDGRID_KEY}
+      FROM_EMAIL: ${FROM_EMAIL}
+      TEMPLATE_OTP_ID: ${TEMPLATE_OTP_ID}
+
+      CLOUDINARY_NAME: ${CLOUDINARY_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+
+      SPRING_PROFILES_ACTIVE: dev
     networks:
       - default
     depends_on:
-      - mongo
-      - postgres
-      - redis
+      - cw_mongo
+      - cw_postgres
+      - cw_redis
 
 networks:
   default:
