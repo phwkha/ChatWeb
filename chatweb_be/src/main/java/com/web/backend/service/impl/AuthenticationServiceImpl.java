@@ -9,7 +9,6 @@ import com.web.backend.controller.request.VerifyOtpRequest;
 import com.web.backend.controller.response.LoginResponse;
 import com.web.backend.controller.response.UserResponse;
 import com.web.backend.exception.*;
-import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.RegisterData;
 import com.web.backend.model.RoleEntity;
 import com.web.backend.model.UserEntity;

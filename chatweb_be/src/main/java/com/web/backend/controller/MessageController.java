@@ -5,7 +5,6 @@ import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
-import com.web.backend.model.ChatMessage;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.MessageService;
 import jakarta.validation.Valid;

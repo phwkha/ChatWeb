@@ -8,14 +8,13 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.io.Serializable;
 import java.util.*;
 
 @Entity
 @Table(name = "users")
 @Getter
 @Setter
-public class UserEntity extends AbstractEntity<Long> implements Serializable, UserDetails {
+public class UserEntity extends AbstractEntity<Long> implements UserDetails {
 
     @Column(unique = true, nullable = false)
     private String username;

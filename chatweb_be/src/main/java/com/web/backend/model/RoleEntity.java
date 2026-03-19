@@ -4,7 +4,6 @@ package com.web.backend.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -12,7 +11,7 @@ import java.util.Set;
 @Table(name = "roles")
 @Getter
 @Setter
-public class RoleEntity extends AbstractEntity<Long> implements Serializable {
+public class RoleEntity extends AbstractEntity<Long> {
 
     @Column(name = "name")
     private String name;

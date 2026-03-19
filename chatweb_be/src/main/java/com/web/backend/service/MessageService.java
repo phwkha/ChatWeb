@@ -6,10 +6,6 @@ import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.model.SystemMessage;
-import com.web.backend.repository.SystemMessageRepository;
-
-import java.util.List;
-import java.util.Map;
 
 public interface MessageService {
     void saveMessage(ChatMessage chatMessage);

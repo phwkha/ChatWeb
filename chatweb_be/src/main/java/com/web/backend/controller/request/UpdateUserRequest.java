@@ -1,7 +1,6 @@
 package com.web.backend.controller.request;
 
 import com.web.backend.common.GenderType;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 

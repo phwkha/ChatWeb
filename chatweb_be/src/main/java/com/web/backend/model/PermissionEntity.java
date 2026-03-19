@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -12,7 +11,7 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "permissions")
-public class PermissionEntity extends AbstractEntity<Long> implements Serializable {
+public class PermissionEntity extends AbstractEntity<Long> {
 
     @Column(name = "name")
     private String name;

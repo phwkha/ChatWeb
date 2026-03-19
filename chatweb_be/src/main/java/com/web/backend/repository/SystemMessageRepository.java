@@ -1,6 +1,5 @@
 package com.web.backend.repository;
 
-import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.model.SystemMessage;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -8,7 +7,6 @@ import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository

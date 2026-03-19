@@ -1,6 +1,5 @@
 package com.web.backend.repository;
 
-import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.repository.projection.UnreadCountProjection;
 import com.web.backend.model.ChatMessage;
 import org.springframework.data.domain.Pageable;

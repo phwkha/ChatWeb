@@ -2,10 +2,8 @@ package com.web.backend.controller.websocket;
 
 import com.web.backend.common.ContentType;
 import com.web.backend.common.MessageStatus;
-import com.web.backend.common.MessageType;
 import com.web.backend.controller.request.ChatMessageRequest;
 import com.web.backend.controller.request.MessageSystemRequest;
-import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.form.SocketResponse;
 import com.web.backend.exception.AccessForbiddenException;

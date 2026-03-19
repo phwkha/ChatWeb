@@ -2,7 +2,6 @@ package com.web.backend.event;
 
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
-import java.util.Map;
 
 @Getter
 public class FriendshipEvent<T> extends ApplicationEvent {

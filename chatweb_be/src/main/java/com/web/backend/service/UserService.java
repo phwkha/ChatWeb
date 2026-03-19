@@ -3,11 +3,9 @@ package com.web.backend.service;
 import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.*;
 import com.web.backend.controller.response.AddressResponse;
-import com.web.backend.model.UserEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface UserService {
 

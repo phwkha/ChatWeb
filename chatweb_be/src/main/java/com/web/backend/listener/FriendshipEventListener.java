@@ -18,7 +18,7 @@ public class FriendshipEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
-    public void handleFriendshipEvent(FriendshipEvent event) {
+    public void handleFriendshipEvent(FriendshipEvent<?> event) {
         log.info("Sending WebSocket notification to user: {}", event.getRecipientUsername());
 
         try {

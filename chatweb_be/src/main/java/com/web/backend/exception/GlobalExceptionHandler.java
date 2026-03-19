@@ -1,7 +1,7 @@
 package com.web.backend.exception;
 
 import com.web.backend.controller.response.form.ApiResponse;
-import com.web.backend.controller.response.ErrorDebugInfo;
+// import com.web.backend.controller.response.ErrorDebugInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -169,18 +169,18 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(500, "Hệ thống đang bận, vui lòng thử lại sau."));
     }
 
-    private ApiResponse<ErrorDebugInfo> buildErrorForDev(HttpStatus status, Exception ex, String userMessage) {
+    // private ApiResponse<ErrorDebugInfo> buildErrorForDev(HttpStatus status, Exception ex, String userMessage) {
 
-        ErrorDebugInfo debugInfo = ErrorDebugInfo.builder()
-                .exceptionType(ex.getClass().getSimpleName())
-                .devMessage(ex.getMessage())
-                .build();
+    //     ErrorDebugInfo debugInfo = ErrorDebugInfo.builder()
+    //             .exceptionType(ex.getClass().getSimpleName())
+    //             .devMessage(ex.getMessage())
+    //             .build();
 
-        return ApiResponse.<ErrorDebugInfo>builder()
-                .code(status.value())
-                .status("error")
-                .message(userMessage)
-                .data(debugInfo)
-                .build();
-    }
+    //     return ApiResponse.<ErrorDebugInfo>builder()
+    //             .code(status.value())
+    //             .status("error")
+    //             .message(userMessage)
+    //             .data(debugInfo)
+    //             .build();
+    // }
 }

@@ -6,7 +6,6 @@ import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.controller.response.RsaKeyResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.KeyService;
-import com.web.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

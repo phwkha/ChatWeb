@@ -5,7 +5,6 @@ import com.web.backend.controller.request.LoginRequest;
 import com.web.backend.controller.request.VerifyOtpRequest;
 import com.web.backend.controller.response.LoginResponse;
 import com.web.backend.controller.response.UserResponse;
-import org.springframework.http.ResponseEntity;
 
 public interface AuthenticationService {
 

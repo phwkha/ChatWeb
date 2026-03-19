@@ -4,13 +4,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.io.Serializable;
-
 @Entity
 @Table(name = "addresses")
 @Getter
 @Setter
-public class AddressEntity extends AbstractEntity<Long> implements Serializable {
+public class AddressEntity extends AbstractEntity<Long> {
 
 
     @Column(name = "house_number")

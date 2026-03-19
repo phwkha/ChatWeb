@@ -64,7 +64,7 @@ public class StorageServiceImpl implements StorageService {
                 throw new InvalidDataException("File quá lớn. Vui lòng chọn file dưới " + sizeInMb + "MB");
             }
 
-            Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
                             "folder", folder,
                             "public_id", UUID.randomUUID().toString(),
