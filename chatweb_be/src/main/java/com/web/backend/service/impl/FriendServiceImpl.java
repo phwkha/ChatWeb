@@ -71,7 +71,7 @@ public class FriendServiceImpl implements FriendService {
                 .relatedUsername((requester.getFirstName() != null ? requester.getFirstName() : requester.getUsername()))
                 .build();
         SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications("Lời mời kết bạn mới", data);
-        eventPublisher.publishEvent(new FriendshipEvent(this, addresseeUsername, "/queue/notifications", response));
+        eventPublisher.publishEvent(new FriendshipEvent<>(this, addresseeUsername, "/queue/notifications", response));
     }
 
     @Override
@@ -100,7 +100,7 @@ public class FriendServiceImpl implements FriendService {
         SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications("Đã chấp nhận kết bạn", data);
 
 
-        eventPublisher.publishEvent(new FriendshipEvent(this, requesterUsername, "/queue/notifications", response));
+        eventPublisher.publishEvent(new FriendshipEvent<>(this, requesterUsername, "/queue/notifications", response));
     }
 
     @Override
@@ -176,7 +176,7 @@ public class FriendServiceImpl implements FriendService {
                     .relatedUsername(currentUsername)
                     .build();
 
-            eventPublisher.publishEvent(new FriendshipEvent(this, targetUsername, "/queue/notifications",
+                eventPublisher.publishEvent(new FriendshipEvent<>(this, targetUsername, "/queue/notifications",
                     SocketResponse.notifications("Đã hủy kết bạn", data)));
 
         } else {
@@ -186,7 +186,7 @@ public class FriendServiceImpl implements FriendService {
                         .relatedUsername(currentUsername)
                         .build();
 
-                eventPublisher.publishEvent(new FriendshipEvent(this, targetUsername, "/queue/notifications",
+                eventPublisher.publishEvent(new FriendshipEvent<>(this, targetUsername, "/queue/notifications",
                         SocketResponse.notifications("Đã rút lại lời mời kết bạn", data)));
 
             } else {
@@ -195,7 +195,7 @@ public class FriendServiceImpl implements FriendService {
                         .relatedUsername(currentUsername)
                         .build();
 
-                eventPublisher.publishEvent(new FriendshipEvent(this, targetUsername, "/queue/notifications",
+                eventPublisher.publishEvent(new FriendshipEvent<>(this, targetUsername, "/queue/notifications",
                         SocketResponse.notifications("Đã từ chối lời mời kết bạn", data)));
             }
         }

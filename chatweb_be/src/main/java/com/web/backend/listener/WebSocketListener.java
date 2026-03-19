@@ -1,20 +1,16 @@
 package com.web.backend.listener;
 
-import com.web.backend.common.MessageType;
-import com.web.backend.model.ChatMessage;
 import com.web.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.security.Principal;
-import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -22,8 +18,6 @@ import java.util.Objects;
 public class WebSocketListener {
 
     private final UserService userService;
-
-    private final SimpMessageSendingOperations messagingTemplate;
 
     private final RedisTemplate<String, Object> redisTemplate;
 
