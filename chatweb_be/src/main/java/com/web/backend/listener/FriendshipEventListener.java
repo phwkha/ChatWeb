@@ -11,7 +11,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "FRIENDSHIP-EVENT-LISTENER")
 public class FriendshipEventListener {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
@@ -25,8 +25,7 @@ public class FriendshipEventListener {
             simpMessagingTemplate.convertAndSendToUser(
                     event.getRecipientUsername(),
                     event.getDestination(),
-                    event.getPayload()
-            );
+                    event.getPayload());
         } catch (Exception e) {
             log.error("Failed to send WebSocket notification: {}", e.getMessage());
         }

@@ -14,7 +14,7 @@ import java.security.Principal;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "WEBSOCKET-LISTENER")
 public class WebSocketListener {
 
     private final UserService userService;
