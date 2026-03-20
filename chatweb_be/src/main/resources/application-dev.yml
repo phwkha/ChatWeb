@@ -28,10 +28,17 @@ spring:
     show-sql: false
     hibernate:
       ddl-auto: update
-  sendgrid:
-    api-key: ${SENDGRID_KEY}
-    from-email: ${FROM_EMAIL}
-    otp: ${TEMPLATE_OTP_ID}
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${USERNAME_EMAIL}
+    password: ${PASSWORD_EMAIL}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
     expiration-minutes: 5
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}

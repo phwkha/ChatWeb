@@ -1,7 +1,5 @@
 package com.web.backend.config;
 
-
-import com.sendgrid.SendGrid;
 import com.web.backend.jwt.JwtAccessDeniedHandler;
 import com.web.backend.jwt.JwtAuthenticationEntryPoint;
 import com.web.backend.jwt.JwtAuthenticationFilter;
@@ -45,9 +43,6 @@ public class SecurityConfig {
 
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
-    @Value("${spring.sendgrid.api-key}")
-    private String apiKey;
-
     @Bean
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
@@ -67,7 +62,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(userServiceDetail);
@@ -77,7 +71,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
@@ -85,7 +80,8 @@ public class SecurityConfig {
     public WebSecurityCustomizer ignoreResources() {
         return webSecurity -> webSecurity
                 .ignoring()
-                .requestMatchers("/actuator/**", "/v3/**", "/webjars/**", "/swagger-ui/**", "/favicon.ico", "/swagger-ui*/*swagger-initializer.js");
+                .requestMatchers("/actuator/**", "/v3/**", "/webjars/**", "/swagger-ui/**", "/favicon.ico",
+                        "/swagger-ui*/*swagger-initializer.js");
     }
 
     @Bean
@@ -105,10 +101,5 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public SendGrid sendGrid() {
-        return new SendGrid(apiKey);
     }
 }

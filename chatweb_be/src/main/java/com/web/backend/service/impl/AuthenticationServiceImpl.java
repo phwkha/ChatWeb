@@ -56,7 +56,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    @Value("${spring.sendgrid.expiration-minutes}")
+    @Value("${spring.mail.expiration-minutes}")
     private int expirationMinutes;
 
     private final CuckooFilterService cuckooFilterService;

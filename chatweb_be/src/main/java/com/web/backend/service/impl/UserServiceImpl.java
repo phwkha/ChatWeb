@@ -30,7 +30,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-
 @Service
 @Slf4j(topic = "USER-SERVICE")
 @RequiredArgsConstructor
@@ -50,7 +49,7 @@ public class UserServiceImpl implements UserService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    @Value("${spring.sendgrid.expiration-minutes}")
+    @Value("${spring.mail.expiration-minutes}")
     private int expirationMinutes;
 
     private final CuckooFilterService cuckooFilterService;
@@ -169,7 +168,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserDetailResponse addAddress(String username, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));;
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+        ;
         AddressEntity newAddress = userMapper.toAddressEntity(request);
 
         user.addAddress(newAddress);
@@ -189,7 +189,8 @@ public class UserServiceImpl implements UserService {
         AddressEntity addressToUpdate = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của bạn"));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của bạn"));
 
         userMapper.updateAddressFromRequest(request, addressToUpdate);
 
@@ -238,7 +239,8 @@ public class UserServiceImpl implements UserService {
         AddressEntity address = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
-                .orElseThrow(() -> new AccessForbiddenException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của bạn"));
+                .orElseThrow(
+                        () -> new AccessForbiddenException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của bạn"));
         log.info("Get address for user");
         return userMapper.toAddressResponse(address);
     }
@@ -272,7 +274,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
 
         if (!passwordEncoder.matches(currentPassword, userEntity.getPassword())) {
-              throw  new InvalidPasswordException("Mật khẩu hiện tại không chính xác!");
+            throw new InvalidPasswordException("Mật khẩu hiện tại không chính xác!");
         }
 
         if (passwordEncoder.matches(newPassword, userEntity.getPassword())) {
@@ -346,12 +348,14 @@ public class UserServiceImpl implements UserService {
 
         String redisKey = "otp:" + OtpType.EMAIL_CHANGE.name() + ":" + user.getUsername();
         String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
-        if (oldValue == null) throw new ResourceNotFoundException("Yêu cầu không tồn tại");
+        if (oldValue == null)
+            throw new ResourceNotFoundException("Yêu cầu không tồn tại");
 
         String[] parts = oldValue.split(":");
         String newEmail = parts.length > 1 ? parts[1] : null;
 
-        if (newEmail == null) throw new InvalidDataException("Không tìm thấy email mới trong yêu cầu");
+        if (newEmail == null)
+            throw new InvalidDataException("Không tìm thấy email mới trong yêu cầu");
 
         resendRedisOtp(username, OtpType.EMAIL_CHANGE, newEmail);
     }
@@ -427,7 +431,8 @@ public class UserServiceImpl implements UserService {
 
         if (type == OtpType.PASSWORD_RESET) {
             Optional<UserEntity> u = userRepository.findByEmail(identifier);
-            if (u.isPresent()) usernameForMail = u.get().getUsername();
+            if (u.isPresent())
+                usernameForMail = u.get().getUsername();
         }
         redisTemplate.opsForValue().set(cooldownKey, "1", 60, TimeUnit.SECONDS);
         emailService.sendOtpEmail(emailToSend, usernameForMail, newOtp);

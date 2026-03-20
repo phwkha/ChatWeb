@@ -1,81 +1,48 @@
 package com.web.backend.service.util;
 
-import com.sendgrid.Method;
-import com.sendgrid.Request;
-import com.sendgrid.Response;
-import com.sendgrid.SendGrid;
-import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
-import com.sendgrid.helpers.mail.objects.Email;
-import com.sendgrid.helpers.mail.objects.Personalization;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
 
 @Slf4j(topic = "EMAIL-SERVICE")
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final SendGrid sendGrid;
+    private final JavaMailSender mailSender;
 
-    @Value("${spring.sendgrid.from-email}")
+    @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Value("${spring.sendgrid.otp}")
-    private String otpTemplateId;
-
     public void sendTextEmail(String to, String subject, String content) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(content);
 
-        Email from = new Email(fromEmail);
-        Email toAddress = new Email(to);
-        Content emailContent = new Content("text/plain", content);
-        Mail mail = new Mail(from, subject, toAddress, emailContent);
+            mailSender.send(message);
+            log.info("Email sent successfully via Gmail to: {}", to);
 
-        sendInternal(mail);
-        log.info("Sending plain text email to: {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send email to {}. Error: {}", to, e.getMessage());
+            throw e;
+        }
     }
 
     public void sendOtpEmail(String to, String name, String otp) {
-        log.info("Sending OTP email to: {}", to);
+        log.info("Sending OTP via Gmail to: {}", to);
 
-        Email from = new Email(fromEmail);
-        Email toAddress = new Email(to);
+        String subject = "ChatWeb - Mã Xác Nhận OTP";
+        String content = "Xin chào " + name + ",\n\n" +
+                "Mã xác nhận (OTP) của bạn là: " + otp + "\n\n" +
+                "Vui lòng không chia sẻ mã này cho bất kỳ ai. Mã có hiệu lực trong 5 phút.\n\n" +
+                "Trân trọng,\nĐội ngũ ChatWeb";
 
-        Mail mail = new Mail();
-        mail.setFrom(from);
-        mail.setTemplateId(otpTemplateId);
-
-        Personalization personalization = new Personalization();
-        personalization.addTo(toAddress);
-
-        personalization.addDynamicTemplateData("name", name);
-        personalization.addDynamicTemplateData("otp", otp);
-
-        mail.addPersonalization(personalization);
-
-        sendInternal(mail);
-    }
-
-    private void sendInternal(Mail mail) {
-        Request request = new Request();
-        try {
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-
-            Response response = sendGrid.api(request);
-
-            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
-                log.info("Email sent successfully. Status: {}", response.getStatusCode());
-            } else {
-                log.error("Failed to send email. Status: {}, Body: {}", response.getStatusCode(), response.getBody());
-            }
-        } catch (IOException e) {
-            log.error("Error connecting to SendGrid: {}", e.getMessage());
-        }
+        sendTextEmail(to, subject, content);
     }
 }
