@@ -11,7 +11,6 @@ import com.sendgrid.helpers.mail.objects.Personalization;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -29,7 +28,6 @@ public class EmailService {
     @Value("${spring.sendgrid.otp}")
     private String otpTemplateId;
 
-    @Async
     public void sendTextEmail(String to, String subject, String content) {
 
         Email from = new Email(fromEmail);
@@ -41,8 +39,6 @@ public class EmailService {
         log.info("Sending plain text email to: {}", to);
     }
 
-
-    @Async
     public void sendOtpEmail(String to, String name, String otp) {
         log.info("Sending OTP email to: {}", to);
 

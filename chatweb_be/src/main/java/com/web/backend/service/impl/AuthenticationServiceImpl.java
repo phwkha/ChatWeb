@@ -9,6 +9,7 @@ import com.web.backend.controller.request.VerifyOtpRequest;
 import com.web.backend.controller.response.LoginResponse;
 import com.web.backend.controller.response.UserResponse;
 import com.web.backend.exception.*;
+import com.web.backend.kafka.producer.EmailKafkaProducer;
 import com.web.backend.model.RegisterData;
 import com.web.backend.model.RoleEntity;
 import com.web.backend.model.UserEntity;
@@ -17,7 +18,6 @@ import com.web.backend.repository.UserRepository;
 import com.web.backend.service.AuthenticationService;
 import com.web.backend.service.JwtService;
 import com.web.backend.service.util.CuckooFilterService;
-import com.web.backend.service.util.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-
 @Service
 @Slf4j(topic = "AUTHENTICATION-SERVICE")
 @RequiredArgsConstructor
@@ -49,7 +48,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final JwtService jwtService;
 
-    private final EmailService emailService;
+    private final EmailKafkaProducer emailKafkaProducer;
 
     private final PasswordEncoder passwordEncoder;
 
@@ -64,7 +63,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private static final String EMAIL_FILTER_KEY = "filter:emails";
     private static final String USERNAME_FILTER_KEY = "filter:usernames";
-
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -100,7 +98,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String redisKey = "register:" + createUserRequest.getEmail();
         redisTemplate.opsForValue().set(redisKey, data, 5, TimeUnit.MINUTES);
 
-        emailService.sendOtpEmail(createUserRequest.getEmail(), createUserRequest.getUsername(), otp);
+        emailKafkaProducer.sendOtpEmailTask(createUserRequest.getEmail(), createUserRequest.getUsername(), otp);
 
         log.info("Registering new user: {}", createUserRequest.getUsername());
         return UserResponse.builder()
@@ -120,9 +118,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequest.getUsername(),
-                            loginRequest.getPassword()
-                    )
-            );
+                            loginRequest.getPassword()));
             authorities.add(authentication.getAuthorities().toString());
             UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
             tokenVersion = userPrincipal.getTokenVersion();
@@ -143,8 +139,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String refreshToken = jwtService.generateRefreshToken(
                 loginRequest.getUsername(),
                 authorities,
-                tokenVersion
-        );
+                tokenVersion);
         log.info("Login with user: {}", loginRequest.getUsername());
         return LoginResponse.builder()
                 .accessToken(accessToken)
@@ -176,7 +171,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
 
-        Integer tokenVersionInJwt = jwtService.extractClaim(refreshToken, TokenType.REFRESH_TOKEN, claims -> claims.get("v", Integer.class));
+        Integer tokenVersionInJwt = jwtService.extractClaim(refreshToken, TokenType.REFRESH_TOKEN,
+                claims -> claims.get("v", Integer.class));
         Integer currentVersion = user.getTokenVersion() == null ? 0 : user.getTokenVersion();
 
         if (tokenVersionInJwt == null || !tokenVersionInJwt.equals(currentVersion)) {
@@ -194,8 +190,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return jwtService.generateAccessToken(
                 user.getUsername(),
                 authorities,
-                currentVersion
-        );
+                currentVersion);
     }
 
     @Override
@@ -220,7 +215,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         redisTemplate.opsForValue().set(redisKey, redisValue, expirationMinutes, TimeUnit.MINUTES);
 
-        emailService.sendOtpEmail(targetEmail, user.getUsername(), otp);
+        emailKafkaProducer.sendOtpEmailTask(targetEmail, user.getUsername(), otp);
     }
 
     @Override
@@ -283,7 +278,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             data.setOtp(otp);
             redisTemplate.opsForValue().set(redisKey, data, expirationMinutes, TimeUnit.MINUTES);
             redisTemplate.opsForValue().set(cooldownKey, "1", 60, TimeUnit.SECONDS);
-            emailService.sendOtpEmail(data.getEmail(), data.getUsername(), otp);
+            emailKafkaProducer.sendOtpEmailTask(data.getEmail(), data.getUsername(), otp);
             log.info("Resend Register OTP to Redis user: {}", data.getUsername());
             return;
         }
@@ -301,7 +296,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         throw new ResourceNotFoundException("Yêu cầu đăng ký không tồn tại hoặc đã hết hạn. Vui lòng đăng ký lại.");
     }
-
 
     @Override
     @Transactional
@@ -386,10 +380,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         if (type == OtpType.PASSWORD_RESET) {
             Optional<UserEntity> u = userRepository.findByEmail(identifier);
-            if (u.isPresent()) usernameForMail = u.get().getUsername();
+            if (u.isPresent())
+                usernameForMail = u.get().getUsername();
         }
         redisTemplate.opsForValue().set(cooldownKey, "1", 60, TimeUnit.SECONDS);
-        emailService.sendOtpEmail(emailToSend, usernameForMail, newOtp);
+        emailKafkaProducer.sendOtpEmailTask(emailToSend, usernameForMail, newOtp);
         log.info("Resent {} OTP to {}", type, emailToSend);
     }
 

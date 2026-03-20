@@ -1,0 +1,33 @@
+package com.web.backend.kafka.consumer;
+
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+
+import com.web.backend.event.KafkaEmailEvent;
+import com.web.backend.service.util.EmailService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j(topic = "EMAIL-KAFKA-CONSUMER")
+public class EmailKafkaConsumer {
+
+    private final EmailService emailService;
+
+    @KafkaListener(topics = "${spring.kafka.email.email-topic}", groupId = "${spring.kafka.email.group-id}")
+    public void consumeEmailTask(KafkaEmailEvent event) {
+        log.info("Kafka Consumer nhận được task gửi mail loại {} cho: {}", event.getType(), event.getTo());
+
+        try {
+            if ("OTP".equals(event.getType())) {
+                emailService.sendOtpEmail(event.getTo(), event.getName(), event.getOtp());
+            } else if ("TEXT".equals(event.getType())) {
+                emailService.sendTextEmail(event.getTo(), event.getSubject(), event.getContent());
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi xử lý gửi mail từ Kafka cho {}: {}", event.getTo(), e.getMessage());
+        }
+    }
+}

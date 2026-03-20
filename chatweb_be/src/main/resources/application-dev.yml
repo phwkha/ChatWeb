@@ -35,7 +35,10 @@ spring:
     expiration-minutes: 5
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
-    topic: ${KAFKA_TOPIC}
+    chat-topic: chat-messages
+    email:
+      email-topic: email-messages
+      group-id: chat-app-group-${random.uuid}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
