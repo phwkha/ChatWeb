@@ -45,14 +45,19 @@ spring:
     topic:
       chat:
         new-message: chat-new-messages
-        messages-save: messages-save
+        messages-save:
+          topic: messages-save
+          group-id: messages-save-group
       email:
         email-topic: email-messages
         group-id: email-worker-group
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      compression-type: "snappy"
     consumer:
+      max-poll-records: 100
+      fetch-max-wait-ms: 500
       group-id: chat-app-group-${random.uuid}
       auto-offset-reset: latest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer

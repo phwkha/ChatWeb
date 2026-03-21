@@ -28,11 +28,15 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.Comparator;
 
 @Slf4j(topic = "MESSAGE-SERVICE")
 @Service
@@ -51,8 +55,10 @@ public class MessageServiceImpl implements MessageService {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Value("${spring.kafka.chat-topic-db-save}")
+    @Value("${spring.kafka.topic.chat.messages-save.topic}")
     private String chatTopicDbSave;
+
+    private static final long REDIS_TTL_MINUTES = 5;
 
     private String generateConversationId(String user1, String user2) {
         return (user1.compareTo(user2) < 0) ? user1 + "_" + user2 : user2 + "_" + user1;
@@ -64,19 +70,24 @@ public class MessageServiceImpl implements MessageService {
         String convId = generateConversationId(chatMessage.getSender(), chatMessage.getRecipient());
         chatMessage.setConversationId(convId);
 
-        ChatMessage savedMessage = messageRepository.save(chatMessage);
+        kafkaTemplate.send(chatTopicDbSave, chatMessage);
+        log.info("Đã đẩy tin nhắn từ {} lên hàng chờ lưu DB", chatMessage.getSender());
+
+        String redisKey = "chat:recent:" + convId;
+        redisTemplate.opsForList().rightPush(redisKey, chatMessage);
+        redisTemplate.expire(redisKey, Duration.ofMinutes(REDIS_TTL_MINUTES));
 
         String key = "unread_counts:" + chatMessage.getRecipient();
         redisTemplate.opsForHash().increment(key, chatMessage.getSender(), 1);
 
-        ChatMessageResponse response = messageMapper.toResponse(savedMessage);
+        ChatMessageResponse response = messageMapper.toResponse(chatMessage);
         response.setLocalId(chatMessage.getLocalId());
 
         eventPublisher.publishEvent(new NewChatMessageEvent(
                 this,
                 response,
-                savedMessage.getSender(),
-                savedMessage.getRecipient()));
+                chatMessage.getSender(),
+                chatMessage.getRecipient()));
         log.info("save message success");
     }
 
@@ -113,8 +124,33 @@ public class MessageServiceImpl implements MessageService {
             LocalDateTime cursorTime = LocalDateTime.parse(cursorStr);
             messages = messageRepository.findByConversationIdAndTimestampBefore(conversationId, cursorTime, pageable);
         }
+
+        List<ChatMessage> finalMessages = new ArrayList<>(messages);
+
+        if (cursorStr == null || cursorStr.isEmpty()) {
+            String redisKey = "chat:recent:" + conversationId;
+            List<Object> redisObjects = redisTemplate.opsForList().range(redisKey, 0, -1);
+
+            if (redisObjects != null && !redisObjects.isEmpty()) {
+                Map<String, ChatMessage> uniqueMessagesMap = new LinkedHashMap<>();
+
+                for (Object obj : redisObjects) {
+                    ChatMessage msg = (ChatMessage) obj;
+                    uniqueMessagesMap.put(msg.getId(), msg);
+                }
+
+                for (ChatMessage msg : messages) {
+                    uniqueMessagesMap.putIfAbsent(msg.getId(), msg);
+                }
+
+                finalMessages = uniqueMessagesMap.values().stream()
+                        .sorted(Comparator.comparing(ChatMessage::getTimestamp).reversed())
+                        .limit(size)
+                        .collect(Collectors.toList());
+            }
+        }
         log.info("Fetching private messages");
-        return buildCursorResponse(messages, size);
+        return buildCursorResponse(finalMessages, size);
     }
 
     @Override
