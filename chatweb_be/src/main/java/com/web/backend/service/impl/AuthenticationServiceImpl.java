@@ -9,7 +9,7 @@ import com.web.backend.controller.request.VerifyOtpRequest;
 import com.web.backend.controller.response.LoginResponse;
 import com.web.backend.controller.response.UserResponse;
 import com.web.backend.exception.*;
-import com.web.backend.kafka.producer.EmailKafkaProducer;
+import com.web.backend.kafka.producer.EmailProducer;
 import com.web.backend.model.RegisterData;
 import com.web.backend.model.RoleEntity;
 import com.web.backend.model.UserEntity;
@@ -48,7 +48,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final JwtService jwtService;
 
-    private final EmailKafkaProducer emailKafkaProducer;
+    private final EmailProducer emailKafkaProducer;
 
     private final PasswordEncoder passwordEncoder;
 

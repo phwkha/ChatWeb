@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class KafkaChatMessageEvent {
+public class ChatMessageEvent {
 
     private ChatMessageResponse chatMessageResponse;
 

@@ -1,6 +1,7 @@
 package com.web.backend.service.impl;
 
 import com.web.backend.common.MessageStatus;
+import com.web.backend.common.MessageType;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
@@ -15,11 +16,14 @@ import com.web.backend.repository.SystemMessageRepository;
 import com.web.backend.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -45,6 +49,11 @@ public class MessageServiceImpl implements MessageService {
 
     private final ApplicationEventPublisher eventPublisher;
 
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Value("${spring.kafka.chat-topic-db-save}")
+    private String chatTopicDbSave;
+
     private String generateConversationId(String user1, String user2) {
         return (user1.compareTo(user2) < 0) ? user1 + "_" + user2 : user2 + "_" + user1;
     }
@@ -67,32 +76,31 @@ public class MessageServiceImpl implements MessageService {
                 this,
                 response,
                 savedMessage.getSender(),
-                savedMessage.getRecipient()
-        ));
+                savedMessage.getRecipient()));
         log.info("save message success");
     }
 
     @Override
     public void saveSystemMessage(SystemMessage systemMessage) {
-         systemMessageRepository.save(systemMessage);
-         log.info("{} Chat system message success", systemMessage.getSender());
+        systemMessageRepository.save(systemMessage);
+        log.info("{} Chat system message success", systemMessage.getSender());
     }
 
     @Override
     public void messageTyping(ChatMessage chatMessage) {
         ChatMessageResponse response = messageMapper.toResponse(chatMessage);
+        response.setMessageType(MessageType.TYPING);
         eventPublisher.publishEvent(new NewChatMessageEvent(
                 this,
                 response,
                 chatMessage.getSender(),
-                chatMessage.getRecipient()
-        ));
+                chatMessage.getRecipient()));
         log.info("typing success");
     }
 
-
     @Override
-    public CursorResponse<ChatMessageResponse> findPrivateMessageWithCursor(String user1, String user2, String cursorStr, int size) {
+    public CursorResponse<ChatMessageResponse> findPrivateMessageWithCursor(String user1, String user2,
+            String cursorStr, int size) {
 
         String conversationId = generateConversationId(user1, user2);
 
@@ -132,7 +140,7 @@ public class MessageServiceImpl implements MessageService {
         }
 
         List<MessageSystemResponse> responseList = messages.stream()
-                .map(messageMapper::systemMessageToResponse )
+                .map(messageMapper::systemMessageToResponse)
                 .toList();
 
         log.info("Fetching system messages");
@@ -150,8 +158,7 @@ public class MessageServiceImpl implements MessageService {
             Map<String, Long> result = redisCounts.entrySet().stream()
                     .collect(Collectors.toMap(
                             e -> (String) e.getKey(),
-                            e -> Long.valueOf(e.getValue().toString())
-                    ));
+                            e -> Long.valueOf(e.getValue().toString())));
             log.info("Fetching unread counts for user (Optimized) redis");
             return UnreadCountsResponse.builder().unreadCounts(result).build();
         }
@@ -186,6 +193,16 @@ public class MessageServiceImpl implements MessageService {
         }
         String key = "unread_counts:" + recipientUsername;
         redisTemplate.opsForHash().delete(key, senderUsername);
+        ChatMessageResponse response = ChatMessageResponse.builder()
+                .messageType(MessageType.STATUS)
+                .sender(senderUsername)
+                .recipient(recipientUsername)
+                .build();
+        eventPublisher.publishEvent(new NewChatMessageEvent(
+                this,
+                response,
+                senderUsername,
+                recipientUsername));
         log.info("User marking messages");
     }
 

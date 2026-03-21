@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.form.SocketResponse;
-import com.web.backend.event.KafkaChatMessageEvent;
+import com.web.backend.event.ChatMessageEvent;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,13 +14,14 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @Slf4j(topic = "KAFKA-CHAT-CONSUMER")
-public class KafkaChatConsumer {
+public class ChatConsumer {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
 
-    @KafkaListener(topics = "${spring.kafka.chat-topic}")
-    public void listenChatMessages(KafkaChatMessageEvent message) {
-        log.info("Received message from Kafka: {}", message.getRecipientUsername());
+    @KafkaListener(topics = "${spring.kafka.topic.chat.new-message}")
+    public void listenChatMessages(ChatMessageEvent message) {
+        log.info("Received message from Kafka: from {} to {}", message.getSenderUsername(),
+                message.getRecipientUsername());
 
         try {
 
