@@ -45,12 +45,10 @@ spring:
     topic:
       chat:
         new-message: chat-new-messages
-        message-status: chat-message-status
-        message-typing: chat-message-typing
-      messages-save: messages-save
+        messages-save: messages-save
       email:
         email-topic: email-messages
-        group-id: chat-app-group-${random.uuid}
+        group-id: email-worker-group
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
