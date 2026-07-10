@@ -1,4 +1,4 @@
-package com.web.backend.exception;
+package com.web.backend.exception.custom;
 
 public class AccessForbiddenException extends RuntimeException {
     public AccessForbiddenException(String message) {

@@ -1,6 +1,15 @@
 package com.web.backend.exception;
 
 import com.web.backend.controller.response.form.ApiResponse;
+import com.web.backend.exception.custom.AccessForbiddenException;
+import com.web.backend.exception.custom.AuthenticationFailedException;
+import com.web.backend.exception.custom.InvalidDataException;
+import com.web.backend.exception.custom.InvalidOtpException;
+import com.web.backend.exception.custom.InvalidPasswordException;
+import com.web.backend.exception.custom.PasswordMismatchException;
+import com.web.backend.exception.custom.ResourceConflictException;
+import com.web.backend.exception.custom.ResourceNotFoundException;
+
 // import com.web.backend.controller.response.ErrorDebugInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -44,7 +53,8 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
     public ApiResponse<Void> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
         log.error("Http Request Method Not Supported: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.METHOD_NOT_ALLOWED.value(), "Phương thức " + ex.getMethod() + " không được hỗ trợ cho endpoint này");
+        return ApiResponse.error(HttpStatus.METHOD_NOT_ALLOWED.value(),
+                "Phương thức " + ex.getMethod() + " không được hỗ trợ cho endpoint này");
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -79,22 +89,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiResponse<Void> handleSpringAccessDeniedException(AccessDeniedException ex) {
-        log.error("Spring Access Denied: {}" ,ex.getMessage());
+        log.error("Spring Access Denied: {}", ex.getMessage());
         return ApiResponse.error(HttpStatus.FORBIDDEN.value(), ex.getMessage());
     }
 
     @ExceptionHandler(AuthenticationFailedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ApiResponse<Void> handleAuthenticationFailedException(AuthenticationFailedException ex) {
-        log.error("Authentication Failed: {}" ,ex.getMessage());
+        log.error("Authentication Failed: {}", ex.getMessage());
         return ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
     }
 
     @ExceptionHandler(PasswordMismatchException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handlePasswordMismatchException(PasswordMismatchException ex) {
         log.error("Password Mismatch: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.CONFLICT.value(), ex.getMessage());
+        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
     }
 
     @ExceptionHandler(InvalidPasswordException.class)
@@ -139,25 +149,22 @@ public class GlobalExceptionHandler {
         return ApiResponse.error(HttpStatus.FORBIDDEN.value(), ex.getMessage());
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException ex) {
-        log.error("Logic Error: {}", ex.getMessage());
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Đã xảy ra lỗi xử lý, vui lòng thử lại."));
-    }
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
+        
+        org.springframework.validation.BindingResult bindingResult = ex.getBindingResult();
+        if (bindingResult != null) {
+            bindingResult.getAllErrors().forEach((error) -> {
+                String fieldName = ((FieldError) error).getField();
+                String errorMessage = error.getDefaultMessage();
+                errors.put(fieldName, errorMessage);
+            });
+        }
+        
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.success(HttpStatus.BAD_REQUEST.value(), "Dữ liệu đầu vào không hợp lệ",errors));
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Dữ liệu đầu vào không hợp lệ", errors));
     }
 
     @ExceptionHandler(Exception.class)
@@ -169,18 +176,19 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(500, "Hệ thống đang bận, vui lòng thử lại sau."));
     }
 
-    // private ApiResponse<ErrorDebugInfo> buildErrorForDev(HttpStatus status, Exception ex, String userMessage) {
+    // private ApiResponse<ErrorDebugInfo> buildErrorForDev(HttpStatus status,
+    // Exception ex, String userMessage) {
 
-    //     ErrorDebugInfo debugInfo = ErrorDebugInfo.builder()
-    //             .exceptionType(ex.getClass().getSimpleName())
-    //             .devMessage(ex.getMessage())
-    //             .build();
+    // ErrorDebugInfo debugInfo = ErrorDebugInfo.builder()
+    // .exceptionType(ex.getClass().getSimpleName())
+    // .devMessage(ex.getMessage())
+    // .build();
 
-    //     return ApiResponse.<ErrorDebugInfo>builder()
-    //             .code(status.value())
-    //             .status("error")
-    //             .message(userMessage)
-    //             .data(debugInfo)
-    //             .build();
+    // return ApiResponse.<ErrorDebugInfo>builder()
+    // .code(status.value())
+    // .status("error")
+    // .message(userMessage)
+    // .data(debugInfo)
+    // .build();
     // }
 }

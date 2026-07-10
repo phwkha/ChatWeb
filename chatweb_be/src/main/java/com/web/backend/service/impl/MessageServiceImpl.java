@@ -31,8 +31,8 @@ import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
-import com.web.backend.exception.AccessForbiddenException;
-import com.web.backend.exception.ResourceNotFoundException;
+import com.web.backend.exception.custom.AccessForbiddenException;
+import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.mapper.MessageMapper;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.model.SystemMessage;
@@ -42,6 +42,7 @@ import com.web.backend.repository.projection.UnreadCountProjection;
 import com.web.backend.service.FriendService;
 import com.web.backend.service.MessageService;
 import com.web.backend.service.UserService;
+import com.web.backend.exception.WebSocketErrorHandler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +65,8 @@ public class MessageServiceImpl implements MessageService {
     private final MessageMapper messageMapper;
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    private final WebSocketErrorHandler webSocketErrorHandler;
 
     @Value("${spring.kafka.topic.chat.messages}")
     private String chatTopic;
@@ -108,6 +111,8 @@ public class MessageServiceImpl implements MessageService {
         kafkaTemplate.send(Objects.requireNonNull(chatTopic), chatMessage).whenComplete((result, ex) -> {
             if (ex != null) {
                 log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", chatTopic, ex);
+                webSocketErrorHandler.handleChatError(sender, request,
+                        "Hệ thống tin nhắn đang quá tải, không thể gửi tin.");
             } else {
                 log.debug("Message: Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
             }
@@ -118,13 +123,17 @@ public class MessageServiceImpl implements MessageService {
 
         log.info("Đã đẩy tin nhắn từ {} lên hàng chờ lưu DB", chatMessage.getSender());
 
-        String redisKey = "chat:recent:" + convId;
-        redisTemplate.opsForList().rightPush(redisKey, chatMessage);
-        redisTemplate.opsForList().trim(redisKey, -50, -1);
-        redisTemplate.expire(redisKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
+        try {
+            String redisKey = "chat:recent:" + convId;
+            redisTemplate.opsForList().rightPush(redisKey, chatMessage);
+            redisTemplate.opsForList().trim(redisKey, -50, -1);
+            redisTemplate.expire(redisKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
 
-        String key = "unread_counts:" + chatMessage.getRecipient();
-        redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMessage.getSender()), 1);
+            String key = "unread_counts:" + chatMessage.getRecipient();
+            redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMessage.getSender()), 1);
+        } catch (Exception e) {
+            log.warn("Redis đang gặp sự cố, bỏ qua lưu cache tạm thời: {}", e.getMessage());
+        }
         log.info("save message success");
     }
 
@@ -141,6 +150,8 @@ public class MessageServiceImpl implements MessageService {
         kafkaTemplate.send(Objects.requireNonNull(systemTopic), messageSystemResponse).whenComplete((result, ex) -> {
             if (ex != null) {
                 log.error("Lỗi nghiêm trọng: Không thể đẩy system message lên Kafka. Topic: {}", chatTopic, ex);
+                webSocketErrorHandler.handleChatError(currentUsername, request,
+                        "Hệ thống tin nhắn đang quá tải, không thể gửi tin.");
             } else {
                 log.debug("System message: Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
             }

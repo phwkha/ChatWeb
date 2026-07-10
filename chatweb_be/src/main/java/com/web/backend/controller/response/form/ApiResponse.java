@@ -36,4 +36,14 @@ public class ApiResponse<T> {
                 .message(message)
                 .build();
     }
+
+    // Helper tạo response lỗi có kèm dữ liệu (data)
+    public static <T> ApiResponse<T> error(int code, String message, T data) {
+        return ApiResponse.<T>builder()
+                .code(code)
+                .status("error")
+                .message(message)
+                .data(data)
+                .build();
+    }
 }

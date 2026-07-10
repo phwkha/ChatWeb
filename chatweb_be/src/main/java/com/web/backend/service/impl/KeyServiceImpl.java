@@ -1,8 +1,8 @@
 package com.web.backend.service.impl;
 
 import com.web.backend.common.UserStatus;
-import com.web.backend.exception.AccessForbiddenException;
-import com.web.backend.exception.ResourceNotFoundException;
+import com.web.backend.exception.custom.AccessForbiddenException;
+import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.model.UserEntity;
 import com.web.backend.repository.UserRepository;
 import com.web.backend.service.KeyService;

@@ -1,7 +1,7 @@
 package com.web.backend.service.impl;
 
 import com.web.backend.common.TokenType;
-import com.web.backend.exception.InvalidDataException;
+import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;

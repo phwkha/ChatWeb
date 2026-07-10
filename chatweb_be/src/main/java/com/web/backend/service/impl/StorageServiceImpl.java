@@ -2,7 +2,7 @@ package com.web.backend.service.impl;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.web.backend.exception.InvalidDataException;
+import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +52,7 @@ public class StorageServiceImpl implements StorageService {
                 throw new InvalidDataException("File không được để trống");
             }
 
-            if (!resourceType.equals("raw")){
+            if (!resourceType.equals("raw")) {
                 String contentType = file.getContentType();
                 if (contentType == null || !contentType.startsWith(resourceType + "/")) {
                     throw new InvalidDataException("Định dạng file không hợp lệ. Chỉ chấp nhận: " + resourceType);
@@ -64,12 +64,11 @@ public class StorageServiceImpl implements StorageService {
                 throw new InvalidDataException("File quá lớn. Vui lòng chọn file dưới " + sizeInMb + "MB");
             }
 
-                Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
                             "folder", folder,
                             "public_id", UUID.randomUUID().toString(),
-                            "resource_type", resourceType
-                    ));
+                            "resource_type", resourceType));
 
             String url = (String) uploadResult.get("secure_url");
             log.info("Upload {} success: {}", resourceType, url);
@@ -85,7 +84,8 @@ public class StorageServiceImpl implements StorageService {
     @Async
     public void delete(String url, String folder) {
         try {
-            if (url == null || url.isEmpty()) return;
+            if (url == null || url.isEmpty())
+                return;
 
             String resourceType = folder.equals("avatars") ? "image" : "raw";
             String publicId = extractPublicId(url, folder);
