@@ -115,22 +115,18 @@ public class ChatController {
         }
     }
 
-    private void normalizeMessage(ChatMessage chatMessage) {
-        if (chatMessage.getTimestamp() == null) {
-            chatMessage.setTimestamp(LocalDateTime.now());
-        }
-        if (chatMessage.getContent() == null) {
-            chatMessage.setContent("");
-        }
-    }
-
     private void sendMessage(String senderUsername, ChatMessageRequest request) {
         switch (request.getMessageType()) {
             case CHAT -> {
                 ChatMessage chatMessage = messageMapper.toEntity(request);
                 chatMessage.setSender(senderUsername);
 
-                normalizeMessage(chatMessage);
+                if (chatMessage.getTimestamp() == null) {
+                    chatMessage.setTimestamp(LocalDateTime.now());
+                }
+                if (chatMessage.getContent() == null) {
+                    chatMessage.setContent("");
+                }
                 if (chatMessage.getContentType() == null)
                     chatMessage.setContentType(ContentType.TEXT);
                 chatMessage.setId(null);
