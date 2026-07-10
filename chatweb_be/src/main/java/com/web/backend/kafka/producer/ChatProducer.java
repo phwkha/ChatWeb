@@ -1,7 +1,7 @@
 package com.web.backend.kafka.producer;
 
 import com.web.backend.event.ChatMessageEvent;
-import com.web.backend.event.NewChatMessageEvent;
+import com.web.backend.kafka.payload.ChatMessagePayload;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,10 +26,10 @@ public class ChatProducer {
 
     @Async
     @EventListener
-    public void handleNewChatMessage(NewChatMessageEvent event) {
+    public void handleNewChatMessage(ChatMessageEvent event) {
         log.info("Publishing new message to Kafka Topic '{}' from {} to {}",
                 TOPIC_NEW_MESSAGE, event.getSenderUsername(), event.getRecipientUsername());
-        ChatMessageEvent payload = new ChatMessageEvent(
+        ChatMessagePayload payload = new ChatMessagePayload(
                 event.getResponse(),
                 event.getSenderUsername(),
                 event.getRecipientUsername());

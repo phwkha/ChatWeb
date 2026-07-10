@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.form.SocketResponse;
-import com.web.backend.event.ChatMessageEvent;
+import com.web.backend.kafka.payload.ChatMessagePayload;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ public class ChatConsumer {
     private final SimpUserRegistry simpUserRegistry;
 
     @KafkaListener(topics = "${spring.kafka.topic.chat.new-message}", groupId = "chat-websocket-group-${random.uuid}")
-    public void listenChatMessages(ChatMessageEvent message) {
+    public void listenChatMessages(ChatMessagePayload message) {
         if (message == null) {
             return;
         }

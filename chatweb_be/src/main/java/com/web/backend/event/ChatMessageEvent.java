@@ -1,20 +1,20 @@
 package com.web.backend.event;
 
 import com.web.backend.controller.response.ChatMessageResponse;
+import lombok.Getter;
+import org.springframework.context.ApplicationEvent;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+@Getter
+public class ChatMessageEvent extends ApplicationEvent {
+    private final ChatMessageResponse response;
+    private final String senderUsername;
+    private final String recipientUsername;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class ChatMessageEvent {
-
-    private ChatMessageResponse chatMessageResponse;
-
-    private String senderUsername;
-
-    private String recipientUsername;
-
+    public ChatMessageEvent(Object source, ChatMessageResponse response, String senderUsername,
+            String recipientUsername) {
+        super(source);
+        this.response = response;
+        this.senderUsername = senderUsername;
+        this.recipientUsername = recipientUsername;
+    }
 }

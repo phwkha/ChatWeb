@@ -3,7 +3,7 @@ package com.web.backend.kafka.consumer;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import com.web.backend.event.EmailEvent;
+import com.web.backend.kafka.payload.EmailPayload;
 import com.web.backend.service.util.EmailService;
 
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ public class EmailConsumer {
     private final EmailService emailService;
 
     @KafkaListener(topics = "${spring.kafka.topic.email.email-topic}", groupId = "${spring.kafka.topic.email.group-id}")
-    public void consumeEmailTask(EmailEvent event) {
+    public void consumeEmailTask(EmailPayload event) {
         log.info("Kafka Consumer nhận được task gửi mail loại {} cho: {}", event.getType(), event.getTo());
 
         try {

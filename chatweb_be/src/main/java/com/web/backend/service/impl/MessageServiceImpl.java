@@ -7,7 +7,7 @@ import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.repository.projection.UnreadCountProjection;
 import com.web.backend.controller.response.UnreadCountsResponse;
-import com.web.backend.event.NewChatMessageEvent;
+import com.web.backend.event.ChatMessageEvent;
 import com.web.backend.mapper.MessageMapper;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.model.SystemMessage;
@@ -84,7 +84,7 @@ public class MessageServiceImpl implements MessageService {
         ChatMessageResponse response = messageMapper.toResponse(chatMessage);
         response.setLocalId(chatMessage.getLocalId());
 
-        eventPublisher.publishEvent(new NewChatMessageEvent(
+        eventPublisher.publishEvent(new ChatMessageEvent(
                 this,
                 response,
                 chatMessage.getSender(),
@@ -102,7 +102,7 @@ public class MessageServiceImpl implements MessageService {
     public void messageTyping(ChatMessage chatMessage) {
         ChatMessageResponse response = messageMapper.toResponse(chatMessage);
         response.setMessageType(MessageType.TYPING);
-        eventPublisher.publishEvent(new NewChatMessageEvent(
+        eventPublisher.publishEvent(new ChatMessageEvent(
                 this,
                 response,
                 chatMessage.getSender(),
@@ -235,7 +235,7 @@ public class MessageServiceImpl implements MessageService {
                 .sender(senderUsername)
                 .recipient(recipientUsername)
                 .build();
-        eventPublisher.publishEvent(new NewChatMessageEvent(
+        eventPublisher.publishEvent(new ChatMessageEvent(
                 this,
                 response,
                 senderUsername,
