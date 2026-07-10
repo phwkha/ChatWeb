@@ -77,7 +77,6 @@ public class UserEntity extends AbstractEntity<Long> implements UserDetails {
         address.setUser(null);
     }
 
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Set<SimpleGrantedAuthority> authorities = new HashSet<>();
@@ -105,6 +104,7 @@ public class UserEntity extends AbstractEntity<Long> implements UserDetails {
     public boolean isAccountNonLocked() {
         return !UserStatus.LOCKED.equals(userStatus);
     }
+
     @Override
     public boolean isEnabled() {
         return UserStatus.ACTIVE.equals(userStatus);

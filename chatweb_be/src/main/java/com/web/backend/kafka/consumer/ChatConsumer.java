@@ -22,25 +22,31 @@ public class ChatConsumer {
 
     @KafkaListener(topics = "${spring.kafka.topic.chat.new-message}", groupId = "chat-websocket-group-${random.uuid}")
     public void listenChatMessages(ChatMessageEvent message) {
-        log.info("Kafka nhận tin nhắn: {} -> {}", message.getSenderUsername(), message.getRecipientUsername());
-
+        if (message == null) {
+            return;
+        }
+        String recipient = message.getRecipientUsername();
+        String sender = message.getSenderUsername();
+        log.info("Kafka nhận tin nhắn: {} -> {}", sender, recipient);
         try {
-            if (simpUserRegistry.getUser(message.getRecipientUsername()) != null) {
-
-                SocketResponse<ChatMessageResponse> response = SocketResponse.message(message.getChatMessageResponse());
-
+            SocketResponse<ChatMessageResponse> response = SocketResponse.message(message.getChatMessageResponse());
+            if (recipient != null && simpUserRegistry.getUser(recipient) != null) {
                 simpMessagingTemplate.convertAndSendToUser(
-                        message.getRecipientUsername(),
+                        recipient,
                         "/queue/messages",
                         response);
-
-                simpMessagingTemplate.convertAndSendToUser(
-                        message.getSenderUsername(),
-                        "/queue/messages",
-                        response);
-
-                log.debug("Đã gửi tin nhắn qua WS cho người nhận: {}", message.getRecipientUsername());
+                log.debug("Đã gửi tin nhắn qua WS cho người nhận: {}", recipient);
             }
+
+            if (sender != null && simpUserRegistry.getUser(sender) != null) {
+                simpMessagingTemplate.convertAndSendToUser(
+                        sender,
+                        "/queue/messages",
+                        response);
+                log.debug("Đã đồng bộ tin nhắn qua WS cho người gửi: {}", sender);
+            }
+
+            log.debug("Đã gửi tin nhắn qua WS cho người nhận: {}", message.getRecipientUsername());
         } catch (Exception e) {
             log.error("Failed to send WebSocket message: {}", e.getMessage());
         }

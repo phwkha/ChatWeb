@@ -36,6 +36,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.Objects;
 
 @Service
 @Slf4j(topic = "AUTHENTICATION-SERVICE")
@@ -96,7 +97,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
 
         String redisKey = "register:" + createUserRequest.getEmail();
-        redisTemplate.opsForValue().set(redisKey, data, 5, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(redisKey, Objects.requireNonNull(data), 5, TimeUnit.MINUTES);
 
         emailKafkaProducer.sendOtpEmailTask(createUserRequest.getEmail(), createUserRequest.getUsername(), otp);
 
@@ -244,11 +245,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         newUser.setUserStatus(UserStatus.ACTIVE);
         newUser.setCreateAt(new Date());
 
-        RoleEntity role = roleRepository.findById(data.getRoleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
+        Long roleId = data.getRoleId();
+        RoleEntity role;
+        if (roleId != null) {
+            role = roleRepository.findById(roleId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
+        } else {
+            role = roleRepository.findByName("USER")
+                    .orElseThrow(() -> new ResourceNotFoundException("Role mặc định (USER) không tồn tại"));
+        }
         newUser.setRole(role);
 
-        userRepository.save(newUser);
+        userRepository.save(Objects.requireNonNull(newUser));
 
         cuckooFilterService.add(USERNAME_FILTER_KEY, newUser.getUsername());
         cuckooFilterService.add(EMAIL_FILTER_KEY, newUser.getEmail());
@@ -276,7 +284,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
 
             data.setOtp(otp);
-            redisTemplate.opsForValue().set(redisKey, data, expirationMinutes, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(redisKey, Objects.requireNonNull(data), expirationMinutes,
+                    TimeUnit.MINUTES);
             redisTemplate.opsForValue().set(cooldownKey, "1", 60, TimeUnit.SECONDS);
             emailKafkaProducer.sendOtpEmailTask(data.getEmail(), data.getUsername(), otp);
             log.info("Resend Register OTP to Redis user: {}", data.getUsername());

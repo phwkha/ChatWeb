@@ -8,10 +8,12 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j(topic = "CUCKOO-FILTER")
+@SuppressWarnings("null")
 public class CuckooFilterService {
 
     private final RedisTemplate<String, Object> redisTemplate;
@@ -25,9 +27,8 @@ public class CuckooFilterService {
                 new DefaultRedisScript<>(script, Long.class),
                 RedisSerializer.string(),
                 null,
-                Collections.singletonList(key),
-                item
-        );
+                Objects.requireNonNull(Collections.singletonList(key)),
+                item);
     }
 
     /**
@@ -39,9 +40,8 @@ public class CuckooFilterService {
                 new DefaultRedisScript<>(script, Long.class),
                 RedisSerializer.string(),
                 null,
-                Collections.singletonList(key),
-                item
-        );
+                Objects.requireNonNull(Collections.singletonList(key)),
+                item);
         return result != null && result == 1L;
     }
 
@@ -54,9 +54,8 @@ public class CuckooFilterService {
                 new DefaultRedisScript<>(script, Long.class),
                 RedisSerializer.string(),
                 null,
-                Collections.singletonList(key),
-                item
-        );
+                Objects.requireNonNull(Collections.singletonList(key)),
+                item);
         log.info("Deleted item '{}' from filter '{}'", item, key);
     }
 }

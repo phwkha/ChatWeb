@@ -15,11 +15,13 @@ import com.web.backend.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,8 +64,7 @@ public class RoleServiceImpl implements RoleService {
 
         if (request.getPermissionIds() != null && !request.getPermissionIds().isEmpty()) {
             Set<PermissionEntity> permissions = new HashSet<>(
-                    permissionRepository.findAllById(request.getPermissionIds())
-            );
+                    permissionRepository.findAllById(Objects.requireNonNull(request.getPermissionIds())));
             role.setPermissions(permissions);
         }
 
@@ -75,7 +76,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     @CacheEvict(value = "user_details", allEntries = true)
-    public RoleResponse updateRole(Long roleId, RoleRequest request) {
+    public RoleResponse updateRole(@NonNull Long roleId, RoleRequest request) {
         RoleEntity role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
 
@@ -84,8 +85,7 @@ public class RoleServiceImpl implements RoleService {
 
         if (request.getPermissionIds() != null) {
             Set<PermissionEntity> permissions = new HashSet<>(
-                    permissionRepository.findAllById(request.getPermissionIds())
-            );
+                    permissionRepository.findAllById(Objects.requireNonNull(request.getPermissionIds())));
             role.setPermissions(permissions);
         }
 
@@ -97,14 +97,14 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     @CacheEvict(value = "user_details", allEntries = true)
-    public void deleteRole(Long roleId) {
+    public void deleteRole(@NonNull Long roleId) {
         RoleEntity role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
 
         if (userRepository.existsByRole(role)) {
             throw new ResourceConflictException("Không thể xóa Role đang được sử dụng");
         }
-        roleRepository.delete(role);
+        roleRepository.delete(Objects.requireNonNull(role));
         log.info("Delete role and cleared all user cache");
     }
 }

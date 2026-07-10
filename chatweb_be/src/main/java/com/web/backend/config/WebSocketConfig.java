@@ -1,5 +1,6 @@
 package com.web.backend.config;
 
+import java.util.Map;
 import com.web.backend.jwt.JwtHandshakeInterceptor;
 import com.web.backend.common.TokenType;
 import com.web.backend.model.UserEntity;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.lang.NonNull;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessagingException;
@@ -36,14 +38,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
 
     @Override
-    public void configureMessageBroker(MessageBrokerRegistry registry) {
+    public void configureMessageBroker(@NonNull MessageBrokerRegistry registry) {
         registry.enableSimpleBroker("/topic", "/queue", "/user");
         registry.setApplicationDestinationPrefixes("/app");
         registry.setUserDestinationPrefix("/user");
     }
 
     @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
+    public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
                 .setAllowedOrigins("http://localhost:5174", "http://localhost:8080", "http://localhost:5173")
                 .addInterceptors(jwtHandshakeInterceptor)
@@ -51,15 +53,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     @Override
-    public void configureClientInboundChannel(ChannelRegistration registration) {
+    public void configureClientInboundChannel(@NonNull ChannelRegistration registration) {
         registration.interceptors(new ChannelInterceptor() {
             @Override
-            public Message<?> preSend(Message<?> message, MessageChannel channel) {
+            public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-                if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+                if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
 
-                    String token = (String) accessor.getSessionAttributes().get("jwt_token_cookie");
+                    Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+                    String token = sessionAttributes != null ? (String) sessionAttributes.get("jwt_token_cookie") : null;
 
                     if (token == null) {
                         token = extractTokenFromHeader(accessor);
@@ -79,10 +82,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                 UserDetails userDetails = userServiceDetail.loadUserByUsername(username);
 
                                 if (userDetails instanceof UserEntity userEntity) {
-                                    Integer tokenVersionInJwt = jwtService.extractClaim(token, TokenType.ACCESS_TOKEN, claims -> claims.get("v", Integer.class));
+                                    Integer tokenVersionInJwt = jwtService.extractClaim(token, TokenType.ACCESS_TOKEN,
+                                            claims -> claims.get("v", Integer.class));
 
                                     Integer currentVersion = userEntity.getTokenVersion();
-                                    if (currentVersion == null) currentVersion = 0;
+                                    if (currentVersion == null)
+                                        currentVersion = 0;
 
                                     if (tokenVersionInJwt == null || !tokenVersionInJwt.equals(currentVersion)) {
                                         log.warn("Token version mismatch for user in WebSocket: {}", username);

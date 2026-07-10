@@ -59,7 +59,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String extractUsername(String token, TokenType type) {
         log.info("extract username from token {} with type {}", token, type);
-        return extractClaims(type, token, Claims::getSubject);
+        return extractClaims(type, token, claims -> claims.getSubject());
     }
 
     @Override
@@ -70,7 +70,7 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public long getRemainingTime(String token) {
-        Date expiration = extractClaim(token, TokenType.ACCESS_TOKEN, Claims::getExpiration);
+        Date expiration = extractClaim(token, TokenType.ACCESS_TOKEN, claims -> claims.getExpiration());
         long now = System.currentTimeMillis();
         long remaining = expiration.getTime() - now;
         return Math.max(remaining, 0);

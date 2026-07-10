@@ -25,6 +25,7 @@ public class RedisConfig {
     private String password;
 
     @Bean
+    @SuppressWarnings("null")
     public LettuceConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
         redisStandaloneConfiguration.setHostName(host);

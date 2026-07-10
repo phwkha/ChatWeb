@@ -7,7 +7,6 @@ import com.web.backend.controller.response.*;
 import com.web.backend.exception.*;
 import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.*;
-import com.web.backend.controller.response.UserDetailResponse;
 import com.web.backend.repository.UserRepository;
 import com.web.backend.service.StorageService;
 import com.web.backend.service.util.CuckooFilterService;
@@ -91,7 +90,7 @@ public class UserServiceImpl implements UserService {
 
         userMapper.updateUserFromRequest(request, userEntity);
 
-        UserEntity updatedUser = userRepository.save(userEntity);
+        UserEntity updatedUser = userRepository.save(Objects.requireNonNull(userEntity));
         log.info("User updated profile");
         return userMapper.toUserDetailResponse(updatedUser);
     }
@@ -261,7 +260,7 @@ public class UserServiceImpl implements UserService {
             userRepository.save(userEntity);
             log.info("Soft deleted user: {} (user has message history)", username);
         } else {
-            userRepository.delete(userEntity);
+            userRepository.delete(Objects.requireNonNull(userEntity));
             log.info("Hard deleted user: {} (user had no message history)", username);
         }
     }

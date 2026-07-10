@@ -6,10 +6,16 @@ import com.web.backend.controller.response.RoleResponse;
 
 import java.util.List;
 
+import org.springframework.lang.NonNull;
+
 public interface RoleService {
     List<RoleResponse> getAllRoles();
+
     List<PermissionResponse> getAllPermissions();
+
     RoleResponse createRole(RoleRequest request);
-    RoleResponse updateRole(Long roleId, RoleRequest request);
-    void deleteRole(Long roleId);
+
+    RoleResponse updateRole(@NonNull Long roleId, RoleRequest request);
+
+    void deleteRole(@NonNull Long roleId);
 }

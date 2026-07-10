@@ -62,7 +62,7 @@ public class AdminServiceImpl implements AdminService {
 
         List<String> usernames = onlineUsernames.stream()
                 .filter(Objects::nonNull)
-                .map(Object::toString)
+                .map(String::valueOf)
                 .collect(Collectors.toList());
 
         List<UserEntity> userEntities = userRepository.findByUsernameIn(usernames);
@@ -70,16 +70,16 @@ public class AdminServiceImpl implements AdminService {
         Map<String, UserSummaryResponse> list = userEntities.stream()
                 .peek(entity -> entity.setOnline(true))
                 .collect(Collectors.toMap(
-                        UserEntity::getUsername,
-                        userMapper::toUserSummaryResponse
-                ));
+                        entity -> entity.getUsername(),
+                        entity -> userMapper.toUserSummaryResponse(entity)));
 
         return OnlineUsersResponse.builder().users(list).build();
     }
 
     @Override
     public PageResponse<UserSummaryResponse> getAllUsers(int pageNo, int pageSize, String sortBy) {
-        Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by(Sort.Direction.DESC, sortBy != null ? sortBy : "id"));
+        Pageable pageable = PageRequest.of(pageNo, pageSize,
+                Sort.by(Sort.Direction.DESC, sortBy != null ? sortBy : "id"));
 
         Page<UserEntity> pageResult;
 
@@ -131,7 +131,7 @@ public class AdminServiceImpl implements AdminService {
             user.setUserStatus(UserStatus.ACTIVE);
         }
 
-        Long roleId = request.getRoleId();
+        Long roleId = Objects.requireNonNull(request.getRoleId(), "RoleId cannot be null");
         RoleEntity role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role " + roleId + " không tồn tại"));
 
@@ -209,12 +209,13 @@ public class AdminServiceImpl implements AdminService {
 
         userMapper.updateAdminUserFromRequest(request, userEntity);
         if (request.getRoleId() != null) {
-            RoleEntity newRole = roleRepository.findById(request.getRoleId())
+            Long roleId = Objects.requireNonNull(request.getRoleId());
+            RoleEntity newRole = roleRepository.findById(roleId)
                     .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
             userEntity.setRole(newRole);
         }
 
-        UserEntity saved = userRepository.save(userEntity);
+        UserEntity saved = userRepository.save(Objects.requireNonNull(userEntity));
         log.info("Update user");
         return userMapper.toUserResponse(saved);
     }
@@ -235,7 +236,7 @@ public class AdminServiceImpl implements AdminService {
             userRepository.save(userEntity);
             log.info("Soft deleted user: {} (user has message history) by {}", targetUsername, requesterUsername);
         } else {
-            userRepository.delete(userEntity);
+            userRepository.delete(Objects.requireNonNull(userEntity));
             log.info("Hard deleted user: {} (user had no message history) by {}", targetUsername, requesterUsername);
         }
         log.info("Delete user");
@@ -245,7 +246,8 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(readOnly = true)
     public List<AddressResponse> adminGetAllAddresses(String targetUsername) {
         UserEntity user = userRepository.findByUsername(targetUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
 
         log.info("Get all address for user by admin");
         return user.getAddresses().stream()
@@ -257,12 +259,14 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(readOnly = true)
     public AddressResponse adminGetAddressById(String targetUsername, Long addressId) {
         UserEntity user = userRepository.findByUsername(targetUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
 
         AddressEntity address = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
-                .orElseThrow(() -> new AccessForbiddenException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của người dùng mục tiêu."));
+                .orElseThrow(() -> new AccessForbiddenException(
+                        "Địa chỉ không tồn tại hoặc không thuộc sở hữu của người dùng mục tiêu."));
 
         log.info("Get address with id for user");
         return userMapper.toAddressResponse(address);
@@ -273,12 +277,14 @@ public class AdminServiceImpl implements AdminService {
     @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse adminUpdateAddress(String targetUsername, Long addressId, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(targetUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
 
         AddressEntity addressToUpdate = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của người dùng mục tiêu."));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Địa chỉ không tồn tại hoặc không thuộc sở hữu của người dùng mục tiêu."));
 
         userMapper.updateAddressFromRequest(request, addressToUpdate);
 
@@ -292,7 +298,8 @@ public class AdminServiceImpl implements AdminService {
     @CacheEvict(value = "user_details", key = "#username")
     public void adminDeleteAddress(String targetUsername, Long addressId) {
         UserEntity user = userRepository.findByUsername(targetUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
 
         AddressEntity addressToDelete = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))

@@ -30,6 +30,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
+import java.util.Objects;
+
 @Controller
 @RequiredArgsConstructor
 @Slf4j(topic = "CHAT-CONTROLLER")
@@ -48,25 +50,27 @@ public class ChatController {
     @MessageMapping("/chat/sendMessageSystem")
     @SendTo("/topic/public")
     @PreAuthorize("hasAuthority('ADMIN_SEND-MESSAGE')")
-    public MessageSystemResponse sendMessage(@Payload @Valid MessageSystemRequest request, Authentication authentication) {
+    public MessageSystemResponse sendMessage(@Payload @Valid MessageSystemRequest request,
+            Authentication authentication) {
 
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String currentUsername = userPrincipal.getUsername();
 
         try {
-                log.debug("Public chat from: {}", currentUsername);
+            log.debug("Public chat from: {}", currentUsername);
 
-                SystemMessage systemMessage = new SystemMessage();
-                systemMessage.setSender(currentUsername);
-                systemMessage.setTimestamp(Instant.now());
-                systemMessage.setExpiresAt(request.getSurvivalTime() == null ? null : Instant.now().plus(request.getSurvivalTime(), ChronoUnit.SECONDS));
-                systemMessage.setContent(request.getContent());
-                messageService.saveSystemMessage(systemMessage);
-                return MessageSystemResponse.builder()
-                        .sender(systemMessage.getSender())
-                        .content(systemMessage.getContent())
-                        .timestamp(systemMessage.getTimestamp())
-                        .build();
+            SystemMessage systemMessage = new SystemMessage();
+            systemMessage.setSender(currentUsername);
+            systemMessage.setTimestamp(Instant.now());
+            systemMessage.setExpiresAt(request.getSurvivalTime() == null ? null
+                    : Instant.now().plus(request.getSurvivalTime(), ChronoUnit.SECONDS));
+            systemMessage.setContent(request.getContent());
+            messageService.saveSystemMessage(systemMessage);
+            return MessageSystemResponse.builder()
+                    .sender(systemMessage.getSender())
+                    .content(systemMessage.getContent())
+                    .timestamp(systemMessage.getTimestamp())
+                    .build();
 
         } catch (Exception e) {
             log.error("Error sending system message: {}", e.getMessage());
@@ -84,11 +88,12 @@ public class ChatController {
         try {
             log.debug("Private from {} to {}", senderUsername, request.getRecipient());
 
-            if ( !userService.userExists(request.getRecipient())) {
+            if (!userService.userExists(request.getRecipient())) {
                 throw new ResourceNotFoundException("Người nhận không tồn tại");
             }
 
-            if (!friendService.isFriend(senderUsername, request.getRecipient())) {
+            if (!friendService.isFriend(Objects.requireNonNull(senderUsername),
+                    Objects.requireNonNull(request.getRecipient()))) {
                 throw new AccessForbiddenException("Hai người chưa kết bạn, không thể nhắn tin.");
             }
 
@@ -101,8 +106,13 @@ public class ChatController {
     }
 
     private void handleChatException(String username, Object request, String mes) {
-        simpMessagingTemplate.convertAndSendToUser(username,
-                "/queue/errors", SocketResponse.error(mes, request));
+        if (username == null) {
+            simpMessagingTemplate.convertAndSendToUser("unknows",
+                    "/queue/errors", SocketResponse.error(mes, request));
+        } else {
+            simpMessagingTemplate.convertAndSendToUser(username,
+                    "/queue/errors", SocketResponse.error(mes, request));
+        }
     }
 
     private void normalizeMessage(ChatMessage chatMessage) {
@@ -121,7 +131,8 @@ public class ChatController {
                 chatMessage.setSender(senderUsername);
 
                 normalizeMessage(chatMessage);
-                if (chatMessage.getContentType() == null) chatMessage.setContentType(ContentType.TEXT);
+                if (chatMessage.getContentType() == null)
+                    chatMessage.setContentType(ContentType.TEXT);
                 chatMessage.setId(null);
                 chatMessage.setStatus(MessageStatus.SENT);
                 chatMessage.setLocalId(request.getLocalId());

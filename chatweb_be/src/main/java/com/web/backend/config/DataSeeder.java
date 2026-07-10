@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-
 @Component
 @RequiredArgsConstructor
 @Slf4j(topic = "DATABASE-SEEDER")
@@ -96,6 +95,8 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void assignPermissionToRole(RoleEntity role, PermissionEntity... permissions) {
+        if (role == null)
+            return;
         for (PermissionEntity p : permissions) {
             role.getPermissions().add(p);
         }

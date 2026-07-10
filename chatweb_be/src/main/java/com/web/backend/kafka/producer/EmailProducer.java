@@ -9,6 +9,8 @@ import com.web.backend.event.EmailEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Objects;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j(topic = "EMAIL-KAFKA-PRODUCER")
@@ -22,14 +24,14 @@ public class EmailProducer {
     public void sendOtpEmailTask(String to, String name, String otp) {
         log.info("Đang đẩy task gửi mail OTP lên Kafka cho email: {}", to);
         EmailEvent event = EmailEvent.createOtpEvent(to, name, otp);
-        kafkaTemplate.send(EMAIL_TOPIC, event);
+        kafkaTemplate.send(Objects.requireNonNull(EMAIL_TOPIC), event);
         log.info("Đã đẩy task gửi mail OTP lên Kafka Topic '{}' cho email: {}", EMAIL_TOPIC, to);
     }
 
     public void sendTextEmailTask(String to, String subject, String content) {
         log.info("Đang đẩy task gửi mail TEXT lên Kafka cho email: {}", to);
         EmailEvent event = EmailEvent.createTextEvent(to, subject, content);
-        kafkaTemplate.send(EMAIL_TOPIC, event);
+        kafkaTemplate.send(Objects.requireNonNull(EMAIL_TOPIC), event);
         log.info("Đã đẩy task gửi mail TEXT lên Kafka Topic '{}' cho email: {}", EMAIL_TOPIC, to);
     }
 }

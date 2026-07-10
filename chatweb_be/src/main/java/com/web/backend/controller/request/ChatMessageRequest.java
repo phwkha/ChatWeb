@@ -4,6 +4,7 @@ import com.web.backend.common.ContentType;
 import com.web.backend.common.MessageStatus;
 import com.web.backend.common.MessageType;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -11,6 +12,7 @@ import java.util.Map;
 
 @Data
 public class ChatMessageRequest {
+    @NotBlank(message = "Tên người nhận không được để trống")
     private String recipient;
 
     @Size(max = 10000, message = "Nội dung tin nhắn không được quá 10.000 ký tự")

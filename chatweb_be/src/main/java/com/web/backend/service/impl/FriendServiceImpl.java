@@ -22,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +44,8 @@ public class FriendServiceImpl implements FriendService {
     @Override
     @Transactional
     public void sendFriendRequest(String requesterUsername, String addresseeUsername) {
-        if (requesterUsername.equals(addresseeUsername)) throw new InvalidDataException("Lỗi: Tự kết bạn");
+        if (requesterUsername.equals(addresseeUsername))
+            throw new InvalidDataException("Lỗi: Tự kết bạn");
 
         UserEntity requester = getUser(requesterUsername);
         UserEntity addressee = getUser(addresseeUsername);
@@ -68,9 +70,11 @@ public class FriendServiceImpl implements FriendService {
 
         NotificationMessageResponse data = NotificationMessageResponse.builder()
                 .status(NotificationsStatus.FRIEND_REQUEST)
-                .relatedUsername((requester.getFirstName() != null ? requester.getFirstName() : requester.getUsername()))
+                .relatedUsername(
+                        (requester.getFirstName() != null ? requester.getFirstName() : requester.getUsername()))
                 .build();
-        SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications("Lời mời kết bạn mới", data);
+        SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications("Lời mời kết bạn mới",
+                data);
         eventPublisher.publishEvent(new FriendshipEvent<>(this, addresseeUsername, "/queue/notifications", response));
     }
 
@@ -97,8 +101,8 @@ public class FriendServiceImpl implements FriendService {
                 .status(NotificationsStatus.FRIEND_ACCEPTED)
                 .relatedUsername((acceptor.getFirstName() != null ? acceptor.getFirstName() : acceptor.getUsername()))
                 .build();
-        SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications("Đã chấp nhận kết bạn", data);
-
+        SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications("Đã chấp nhận kết bạn",
+                data);
 
         eventPublisher.publishEvent(new FriendshipEvent<>(this, requesterUsername, "/queue/notifications", response));
     }
@@ -110,7 +114,8 @@ public class FriendServiceImpl implements FriendService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createAt").descending());
 
-        Page<FriendshipEntity> pageResult = friendshipRepository.findByRequesterAndStatus(currentUser, FriendshipStatus.PENDING, pageable);
+        Page<FriendshipEntity> pageResult = friendshipRepository.findByRequesterAndStatus(currentUser,
+                FriendshipStatus.PENDING, pageable);
 
         List<UserSummaryResponse> content = pageResult.getContent().stream()
                 .map(f -> userMapper.toUserSummaryResponse(f.getAddressee()))
@@ -121,11 +126,14 @@ public class FriendServiceImpl implements FriendService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<UserSummaryResponse> getPendingRequests(String currentUsername, int page, int size, String sortBy) {
+    public PageResponse<UserSummaryResponse> getPendingRequests(String currentUsername, int page, int size,
+            String sortBy) {
         UserEntity currentUser = getUser(currentUsername);
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy != null ? sortBy : "createAt"));
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by(Sort.Direction.DESC, sortBy != null ? sortBy : "createAt"));
 
-        Page<FriendshipEntity> pageResult = friendshipRepository.findByAddresseeAndStatus(currentUser, FriendshipStatus.PENDING, pageable);
+        Page<FriendshipEntity> pageResult = friendshipRepository.findByAddresseeAndStatus(currentUser,
+                FriendshipStatus.PENDING, pageable);
 
         List<UserSummaryResponse> content = pageResult.getContent().stream()
                 .map(f -> userMapper.toUserSummaryResponse(f.getRequester()))
@@ -138,14 +146,16 @@ public class FriendServiceImpl implements FriendService {
     @Transactional(readOnly = true)
     public PageResponse<UserSummaryResponse> getFriendsList(String currentUsername, int page, int size, String sortBy) {
         UserEntity currentUser = getUser(currentUsername);
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy != null ? sortBy : "createAt"));
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by(Sort.Direction.DESC, sortBy != null ? sortBy : "createAt"));
 
         Page<FriendshipEntity> pageResult = friendshipRepository.findAllAcceptedFriendships(currentUser, pageable);
 
         List<UserSummaryResponse> content = pageResult.getContent().stream()
                 .map(f -> {
                     UserEntity friend = f.getRequester().getUsername().equals(currentUsername)
-                            ? f.getAddressee() : f.getRequester();
+                            ? f.getAddressee()
+                            : f.getRequester();
                     return userMapper.toUserSummaryResponse(friend);
                 })
                 .collect(Collectors.toList());
@@ -176,7 +186,7 @@ public class FriendServiceImpl implements FriendService {
                     .relatedUsername(currentUsername)
                     .build();
 
-                eventPublisher.publishEvent(new FriendshipEvent<>(this, targetUsername, "/queue/notifications",
+            eventPublisher.publishEvent(new FriendshipEvent<>(this, targetUsername, "/queue/notifications",
                     SocketResponse.notifications("Đã hủy kết bạn", data)));
 
         } else {
@@ -223,10 +233,11 @@ public class FriendServiceImpl implements FriendService {
     }
 
     @Override
-    public boolean isFriend(String user1, String user2) {
+    public boolean isFriend(@NonNull String user1, @NonNull String user2) {
 
         Boolean isMember = redisTemplate.opsForSet().isMember("friends:" + user1, user2);
-        if (Boolean.TRUE.equals(isMember)) return true;
+        if (Boolean.TRUE.equals(isMember))
+            return true;
 
         boolean existsInDb = friendshipRepository.existsFriendship(user1, user2);
 

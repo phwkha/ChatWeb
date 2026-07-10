@@ -12,6 +12,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j(topic = "CHAT-EVENT-PRODUCER")
@@ -31,6 +33,6 @@ public class ChatProducer {
                 event.getResponse(),
                 event.getSenderUsername(),
                 event.getRecipientUsername());
-        kafkaTemplate.send(TOPIC_NEW_MESSAGE, payload);
+        kafkaTemplate.send(Objects.requireNonNull(TOPIC_NEW_MESSAGE), payload);
     }
 }

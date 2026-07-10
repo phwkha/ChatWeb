@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,7 +38,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
             String jwt = getTokenFromRequest(request);
 
@@ -51,8 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     ApiResponse<?> apiResponse = ApiResponse.error(
                             HttpStatus.UNAUTHORIZED.value(),
-                            "Token đã đăng xuất (Blacklisted)"
-                    );
+                            "Token đã đăng xuất (Blacklisted)");
 
                     ObjectMapper objectMapper = new ObjectMapper();
                     response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
@@ -68,13 +69,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     UserDetails userDetails = userServiceDetail.loadUserByUsername(username);
 
                     if (userDetails instanceof UserEntity userEntity) {
-                        Integer tokenVersionInJwt = jwtService.extractClaim(jwt,TokenType.ACCESS_TOKEN ,claims -> claims.get("v", Integer.class));
+                        Integer tokenVersionInJwt = jwtService.extractClaim(jwt, TokenType.ACCESS_TOKEN,
+                                claims -> claims.get("v", Integer.class));
 
                         Integer currentVersion = userEntity.getTokenVersion();
-                        if (currentVersion == null) currentVersion = 0;
+                        if (currentVersion == null)
+                            currentVersion = 0;
 
                         if (tokenVersionInJwt == null || !tokenVersionInJwt.equals(currentVersion)) {
-                            log.warn("Token version mismatch for user {}. Token: {}, Server: {}", username, tokenVersionInJwt, currentVersion);
+                            log.warn("Token version mismatch for user {}. Token: {}, Server: {}", username,
+                                    tokenVersionInJwt, currentVersion);
                             filterChain.doFilter(request, response);
                             return;
                         }
@@ -82,13 +86,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
 
-                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
 
-                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     securityContext.setAuthentication(authToken);
                     SecurityContextHolder.setContext(securityContext);

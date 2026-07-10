@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.Comparator;
+import java.util.Objects;
 
 @Slf4j(topic = "MESSAGE-SERVICE")
 @Service
@@ -70,15 +71,15 @@ public class MessageServiceImpl implements MessageService {
         String convId = generateConversationId(chatMessage.getSender(), chatMessage.getRecipient());
         chatMessage.setConversationId(convId);
 
-        kafkaTemplate.send(chatTopicDbSave, chatMessage);
+        kafkaTemplate.send(Objects.requireNonNull(chatTopicDbSave), chatMessage);
         log.info("Đã đẩy tin nhắn từ {} lên hàng chờ lưu DB", chatMessage.getSender());
 
         String redisKey = "chat:recent:" + convId;
         redisTemplate.opsForList().rightPush(redisKey, chatMessage);
-        redisTemplate.expire(redisKey, Duration.ofMinutes(REDIS_TTL_MINUTES));
+        redisTemplate.expire(redisKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
 
         String key = "unread_counts:" + chatMessage.getRecipient();
-        redisTemplate.opsForHash().increment(key, chatMessage.getSender(), 1);
+        redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMessage.getSender()), 1);
 
         ChatMessageResponse response = messageMapper.toResponse(chatMessage);
         response.setLocalId(chatMessage.getLocalId());
@@ -93,7 +94,7 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public void saveSystemMessage(SystemMessage systemMessage) {
-        systemMessageRepository.save(systemMessage);
+        systemMessageRepository.save(java.util.Objects.requireNonNull(systemMessage));
         log.info("{} Chat system message success", systemMessage.getSender());
     }
 
@@ -144,7 +145,7 @@ public class MessageServiceImpl implements MessageService {
                 }
 
                 finalMessages = uniqueMessagesMap.values().stream()
-                        .sorted(Comparator.comparing(ChatMessage::getTimestamp).reversed())
+                        .sorted(Comparator.comparing((ChatMessage msg) -> msg.getTimestamp()).reversed())
                         .limit(size)
                         .collect(Collectors.toList());
             }
