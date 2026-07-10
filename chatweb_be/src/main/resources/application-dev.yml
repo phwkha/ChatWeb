@@ -50,6 +50,7 @@ spring:
       email:
         email-topic: email-messages
         group-id: email-worker-group
+      friend: friend-notifications
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer

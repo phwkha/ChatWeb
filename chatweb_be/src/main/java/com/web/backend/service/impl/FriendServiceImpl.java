@@ -6,7 +6,8 @@ import com.web.backend.controller.response.NotificationMessageResponse;
 import com.web.backend.controller.response.PageResponse;
 import com.web.backend.controller.response.UserSummaryResponse;
 import com.web.backend.controller.response.form.SocketResponse;
-import com.web.backend.event.FriendshipEvent;
+import com.web.backend.kafka.payload.FriendNotificationMessage;
+import com.web.backend.event.KafkaDispatchEvent;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.exception.custom.ResourceConflictException;
@@ -20,6 +21,7 @@ import com.web.backend.service.FriendService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -39,10 +42,17 @@ import java.util.stream.Collectors;
 public class FriendServiceImpl implements FriendService {
 
         private final UserRepository userRepository;
+
         private final FriendshipRepository friendshipRepository;
+
         private final RedisTemplate<String, Object> redisTemplate;
+
         private final ApplicationEventPublisher eventPublisher;
+
         private final UserMapper userMapper;
+
+        @Value("${spring.kafka.topic.friend.friend-notifications}")
+        private String FRIEND_TOPIC;
 
         @Override
         @Transactional
@@ -74,15 +84,24 @@ public class FriendServiceImpl implements FriendService {
 
                 NotificationMessageResponse data = NotificationMessageResponse.builder()
                                 .status(NotificationsStatus.FRIEND_REQUEST)
-                                .relatedUsername(
-                                                (requester.getFirstName() != null ? requester.getFirstName()
-                                                                : requester.getUsername()))
+                                .relatedUsername((requester.getFirstName() != null ? requester.getFirstName()
+                                                : requester.getUsername()))
                                 .build();
                 SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications(
                                 "Lời mời kết bạn mới",
                                 data);
-                eventPublisher.publishEvent(
-                                new FriendshipEvent<>(this, addresseeUsername, "/queue/notifications", response));
+
+                NotificationMessageResponse senderData = NotificationMessageResponse.builder()
+                                .status(NotificationsStatus.REQUEST_SENT_SUCCESS)
+                                .relatedUsername(addresseeUsername)
+                                .build();
+                SocketResponse<NotificationMessageResponse> senderResponse = SocketResponse.notifications(
+                                "Đã gửi lời mời kết bạn",
+                                senderData);
+
+                FriendNotificationMessage payload = new FriendNotificationMessage(
+                                requesterUsername, addresseeUsername, "/queue/notifications", senderResponse, response);
+                eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
         }
 
         @Override
@@ -113,8 +132,18 @@ public class FriendServiceImpl implements FriendService {
                                 "Đã chấp nhận kết bạn",
                                 data);
 
-                eventPublisher.publishEvent(
-                                new FriendshipEvent<>(this, requesterUsername, "/queue/notifications", response));
+                NotificationMessageResponse acceptorData = NotificationMessageResponse.builder()
+                                .status(NotificationsStatus.YOU_ACCEPTED)
+                                .relatedUsername(requesterUsername)
+                                .build();
+                SocketResponse<NotificationMessageResponse> acceptorResponse = SocketResponse.notifications(
+                                "Đã chấp nhận kết bạn",
+                                acceptorData);
+
+                FriendNotificationMessage payload = new FriendNotificationMessage(
+                                acceptorUsername, requesterUsername, "/queue/notifications", acceptorResponse,
+                                response);
+                eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
         }
 
         @Override
@@ -198,8 +227,10 @@ public class FriendServiceImpl implements FriendService {
                                         .relatedUsername(currentUsername)
                                         .build();
 
-                        eventPublisher.publishEvent(new FriendshipEvent<>(this, targetUsername, "/queue/notifications",
-                                        SocketResponse.notifications("Đã hủy kết bạn", data)));
+                        FriendNotificationMessage payload = new FriendNotificationMessage(
+                                        currentUsername, targetUsername, "/queue/notifications", null,
+                                        SocketResponse.notifications("Đã hủy kết bạn", data));
+                        eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
 
                 } else {
                         if (isRequester) {
@@ -208,9 +239,10 @@ public class FriendServiceImpl implements FriendService {
                                                 .relatedUsername(currentUsername)
                                                 .build();
 
-                                eventPublisher.publishEvent(new FriendshipEvent<>(this, targetUsername,
-                                                "/queue/notifications",
-                                                SocketResponse.notifications("Đã rút lại lời mời kết bạn", data)));
+                                FriendNotificationMessage payload = new FriendNotificationMessage(
+                                                currentUsername, targetUsername, "/queue/notifications", null,
+                                                SocketResponse.notifications("Đã rút lại lời mời kết bạn", data));
+                                eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
 
                         } else {
                                 NotificationMessageResponse data = NotificationMessageResponse.builder()
@@ -218,9 +250,10 @@ public class FriendServiceImpl implements FriendService {
                                                 .relatedUsername(currentUsername)
                                                 .build();
 
-                                eventPublisher.publishEvent(new FriendshipEvent<>(this, targetUsername,
-                                                "/queue/notifications",
-                                                SocketResponse.notifications("Đã từ chối lời mời kết bạn", data)));
+                                FriendNotificationMessage payload = new FriendNotificationMessage(
+                                                currentUsername, targetUsername, "/queue/notifications", null,
+                                                SocketResponse.notifications("Đã từ chối lời mời kết bạn", data));
+                                eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
                         }
                 }
         }

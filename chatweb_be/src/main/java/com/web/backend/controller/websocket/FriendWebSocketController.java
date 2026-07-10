@@ -1,7 +1,5 @@
 package com.web.backend.controller.websocket;
 
-import com.web.backend.common.NotificationsStatus;
-import com.web.backend.controller.response.NotificationMessageResponse;
 import com.web.backend.controller.response.form.SocketResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.FriendService;
@@ -31,13 +29,6 @@ public class FriendWebSocketController {
         try {
             friendService.sendFriendRequest(username, targetUsername);
 
-            NotificationMessageResponse data = NotificationMessageResponse.builder()
-                    .status(NotificationsStatus.REQUEST_SENT_SUCCESS)
-                    .relatedUsername(targetUsername)
-                    .build();
-            simpMessagingTemplate.convertAndSendToUser(
-                    username, "/queue/notifications",
-                    SocketResponse.notifications("Đã gửi lời mời kết bạn", data));
         } catch (Exception e) {
             sendError(username, e.getMessage());
         }
@@ -50,19 +41,13 @@ public class FriendWebSocketController {
         try {
             friendService.acceptFriendRequest(username, requesterUsername);
 
-            NotificationMessageResponse data = NotificationMessageResponse.builder()
-                    .status(NotificationsStatus.YOU_ACCEPTED)
-                    .relatedUsername(requesterUsername)
-                    .build();
-            simpMessagingTemplate.convertAndSendToUser(
-                    username, "/queue/notifications",
-                    SocketResponse.notifications("Đã chấp nhận kết bạn", data));
         } catch (Exception e) {
             sendError(username, e.getMessage());
         }
     }
 
     private void sendError(@NonNull String username, String msg) {
-        simpMessagingTemplate.convertAndSendToUser(username, "/queue/errors", SocketResponse.error(msg != null ? msg : "Unknown error", username));
+        simpMessagingTemplate.convertAndSendToUser(username, "/queue/errors",
+                SocketResponse.error(msg != null ? msg : "Unknown error", username));
     }
 }
