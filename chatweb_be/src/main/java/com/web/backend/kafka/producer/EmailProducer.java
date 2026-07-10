@@ -29,7 +29,7 @@ public class EmailProducer {
             if (ex != null) {
                 log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", EMAIL_TOPIC, ex);
             } else {
-                log.debug("Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
+                log.debug("Email otp: Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
             }
         });
         log.info("Đã đẩy task gửi mail OTP lên Kafka Topic '{}' cho email: {}", EMAIL_TOPIC, to);
@@ -42,7 +42,7 @@ public class EmailProducer {
             if (ex != null) {
                 log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", EMAIL_TOPIC, ex);
             } else {
-                log.debug("Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
+                log.debug("Email text: Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
             }
         });
         log.info("Đã đẩy task gửi mail TEXT lên Kafka Topic '{}' cho email: {}", EMAIL_TOPIC, to);

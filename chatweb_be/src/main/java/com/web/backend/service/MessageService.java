@@ -1,20 +1,19 @@
 package com.web.backend.service;
 
+import com.web.backend.controller.request.ChatMessageRequest;
+import com.web.backend.controller.request.MessageSystemRequest;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
-import com.web.backend.model.ChatMessage;
-import com.web.backend.model.SystemMessage;
 
 public interface MessageService {
-    void saveMessage(ChatMessage chatMessage);
+    void sendPrivateMessage(String sender, ChatMessageRequest request);
 
-    void saveSystemMessage(SystemMessage systemMessage);
+    void sendSystemMessage(String currentUsername, MessageSystemRequest request);
 
-    void messageTyping(ChatMessage chatMessage);
-
-    CursorResponse<ChatMessageResponse> findPrivateMessageWithCursor(String user1, String user2, String cursorStr, int size);
+    CursorResponse<ChatMessageResponse> findPrivateMessageWithCursor(String user1, String user2, String cursorStr,
+            int size);
 
     CursorResponse<MessageSystemResponse> findSystemMessageWithCursor(String cursorStr, int size);
 

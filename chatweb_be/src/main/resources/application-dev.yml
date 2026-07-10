@@ -44,10 +44,9 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     topic:
       chat:
-        new-message: chat-new-messages
-        messages-save:
-          topic: messages-save
-          group-id: messages-save-group
+        message: chat-messages
+        system-messages: "chat-system-messages"
+        save: chat-save
       email:
         email-topic: email-messages
         group-id: email-worker-group

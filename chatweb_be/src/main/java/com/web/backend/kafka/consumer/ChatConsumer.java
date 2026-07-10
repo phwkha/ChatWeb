@@ -6,8 +6,10 @@ import org.springframework.messaging.simp.user.SimpUserRegistry; // Thêm class 
 import org.springframework.stereotype.Component;
 
 import com.web.backend.controller.response.ChatMessageResponse;
+import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.form.SocketResponse;
-import com.web.backend.kafka.payload.ChatMessagePayload;
+import com.web.backend.mapper.MessageMapper;
+import com.web.backend.model.ChatMessage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,18 +20,23 @@ import lombok.extern.slf4j.Slf4j;
 public class ChatConsumer {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
+
     private final SimpUserRegistry simpUserRegistry;
 
-    @KafkaListener(topics = "${spring.kafka.topic.chat.new-message}", groupId = "chat-websocket-group-${random.uuid}")
-    public void listenChatMessages(ChatMessagePayload message) {
+    private final MessageMapper messageMapper;
+
+    @KafkaListener(topics = "${spring.kafka.topic.chat.messages}", groupId = "chat-websocket-group-${random.uuid}")
+    public void listenChatMessages(ChatMessage message) {
         if (message == null) {
             return;
         }
-        String recipient = message.getRecipientUsername();
-        String sender = message.getSenderUsername();
+        String recipient = message.getRecipient();
+        String sender = message.getSender();
         log.info("Kafka nhận tin nhắn: {} -> {}", sender, recipient);
         try {
-            SocketResponse<ChatMessageResponse> response = SocketResponse.message(message.getChatMessageResponse());
+            ChatMessageResponse messageResponse = messageMapper.toResponse(message);
+            messageResponse.setLocalId(message.getLocalId());
+            SocketResponse<ChatMessageResponse> response = SocketResponse.message(messageResponse);
             if (recipient != null && simpUserRegistry.getUser(recipient) != null) {
                 simpMessagingTemplate.convertAndSendToUser(
                         recipient,
@@ -46,9 +53,24 @@ public class ChatConsumer {
                 log.debug("Đã đồng bộ tin nhắn qua WS cho người gửi: {}", sender);
             }
 
-            log.debug("Đã gửi tin nhắn qua WS cho người nhận: {}", message.getRecipientUsername());
+            log.info("Đã gửi tin nhắn qua WS cho người nhận: {}", message.getRecipient());
         } catch (Exception e) {
             log.error("Failed to send WebSocket message: {}", e.getMessage());
+        }
+    }
+
+    @KafkaListener(topics = "${spring.kafka.topic.chat.system-messages}", groupId = "system-websocket-group-${random.uuid}")
+    public void listenSystemMessages(MessageSystemResponse systemMessage) {
+        if (systemMessage == null)
+            return;
+
+        log.info("Kafka nhận tin nhắn HỆ THỐNG từ: {}", systemMessage.getSender());
+
+        try {
+            simpMessagingTemplate.convertAndSend("/topic/public", systemMessage);
+            log.info("Kafka đã gữi tin nhắn HỆ THỐNG từ: {}", systemMessage.getSender());
+        } catch (Exception e) {
+            log.error("Failed to send System WebSocket message: {}", e.getMessage());
         }
     }
 }

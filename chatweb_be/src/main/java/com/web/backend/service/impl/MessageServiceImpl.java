@@ -3,6 +3,7 @@ package com.web.backend.service.impl;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -14,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -22,20 +22,26 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import com.web.backend.common.ContentType;
 import com.web.backend.common.MessageStatus;
 import com.web.backend.common.MessageType;
+import com.web.backend.controller.request.ChatMessageRequest;
+import com.web.backend.controller.request.MessageSystemRequest;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
-import com.web.backend.event.ChatMessageEvent;
+import com.web.backend.exception.AccessForbiddenException;
+import com.web.backend.exception.ResourceNotFoundException;
 import com.web.backend.mapper.MessageMapper;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.model.SystemMessage;
 import com.web.backend.repository.MessageRepository;
 import com.web.backend.repository.SystemMessageRepository;
 import com.web.backend.repository.projection.UnreadCountProjection;
+import com.web.backend.service.FriendService;
 import com.web.backend.service.MessageService;
+import com.web.backend.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,16 +55,21 @@ public class MessageServiceImpl implements MessageService {
 
     private final SystemMessageRepository systemMessageRepository;
 
+    private final UserService userService;
+
+    private final FriendService friendService;
+
     private final RedisTemplate<String, Object> redisTemplate;
 
     private final MessageMapper messageMapper;
 
-    private final ApplicationEventPublisher eventPublisher;
-
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Value("${spring.kafka.topic.chat.messages-save.topic}")
-    private String chatTopicDbSave;
+    @Value("${spring.kafka.topic.chat.messages}")
+    private String chatTopic;
+
+    @Value("${spring.kafka.topic.chat.system-messages}")
+    private String systemTopic;
 
     private static final long REDIS_TTL_MINUTES = 5;
 
@@ -67,18 +78,44 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public void saveMessage(ChatMessage chatMessage) {
+    public void sendPrivateMessage(String sender, ChatMessageRequest request) {
 
-        String convId = generateConversationId(chatMessage.getSender(), chatMessage.getRecipient());
+        if (!userService.userExists(request.getRecipient())) {
+            throw new ResourceNotFoundException("Người nhận không tồn tại");
+        }
+
+        if (!friendService.isFriend(Objects.requireNonNull(sender),
+                Objects.requireNonNull(request.getRecipient()))) {
+            throw new AccessForbiddenException("Hai người chưa kết bạn, không thể nhắn tin.");
+        }
+
+        ChatMessage chatMessage = messageMapper.toEntity(request);
+        String convId = generateConversationId(sender, request.getRecipient());
         chatMessage.setConversationId(convId);
+        chatMessage.setSender(sender);
+        chatMessage.setId(null);
+        chatMessage.setStatus(MessageStatus.SENT);
+        chatMessage.setLocalId(request.getLocalId());
+        if (chatMessage.getTimestamp() == null) {
+            chatMessage.setTimestamp(LocalDateTime.now());
+        }
+        if (chatMessage.getContent() == null) {
+            chatMessage.setContent("");
+        }
+        if (chatMessage.getContentType() == null)
+            chatMessage.setContentType(ContentType.TEXT);
 
-        kafkaTemplate.send(Objects.requireNonNull(chatTopicDbSave), chatMessage).whenComplete((result, ex) -> {
+        kafkaTemplate.send(Objects.requireNonNull(chatTopic), chatMessage).whenComplete((result, ex) -> {
             if (ex != null) {
-                log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", chatTopicDbSave, ex);
+                log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", chatTopic, ex);
             } else {
-                log.debug("Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
+                log.debug("Message: Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
             }
         });
+        if (chatMessage.getMessageType() != MessageType.CHAT) {
+            return;
+        }
+
         log.info("Đã đẩy tin nhắn từ {} lên hàng chờ lưu DB", chatMessage.getSender());
 
         String redisKey = "chat:recent:" + convId;
@@ -88,34 +125,27 @@ public class MessageServiceImpl implements MessageService {
 
         String key = "unread_counts:" + chatMessage.getRecipient();
         redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMessage.getSender()), 1);
-
-        ChatMessageResponse response = messageMapper.toResponse(chatMessage);
-        response.setLocalId(chatMessage.getLocalId());
-
-        eventPublisher.publishEvent(new ChatMessageEvent(
-                this,
-                response,
-                chatMessage.getSender(),
-                chatMessage.getRecipient()));
         log.info("save message success");
     }
 
     @Override
-    public void saveSystemMessage(SystemMessage systemMessage) {
-        systemMessageRepository.save(java.util.Objects.requireNonNull(systemMessage));
+    public void sendSystemMessage(String currentUsername, MessageSystemRequest request) {
+        SystemMessage systemMessage = new SystemMessage();
+        systemMessage.setSender(currentUsername);
+        systemMessage.setTimestamp(Instant.now());
+        systemMessage.setExpiresAt(request.getSurvivalTime() == null ? null
+                : Instant.now().plus(request.getSurvivalTime(), ChronoUnit.SECONDS));
+        systemMessage.setContent(request.getContent());
+        systemMessageRepository.save(Objects.requireNonNull(systemMessage));
+        MessageSystemResponse messageSystemResponse = messageMapper.systemMessageToResponse(systemMessage);
+        kafkaTemplate.send(Objects.requireNonNull(systemTopic), messageSystemResponse).whenComplete((result, ex) -> {
+            if (ex != null) {
+                log.error("Lỗi nghiêm trọng: Không thể đẩy system message lên Kafka. Topic: {}", chatTopic, ex);
+            } else {
+                log.debug("System message: Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
+            }
+        });
         log.info("{} Chat system message success", systemMessage.getSender());
-    }
-
-    @Override
-    public void messageTyping(ChatMessage chatMessage) {
-        ChatMessageResponse response = messageMapper.toResponse(chatMessage);
-        response.setMessageType(MessageType.TYPING);
-        eventPublisher.publishEvent(new ChatMessageEvent(
-                this,
-                response,
-                chatMessage.getSender(),
-                chatMessage.getRecipient()));
-        log.info("typing success");
     }
 
     @Override
@@ -238,16 +268,13 @@ public class MessageServiceImpl implements MessageService {
         }
         String key = "unread_counts:" + recipientUsername;
         redisTemplate.opsForHash().delete(key, senderUsername);
-        ChatMessageResponse response = ChatMessageResponse.builder()
-                .messageType(MessageType.STATUS)
-                .sender(senderUsername)
-                .recipient(recipientUsername)
-                .build();
-        eventPublisher.publishEvent(new ChatMessageEvent(
-                this,
-                response,
-                senderUsername,
-                recipientUsername));
+        ChatMessage statusMsg = new ChatMessage();
+        statusMsg.setMessageType(MessageType.STATUS);
+        statusMsg.setSender(senderUsername);
+        statusMsg.setRecipient(recipientUsername);
+
+        kafkaTemplate.send(Objects.requireNonNull(chatTopic), statusMsg);
+
         log.info("User marking messages");
     }
 
