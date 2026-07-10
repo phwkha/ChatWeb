@@ -1,21 +1,17 @@
 package com.web.backend.service.impl;
 
-import com.web.backend.common.MessageStatus;
-import com.web.backend.common.MessageType;
-import com.web.backend.controller.response.ChatMessageResponse;
-import com.web.backend.controller.response.CursorResponse;
-import com.web.backend.controller.response.MessageSystemResponse;
-import com.web.backend.repository.projection.UnreadCountProjection;
-import com.web.backend.controller.response.UnreadCountsResponse;
-import com.web.backend.event.ChatMessageEvent;
-import com.web.backend.mapper.MessageMapper;
-import com.web.backend.model.ChatMessage;
-import com.web.backend.model.SystemMessage;
-import com.web.backend.repository.MessageRepository;
-import com.web.backend.repository.SystemMessageRepository;
-import com.web.backend.service.MessageService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,18 +22,23 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.Comparator;
-import java.util.Objects;
+import com.web.backend.common.MessageStatus;
+import com.web.backend.common.MessageType;
+import com.web.backend.controller.response.ChatMessageResponse;
+import com.web.backend.controller.response.CursorResponse;
+import com.web.backend.controller.response.MessageSystemResponse;
+import com.web.backend.controller.response.UnreadCountsResponse;
+import com.web.backend.event.ChatMessageEvent;
+import com.web.backend.mapper.MessageMapper;
+import com.web.backend.model.ChatMessage;
+import com.web.backend.model.SystemMessage;
+import com.web.backend.repository.MessageRepository;
+import com.web.backend.repository.SystemMessageRepository;
+import com.web.backend.repository.projection.UnreadCountProjection;
+import com.web.backend.service.MessageService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j(topic = "MESSAGE-SERVICE")
 @Service
@@ -71,7 +72,13 @@ public class MessageServiceImpl implements MessageService {
         String convId = generateConversationId(chatMessage.getSender(), chatMessage.getRecipient());
         chatMessage.setConversationId(convId);
 
-        kafkaTemplate.send(Objects.requireNonNull(chatTopicDbSave), chatMessage);
+        kafkaTemplate.send(Objects.requireNonNull(chatTopicDbSave), chatMessage).whenComplete((result, ex) -> {
+            if (ex != null) {
+                log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", chatTopicDbSave, ex);
+            } else {
+                log.debug("Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
+            }
+        });
         log.info("Đã đẩy tin nhắn từ {} lên hàng chờ lưu DB", chatMessage.getSender());
 
         String redisKey = "chat:recent:" + convId;

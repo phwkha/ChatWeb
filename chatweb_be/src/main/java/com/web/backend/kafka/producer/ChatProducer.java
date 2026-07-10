@@ -33,6 +33,12 @@ public class ChatProducer {
                 event.getResponse(),
                 event.getSenderUsername(),
                 event.getRecipientUsername());
-        kafkaTemplate.send(Objects.requireNonNull(TOPIC_NEW_MESSAGE), payload);
+        kafkaTemplate.send(Objects.requireNonNull(TOPIC_NEW_MESSAGE), payload).whenComplete((result, ex) -> {
+            if (ex != null) {
+                log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", TOPIC_NEW_MESSAGE, ex);
+            } else {
+                log.debug("Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
+            }
+        });
     }
 }

@@ -25,14 +25,26 @@ public class EmailProducer {
     public void sendOtpEmailTask(String to, String name, String otp) {
         log.info("Đang đẩy task gửi mail OTP lên Kafka cho email: {}", to);
         EmailPayload event = EmailPayload.createOtpEvent(to, name, otp);
-        kafkaTemplate.send(Objects.requireNonNull(EMAIL_TOPIC), event);
+        kafkaTemplate.send(Objects.requireNonNull(EMAIL_TOPIC), event).whenComplete((result, ex) -> {
+            if (ex != null) {
+                log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", EMAIL_TOPIC, ex);
+            } else {
+                log.debug("Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
+            }
+        });
         log.info("Đã đẩy task gửi mail OTP lên Kafka Topic '{}' cho email: {}", EMAIL_TOPIC, to);
     }
 
     public void sendTextEmailTask(String to, String subject, String content) {
         log.info("Đang đẩy task gửi mail TEXT lên Kafka cho email: {}", to);
         EmailPayload event = EmailPayload.createTextEvent(to, subject, content);
-        kafkaTemplate.send(Objects.requireNonNull(EMAIL_TOPIC), event);
+        kafkaTemplate.send(Objects.requireNonNull(EMAIL_TOPIC), event).whenComplete((result, ex) -> {
+            if (ex != null) {
+                log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", EMAIL_TOPIC, ex);
+            } else {
+                log.debug("Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
+            }
+        });
         log.info("Đã đẩy task gửi mail TEXT lên Kafka Topic '{}' cho email: {}", EMAIL_TOPIC, to);
     }
 }
