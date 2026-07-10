@@ -76,6 +76,7 @@ public class MessageServiceImpl implements MessageService {
 
         String redisKey = "chat:recent:" + convId;
         redisTemplate.opsForList().rightPush(redisKey, chatMessage);
+        redisTemplate.opsForList().trim(redisKey, -50, -1);
         redisTemplate.expire(redisKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
 
         String key = "unread_counts:" + chatMessage.getRecipient();
