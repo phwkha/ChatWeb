@@ -3,6 +3,8 @@ package com.web.backend.kafka.consumer;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.repository.MessageRepository;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.annotation.RetryableTopic;
+import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ public class DatabaseWriteBehindConsumer {
 
     private final MessageRepository messageRepository;
 
+    @RetryableTopic(attempts = "3", backoff = @Backoff(delay = 1000, multiplier = 2.0), dltTopicSuffix = "-dlt")
     @KafkaListener(topics = "${spring.kafka.topic.chat.messages-save.topic}", groupId = "${spring.kafka.topic.chat.messages-save.group-id}", containerFactory = "batchFactory")
     public void handleDbPersistence(List<ChatMessage> messages) {
         log.info("Kafka Consumer: Đang ghi đợt {} tin nhắn xuống Database...", messages.size());
