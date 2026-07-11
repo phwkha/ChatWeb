@@ -20,7 +20,4 @@ public interface MessageService {
     UnreadCountsResponse getUnreadMessageCounts(String recipientUsername);
 
     void markMessagesAsRead(String recipientUsername, String senderUsername);
-
-    boolean hasMessages(String username);
-
 }

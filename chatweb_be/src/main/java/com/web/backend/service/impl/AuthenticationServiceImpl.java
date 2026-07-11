@@ -34,6 +34,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -129,9 +131,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
             tokenVersion = userPrincipal.getTokenVersion();
             SecurityContextHolder.getContext().setAuthentication(authentication);
-        } catch (org.springframework.security.authentication.LockedException e) {
+        } catch (LockedException e) {
             throw new AccessForbiddenException("Tài khoản của bạn đã bị khóa!");
-        } catch (org.springframework.security.core.AuthenticationException e) {
+        } catch (AuthenticationException e) {
             throw new AuthenticationFailedException("Tên đăng nhập hoặc mật khẩu không chính xác");
         }
 

@@ -12,10 +12,10 @@ import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.AddressEntity;
 import com.web.backend.model.RoleEntity;
 import com.web.backend.model.UserEntity;
+import com.web.backend.repository.MessageRepository;
 import com.web.backend.repository.RoleRepository;
 import com.web.backend.repository.UserRepository;
 import com.web.backend.service.AdminService;
-import com.web.backend.service.MessageService;
 import com.web.backend.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +39,7 @@ public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
 
-    private final MessageService messageService;
+    private final MessageRepository messageRepository;
 
     private final PasswordEncoder passwordEncoder;
 
@@ -226,7 +226,7 @@ public class AdminServiceImpl implements AdminService {
     public void adminDeleteUser(String targetUsername, String requesterUsername) {
         UserEntity userEntity = userRepository.findByUsername(targetUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + targetUsername));
-        boolean hasChatHistory = messageService.hasMessages(targetUsername);
+        boolean hasChatHistory = messageRepository.existsBySenderOrRecipient(targetUsername);
 
         if (hasChatHistory) {
             userEntity.setUserStatus(UserStatus.INACTIVE);

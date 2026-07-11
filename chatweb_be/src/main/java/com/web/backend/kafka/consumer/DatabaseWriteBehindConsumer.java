@@ -3,8 +3,6 @@ package com.web.backend.kafka.consumer;
 import java.util.List;
 
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.RetryableTopic;
-import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 
 import com.web.backend.common.MessageType;
@@ -21,8 +19,7 @@ public class DatabaseWriteBehindConsumer {
 
     private final MessageRepository messageRepository;
 
-    @RetryableTopic(attempts = "3", backoff = @Backoff(delay = 1000, multiplier = 2.0), dltTopicSuffix = "-dlt")
-    @KafkaListener(topics = "${spring.kafka.topic.chat.messages}", groupId = "${spring.kafka.topic.chat.save.chat-save}", containerFactory = "batchFactory")
+    @KafkaListener(topics = "${spring.kafka.topic.chat.messages}", groupId = "${spring.kafka.topic.chat.save}", containerFactory = "batchFactory")
     public void handleDbPersistence(List<ChatMessage> messages) {
         List<ChatMessage> messagesToSave = messages.stream().filter(msg -> msg.getMessageType() == MessageType.CHAT)
                 .toList();
@@ -30,11 +27,27 @@ public class DatabaseWriteBehindConsumer {
             return;
         }
         log.info("Kafka Consumer: Đang ghi đợt {} tin nhắn xuống Database...", messages.size());
-        try {
-            messageRepository.saveAll(messagesToSave);
-            log.info("Đã lưu thành công {} tin nhắn.", messages.size());
-        } catch (Exception e) {
-            log.error("Lỗi khi ghi dữ liệu ngầm xuống DB: {}", e.getMessage());
+        int maxAttempts = 3;
+        long backoffDelay = 1000;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                messageRepository.saveAll(messagesToSave);
+                log.info("Đã lưu thành công {} tin nhắn.", messages.size());
+                return;
+            } catch (Exception e) {
+                log.warn("Lỗi khi ghi DB (Lần thử {}/{}): {}", attempt, maxAttempts, e.getMessage());
+                if (attempt == maxAttempts) {
+                    log.error("Lưu Database THẤT BẠI sau {} lần thử. Bỏ qua lô tin nhắn này.", maxAttempts);
+                } else {
+                    try {
+                        Thread.sleep(backoffDelay);
+                        backoffDelay *= 2;
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
         }
     }
 }

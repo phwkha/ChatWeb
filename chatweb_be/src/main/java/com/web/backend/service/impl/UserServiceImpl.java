@@ -13,11 +13,11 @@ import com.web.backend.exception.custom.ResourceConflictException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.*;
+import com.web.backend.repository.MessageRepository;
 import com.web.backend.repository.UserRepository;
 import com.web.backend.service.StorageService;
 import com.web.backend.service.util.CuckooFilterService;
 import com.web.backend.service.util.EmailService;
-import com.web.backend.service.MessageService;
 import com.web.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,13 +42,13 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
 
-    private final PasswordEncoder passwordEncoder;
-
-    private final MessageService messageService;
+    private final MessageRepository messageRepository;
 
     private final EmailService emailService;
 
     private final StorageService storageService;
+
+    private final PasswordEncoder passwordEncoder;
 
     private final UserMapper userMapper;
 
@@ -256,7 +256,7 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
-        boolean hasChatHistory = messageService.hasMessages(username);
+        boolean hasChatHistory = messageRepository.existsBySenderOrRecipient(username);
 
         if (hasChatHistory) {
             userEntity.setUserStatus(UserStatus.INACTIVE);

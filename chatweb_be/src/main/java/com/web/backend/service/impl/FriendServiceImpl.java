@@ -51,7 +51,7 @@ public class FriendServiceImpl implements FriendService {
 
         private final UserMapper userMapper;
 
-        @Value("${spring.kafka.topic.friend.friend-notifications}")
+        @Value("${spring.kafka.topic.friend}")
         private String FRIEND_TOPIC;
 
         @Override
@@ -230,7 +230,8 @@ public class FriendServiceImpl implements FriendService {
                         FriendNotificationMessage payload = new FriendNotificationMessage(
                                         currentUsername, targetUsername, "/queue/notifications", null,
                                         SocketResponse.notifications("Đã hủy kết bạn", data));
-                        eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
+                        eventPublisher.publishEvent(
+                                        new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
 
                 } else {
                         if (isRequester) {
@@ -242,7 +243,8 @@ public class FriendServiceImpl implements FriendService {
                                 FriendNotificationMessage payload = new FriendNotificationMessage(
                                                 currentUsername, targetUsername, "/queue/notifications", null,
                                                 SocketResponse.notifications("Đã rút lại lời mời kết bạn", data));
-                                eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
+                                eventPublisher.publishEvent(
+                                                new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
 
                         } else {
                                 NotificationMessageResponse data = NotificationMessageResponse.builder()
@@ -253,7 +255,8 @@ public class FriendServiceImpl implements FriendService {
                                 FriendNotificationMessage payload = new FriendNotificationMessage(
                                                 currentUsername, targetUsername, "/queue/notifications", null,
                                                 SocketResponse.notifications("Đã từ chối lời mời kết bạn", data));
-                                eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
+                                eventPublisher.publishEvent(
+                                                new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
                         }
                 }
         }

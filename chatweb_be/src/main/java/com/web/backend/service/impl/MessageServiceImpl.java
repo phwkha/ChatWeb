@@ -38,10 +38,10 @@ import com.web.backend.model.ChatMessage;
 import com.web.backend.model.SystemMessage;
 import com.web.backend.repository.MessageRepository;
 import com.web.backend.repository.SystemMessageRepository;
+import com.web.backend.repository.UserRepository;
 import com.web.backend.repository.projection.UnreadCountProjection;
 import com.web.backend.service.FriendService;
 import com.web.backend.service.MessageService;
-import com.web.backend.service.UserService;
 import com.web.backend.exception.WebSocketErrorHandler;
 
 import lombok.RequiredArgsConstructor;
@@ -54,9 +54,9 @@ public class MessageServiceImpl implements MessageService {
 
     private final MessageRepository messageRepository;
 
-    private final SystemMessageRepository systemMessageRepository;
+    private final UserRepository userRepository;
 
-    private final UserService userService;
+    private final SystemMessageRepository systemMessageRepository;
 
     private final FriendService friendService;
 
@@ -83,7 +83,7 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public void sendPrivateMessage(String sender, ChatMessageRequest request) {
 
-        if (!userService.userExists(request.getRecipient())) {
+        if (!userRepository.existsByUsername(request.getRecipient())) {
             throw new ResourceNotFoundException("Người nhận không tồn tại");
         }
 
@@ -287,11 +287,6 @@ public class MessageServiceImpl implements MessageService {
         kafkaTemplate.send(Objects.requireNonNull(chatTopic), statusMsg);
 
         log.info("User marking messages");
-    }
-
-    @Override
-    public boolean hasMessages(String username) {
-        return messageRepository.existsBySenderOrRecipient(username);
     }
 
     private CursorResponse<ChatMessageResponse> buildCursorResponse(List<ChatMessage> messages, int size) {
