@@ -66,7 +66,7 @@ public class UserServiceImpl implements UserService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
 
-        if (user.getUserStatus() == UserStatus.INACTIVE) {
+        if (user.getUserStatus() != UserStatus.ACTIVE) {
             throw new ResourceNotFoundException("Người dùng không tồn tại: " + username);
         }
 
@@ -79,7 +79,7 @@ public class UserServiceImpl implements UserService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
 
-        if (user.getUserStatus() == UserStatus.INACTIVE) {
+        if (user.getUserStatus() != UserStatus.ACTIVE) {
             throw new ResourceNotFoundException("Người dùng không tồn tại: " + username);
         }
 
@@ -263,6 +263,9 @@ public class UserServiceImpl implements UserService {
             userEntity.setOnline(false);
             userEntity.setEmail(null);
             userEntity.setPhone(null);
+            userEntity.setFirstName("Tài khoản");
+            userEntity.setLastName("đã xóa");
+            userEntity.setAvatar(null);
             userRepository.save(userEntity);
             log.info("Soft deleted user: {} (user has message history)", username);
         } else {

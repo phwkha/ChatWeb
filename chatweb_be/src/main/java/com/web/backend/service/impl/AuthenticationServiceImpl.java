@@ -207,6 +207,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Email không tồn tại trong hệ thống"));
 
+        if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
+            throw new AccessForbiddenException("Tài khoản đã bị khóa hoặc không tồn tại.");
+        }
+
         generateAndSenResponseToken(user, OtpType.PASSWORD_RESET, null, user.getEmail());
 
         log.info("Password reset initiated for email: {}", email);
@@ -319,6 +323,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
 
+        if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
+            throw new AccessForbiddenException("Tài khoản đã bị khóa hoặc không tồn tại.");
+        }
+
         validateRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, otp);
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -331,6 +339,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void resendForgotPasswordOtp(String email) {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng email"));
+
+        if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
+            throw new AccessForbiddenException("Tài khoản đã bị khóa hoặc không tồn tại.");
+        }
+
         resendRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, email);
     }
 

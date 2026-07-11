@@ -233,6 +233,9 @@ public class AdminServiceImpl implements AdminService {
             userEntity.setOnline(false);
             userEntity.setEmail(null);
             userEntity.setPhone(null);
+            userEntity.setFirstName("Tài khoản");
+            userEntity.setLastName("đã xóa");
+            userEntity.setAvatar(null);
             userRepository.save(userEntity);
             log.info("Soft deleted user: {} (user has message history) by {}", targetUsername, requesterUsername);
         } else {

@@ -31,6 +31,7 @@ import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
+import com.web.backend.common.UserStatus;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.mapper.MessageMapper;
@@ -38,6 +39,7 @@ import com.web.backend.model.ChatMessage;
 import com.web.backend.model.SystemMessage;
 import com.web.backend.repository.MessageRepository;
 import com.web.backend.repository.SystemMessageRepository;
+import com.web.backend.model.UserEntity;
 import com.web.backend.repository.UserRepository;
 import com.web.backend.repository.projection.UnreadCountProjection;
 import com.web.backend.service.FriendService;
@@ -83,8 +85,14 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public void sendPrivateMessage(String sender, ChatMessageRequest request) {
 
-        if (!userRepository.existsByUsername(request.getRecipient())) {
-            throw new ResourceNotFoundException("Người nhận không tồn tại");
+        UserEntity recipientEntity = userRepository.findByUsername(request.getRecipient())
+                .orElseThrow(() -> new ResourceNotFoundException("Người nhận không tồn tại"));
+
+        if (recipientEntity.getUserStatus() == UserStatus.INACTIVE) {
+            throw new AccessForbiddenException("Không thể nhắn tin, tài khoản này đã bị xóa.");
+        }
+        if (recipientEntity.getUserStatus() == UserStatus.LOCKED) {
+            throw new AccessForbiddenException("Không thể nhắn tin, tài khoản này đang bị tạm khóa.");
         }
 
         if (!friendService.isFriend(Objects.requireNonNull(sender),

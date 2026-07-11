@@ -1,6 +1,7 @@
 package com.web.backend.service.impl;
 
 import com.web.backend.common.FriendshipStatus;
+import com.web.backend.common.UserStatus;
 import com.web.backend.common.NotificationsStatus;
 import com.web.backend.controller.response.NotificationMessageResponse;
 import com.web.backend.controller.response.PageResponse;
@@ -63,6 +64,13 @@ public class FriendServiceImpl implements FriendService {
                 UserEntity requester = getUser(requesterUsername);
                 UserEntity addressee = getUser(addresseeUsername);
 
+                if (addressee.getUserStatus() == UserStatus.INACTIVE) {
+                    throw new AccessForbiddenException("Không thể gửi lời mời, tài khoản này đã bị xóa.");
+                }
+                if (addressee.getUserStatus() == UserStatus.LOCKED) {
+                    throw new AccessForbiddenException("Không thể gửi lời mời, tài khoản này đang bị tạm khóa.");
+                }
+
                 Optional<FriendshipEntity> existingRelation = friendshipRepository.findByUsers(requester, addressee);
 
                 if (existingRelation.isPresent()) {
@@ -109,6 +117,13 @@ public class FriendServiceImpl implements FriendService {
         public void acceptFriendRequest(String acceptorUsername, String requesterUsername) {
                 UserEntity acceptor = getUser(acceptorUsername);
                 UserEntity requester = getUser(requesterUsername);
+
+                if (requester.getUserStatus() == UserStatus.INACTIVE) {
+                    throw new AccessForbiddenException("Không thể chấp nhận, tài khoản này đã bị xóa.");
+                }
+                if (requester.getUserStatus() == UserStatus.LOCKED) {
+                    throw new AccessForbiddenException("Không thể chấp nhận, tài khoản này đang bị tạm khóa.");
+                }
 
                 FriendshipEntity friendship = friendshipRepository.findByUsers(acceptor, requester)
                                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lời mời"));
