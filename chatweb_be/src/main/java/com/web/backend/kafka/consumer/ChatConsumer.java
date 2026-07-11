@@ -32,7 +32,7 @@ public class ChatConsumer {
         }
         String recipient = message.getRecipient();
         String sender = message.getSender();
-        log.info("Kafka nhận tin nhắn: {} -> {}", sender, recipient);
+        log.info("Kafka received message: {} -> {}", sender, recipient);
         try {
             ChatMessageResponse messageResponse = messageMapper.toResponse(message);
             messageResponse.setLocalId(message.getLocalId());
@@ -42,7 +42,7 @@ public class ChatConsumer {
                         recipient,
                         "/queue/messages",
                         response);
-                log.debug("Đã gửi tin nhắn qua WS cho người nhận: {}", recipient);
+                log.debug("Sent message via WS to recipient: {}", recipient);
             }
 
             if (sender != null && simpUserRegistry.getUser(sender) != null) {
@@ -50,10 +50,10 @@ public class ChatConsumer {
                         sender,
                         "/queue/messages",
                         response);
-                log.debug("Đã đồng bộ tin nhắn qua WS cho người gửi: {}", sender);
+                log.debug("Synced message via WS to sender: {}", sender);
             }
 
-            log.info("Đã gửi tin nhắn qua WS cho người nhận: {}", message.getRecipient());
+            log.info("Sent message via WS to recipient: {}", message.getRecipient());
         } catch (Exception e) {
             log.error("Failed to send WebSocket message: {}", e.getMessage());
         }
@@ -64,11 +64,11 @@ public class ChatConsumer {
         if (systemMessage == null)
             return;
 
-        log.info("Kafka nhận tin nhắn HỆ THỐNG từ: {}", systemMessage.getSender());
+        log.info("Kafka received SYSTEM message from: {}", systemMessage.getSender());
 
         try {
             simpMessagingTemplate.convertAndSend("/topic/public", systemMessage);
-            log.info("Kafka đã gữi tin nhắn HỆ THỐNG từ: {}", systemMessage.getSender());
+            log.info("Kafka sent SYSTEM message from: {}", systemMessage.getSender());
         } catch (Exception e) {
             log.error("Failed to send System WebSocket message: {}", e.getMessage());
         }

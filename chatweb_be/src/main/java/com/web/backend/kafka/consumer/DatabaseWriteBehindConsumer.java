@@ -26,19 +26,19 @@ public class DatabaseWriteBehindConsumer {
         if (messagesToSave.isEmpty()) {
             return;
         }
-        log.info("Kafka Consumer: Đang ghi đợt {} tin nhắn xuống Database...", messages.size());
+        log.info("Kafka Consumer: Writing batch of {} messages to Database...", messages.size());
         int maxAttempts = 3;
         long backoffDelay = 1000;
 
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 messageRepository.saveAll(messagesToSave);
-                log.info("Đã lưu thành công {} tin nhắn.", messages.size());
+                log.info("Successfully saved {} messages.", messages.size());
                 return;
             } catch (Exception e) {
-                log.warn("Lỗi khi ghi DB (Lần thử {}/{}): {}", attempt, maxAttempts, e.getMessage());
+                log.warn("Error writing to DB (Attempt {}/{}): {}", attempt, maxAttempts, e.getMessage());
                 if (attempt == maxAttempts) {
-                    log.error("Lưu Database THẤT BẠI sau {} lần thử. Bỏ qua lô tin nhắn này.", maxAttempts);
+                    log.error("Database save FAILED after {} attempts. Skipping this message batch.", maxAttempts);
                 } else {
                     try {
                         Thread.sleep(backoffDelay);

@@ -24,7 +24,7 @@ public class EmailConsumer {
             containerFactory = "emailKafkaListenerContainerFactory"
     )
     public void consumeEmailTask(EmailPayload event, Acknowledgment ack) {
-        log.info("Kafka Consumer nhận được task gửi mail loại {} cho: {}", event.getType(), event.getTo());
+        log.info("Kafka Consumer received email task of type {} for: {}", event.getType(), event.getTo());
 
         if ("OTP".equals(event.getType())) {
             emailService.sendOtpEmail(event.getTo(), event.getName(), event.getOtp());

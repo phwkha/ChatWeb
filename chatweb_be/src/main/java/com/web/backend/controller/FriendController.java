@@ -33,7 +33,7 @@ public class FriendController {
             @RequestParam(defaultValue = "id") String sortBy
     ) {
         UserEntity user = (UserEntity) auth.getPrincipal();
-        log.info("Lấy danh sách lời mời kết bạn cho: {}", user.getUsername());
+        log.info("Get friend invites for: {}", user.getUsername());
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
@@ -66,7 +66,7 @@ public class FriendController {
             @RequestParam(defaultValue = "createAt") String sortBy
     ) {
         UserEntity user = (UserEntity) auth.getPrincipal();
-        log.info("Lấy danh sách bạn bè cho: {}", user.getUsername());
+        log.info("Get friend list for: {}", user.getUsername());
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
@@ -99,7 +99,7 @@ public class FriendController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Đã chặn người dùng " + username,
+                Translator.tolocale("success.friend.blocked_with", username),
                 null));
     }
 }

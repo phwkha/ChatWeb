@@ -25,9 +25,9 @@ public class KafkaDispatcherListener {
         }
         try {
             kafkaTemplate.send(Objects.requireNonNull(event.topic(), "Topic must not be null"), event.payload());
-            log.info("Đã dispatch Kafka message lên topic: {}", event.topic());
+            log.info("Dispatched Kafka message to topic: {}", event.topic());
         } catch (Exception e) {
-            log.error("Lỗi khi dispatch Kafka message: {}", e.getMessage(), e);
+            log.error("Error dispatching Kafka message: {}", e.getMessage(), e);
         }
     }
 }

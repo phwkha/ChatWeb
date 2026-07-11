@@ -146,7 +146,7 @@ public class AdminController {
         List<AddressResponse> addresses = adminService.adminGetAllAddresses(username);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Lấy tất cả địa chỉ của người dùng " + username + " thành công",
+                Translator.tolocale("success.admin.get_all_address_with", username),
                 addresses));
     }
 
@@ -182,7 +182,7 @@ public class AdminController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Admin đã cập nhật địa chỉ thành công cho người dùng " + username,
+                Translator.tolocale("success.admin.updated_address_with", username),
                 result));
     }
 
@@ -201,7 +201,7 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
                 .body(ApiResponse.success(
                         HttpStatus.NO_CONTENT.value(),
-                        "Admin đã xóa địa chỉ thành công cho người dùng " + username,
+                        Translator.tolocale("success.admin.deleted_address_with", username),
                         null));
     }
 }

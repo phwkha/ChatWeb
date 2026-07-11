@@ -119,18 +119,18 @@ public class MessageServiceImpl implements MessageService {
 
         kafkaTemplate.send(Objects.requireNonNull(chatTopic), chatMessage).whenComplete((result, ex) -> {
             if (ex != null) {
-                log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", chatTopic, ex);
+                log.error("Critical Error: Cannot push message to Kafka. Topic: {}", chatTopic, ex);
                 webSocketErrorHandler.handleChatError(sender, request,
                         Translator.tolocale("error.msg.system_overload"));
             } else {
-                log.debug("Message: Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
+                log.debug("Message: Kafka push successful offset: {}", result.getRecordMetadata().offset());
             }
         });
         if (chatMessage.getMessageType() != MessageType.CHAT) {
             return;
         }
 
-        log.info("Đã đẩy tin nhắn từ {} lên hàng chờ lưu DB", chatMessage.getSender());
+        log.info("Pushed message from {} to DB save queue", chatMessage.getSender());
 
         try {
             String redisKey = "chat:recent:" + convId;
@@ -141,7 +141,7 @@ public class MessageServiceImpl implements MessageService {
             String key = "unread_counts:" + chatMessage.getRecipient();
             redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMessage.getSender()), 1);
         } catch (Exception e) {
-            log.warn("Redis đang gặp sự cố, bỏ qua lưu cache tạm thời: {}", e.getMessage());
+            log.warn("Redis is encountering issues, skipping temporary cache save: {}", e.getMessage());
         }
         log.info("save message success");
     }
@@ -158,11 +158,11 @@ public class MessageServiceImpl implements MessageService {
         MessageSystemResponse messageSystemResponse = messageMapper.systemMessageToResponse(systemMessage);
         kafkaTemplate.send(Objects.requireNonNull(systemTopic), messageSystemResponse).whenComplete((result, ex) -> {
             if (ex != null) {
-                log.error("Lỗi nghiêm trọng: Không thể đẩy system message lên Kafka. Topic: {}", chatTopic, ex);
+                log.error("Critical Error: Cannot push system message to Kafka. Topic: {}", chatTopic, ex);
                 webSocketErrorHandler.handleChatError(currentUsername, request,
                         Translator.tolocale("error.msg.system_overload"));
             } else {
-                log.debug("System message: Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
+                log.debug("System message: Kafka push successful offset: {}", result.getRecordMetadata().offset());
             }
         });
         log.info("{} Chat system message success", systemMessage.getSender());

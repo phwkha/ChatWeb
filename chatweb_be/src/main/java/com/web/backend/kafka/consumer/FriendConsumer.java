@@ -36,17 +36,17 @@ public class FriendConsumer {
                         recipient,
                         Objects.requireNonNull(payload.getDestination(), "Destination must not be null"),
                         Objects.requireNonNull(payload.getRecipientResponse(), "Response must not be null"));
-                log.info("Đã gửi notification kết bạn qua WS cho người nhận: {}", recipient);
+                log.info("Sent friend notification via WS to recipient: {}", recipient);
             }
             if (sender != null && payload.getSenderResponse() != null && simpUserRegistry.getUser(sender) != null) {
                 simpMessagingTemplate.convertAndSendToUser(
                         sender,
                         Objects.requireNonNull(payload.getDestination(), "Destination must not be null"),
                         Objects.requireNonNull(payload.getSenderResponse(), "Response must not be null"));
-                log.info("Đã gửi notification kết bạn qua WS cho người gửi: {}", sender);
+                log.info("Sent friend notification via WS to sender: {}", sender);
             }
         } catch (Exception e) {
-            log.error("Lỗi khi gửi WS notification: {}", e.getMessage());
+            log.error("Error sending WS notification: {}", e.getMessage());
         }
     }
 }

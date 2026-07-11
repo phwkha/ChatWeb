@@ -115,7 +115,7 @@ public class DataSeeder implements CommandLineRunner {
             if (Boolean.TRUE.equals(redisTemplate.hasKey(ONLINE_USERS_COUNT_KEY))) {
                 redisTemplate.delete(ONLINE_USERS_COUNT_KEY);
             }
-            log.info(">>> CLEANUP: Đã reset trạng thái Online Users trong Redis để tránh dữ liệu ảo.");
+            log.info(">>> CLEANUP: Reset Online Users state in Redis to avoid phantom data.");
         };
     }
 }

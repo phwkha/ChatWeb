@@ -114,7 +114,7 @@ public class UserServiceImpl implements UserService {
             try {
                 storageService.delete(oldAvatar, "avatars");
             } catch (Exception e) {
-                log.warn("Không xóa được ảnh cũ, nhưng vẫn tiếp tục update");
+                log.warn("Failed to delete old image, but continuing update");
             }
         }
         userEntity.setAvatar(newUrl);

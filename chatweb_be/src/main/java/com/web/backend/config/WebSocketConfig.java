@@ -1,6 +1,8 @@
 package com.web.backend.config;
 
 import java.util.Map;
+import java.util.Objects;
+
 import com.web.backend.jwt.JwtHandshakeInterceptor;
 import com.web.backend.common.TokenType;
 import com.web.backend.model.UserEntity;
@@ -63,7 +65,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
 
                     Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
-                    String token = sessionAttributes != null ? (String) sessionAttributes.get("jwt_token_cookie") : null;
+                    String token = sessionAttributes != null ? (String) sessionAttributes.get("jwt_token_cookie")
+                            : null;
 
                     if (token == null) {
                         token = extractTokenFromHeader(accessor);
@@ -73,8 +76,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         try {
                             String key = "blacklist:" + token;
                             if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
-                                log.info("Token hết hạn");
-                                throw new MessagingException(Translator.tolocale("error.ws.blacklisted"));
+                                log.info("Token expired");
+                                throw new MessagingException(
+                                        Objects.requireNonNull(Translator.tolocale("error.ws.blacklisted")));
                             }
 
                             String username = jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
@@ -92,7 +96,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
                                     if (tokenVersionInJwt == null || !tokenVersionInJwt.equals(currentVersion)) {
                                         log.warn("Token version mismatch for user in WebSocket: {}", username);
-                                        throw new MessagingException(Translator.tolocale("error.ws.invalid_token_version"));
+                                        throw new MessagingException(Objects
+                                                .requireNonNull(Translator.tolocale("error.ws.invalid_token_version")));
                                     }
                                 }
 
@@ -103,10 +108,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             }
                         } catch (Exception e) {
                             log.error("WebSocket Auth Failed: {}", e.getMessage());
-                            throw new MessagingException(Translator.tolocale("error.ws.auth_failed", e.getMessage()));
+                            throw new MessagingException(Objects
+                                    .requireNonNull(Translator.tolocale("error.ws.auth_failed", e.getMessage())));
                         }
                     } else {
-                        throw new MessagingException(Translator.tolocale("error.ws.missing_token"));
+                        throw new MessagingException(
+                                Objects.requireNonNull(Translator.tolocale("error.ws.missing_token")));
                     }
                 }
                 return message;
