@@ -6,6 +6,9 @@ spring:
     import: "optional:file:.env[.properties]"
   application:
     name: backend
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
   profiles:
     active: @spring.profiles.active@
 #    active: prod
