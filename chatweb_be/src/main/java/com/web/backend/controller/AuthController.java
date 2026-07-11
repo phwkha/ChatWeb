@@ -19,6 +19,7 @@ import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 
 @Tag(name = "Auth Controller")
@@ -40,7 +41,7 @@ public class AuthController {
 
         if (!rateLimitingService.allowRequest(ip, "login", 5, 60)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(ApiResponse.error(429, "Bạn đã thử quá nhiều lần. Vui lòng đợi 1 phút."));
+                    .body(ApiResponse.error(429, Translator.tolocale("error.auth.too_many_attempts")));
         }
 
         log.info("Login with user: {}", loginRequest.getUsername());
@@ -66,7 +67,7 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                .body(ApiResponse.success(HttpStatus.OK.value(), "Đăng nhập thành công",null));
+                .body(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.login"),null));
     }
 
     @Operation(summary = "Register user", description = "API endpoint for register user")
@@ -78,7 +79,7 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(HttpStatus.CREATED.value(),
-                        "Đăng ký thành công. Vui lòng kiểm tra email để nhập mã OTP.", newUser));
+                        Translator.tolocale("success.auth.registered"), newUser));
     }
 
     @Operation(summary = "Verify otp", description = "API endpoint for verify otp")
@@ -86,7 +87,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
         log.info("Verify Otp Request: {}", request);
         authenticationService.verifyUser(request);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Kích hoạt tài khoản thành công! Bạn có thể đăng nhập ngay bây giờ.", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.activated"), null));
     }
 
     @Operation(summary = "Resend otp", description = "API endpoint for resend otp")
@@ -94,7 +95,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> resendOtp(@RequestParam String email) {
         log.info("Resend Otp Request: {}", email);
         authenticationService.resendOtp(email);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đã gửi lại mã OTP.", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.otp_resent"), null));
     }
 
     @Operation(summary = "Refresh token", description = "API endpoint for refresh token")
@@ -115,7 +116,7 @@ public class AuthController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, newAccessCookie.toString())
-                .body(ApiResponse.success(HttpStatus.OK.value(), "Làm mới Token thành công", newAccessToken));
+                .body(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.token_refreshed"), newAccessToken));
     }
 
     @Operation(summary = "Forgot password", description = "API endpoint for forgot password")
@@ -123,7 +124,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
         log.info("Password reset initiated for email");
         authenticationService.initiateForgotPassword(request.getEmail());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Mã xác nhận đã được gửi đến email của bạn.", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.code_sent"), null));
     }
 
     @Operation(summary = "Reset password", description = "API endpoint for reset password")
@@ -132,14 +133,14 @@ public class AuthController {
         log.info("Password reset successfully for user");
         authenticationService.verifyPasswordReset(request.getEmail(), request.getOtp(), request.getNewPassword());
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Đặt lại mật khẩu thành công. Vui lòng đăng nhập.", null));
+                Translator.tolocale("success.auth.pwd_reset"), null));
     }
 
     @Operation(summary = "Resend forgot password", description = "API endpoint for resend forgot password")
     @PostMapping("/resend-forgot-password")
     public ResponseEntity<ApiResponse<Void>> resendForgotPassword(@RequestParam String email) {
         authenticationService.resendForgotPasswordOtp(email);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đã gửi lại mã xác nhận vào email.", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.code_resent"), null));
     }
 
     @Operation(summary = "Logout", description = "API endpoint for logout")
@@ -159,6 +160,6 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
                 .header(HttpHeaders.SET_COOKIE, deleteRefresh.toString())
-                .body(ApiResponse.success(200, "Đăng xuất thành công", null));
+                .body(ApiResponse.success(200, Translator.tolocale("success.auth.logout"), null));
     }
 }

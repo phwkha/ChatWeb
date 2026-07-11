@@ -7,19 +7,19 @@ import lombok.Data;
 public class AddressRequest {
     private String houseNumber;
 
-    @NotBlank(message = "Đường không được để trống")
+    @NotBlank(message = "{valid.street_empty}")
     private String street;
 
-    @NotBlank(message = "Phường/Xã không được để trống")
+    @NotBlank(message = "{valid.ward_empty}")
     private String ward;
 
-    @NotBlank(message = "Quận/Huyện không được để trống")
+    @NotBlank(message = "{valid.district_empty}")
     private String district;
 
-    @NotBlank(message = "Tỉnh/Thành phố không được để trống")
+    @NotBlank(message = "{valid.city_empty}")
     private String city;
 
-    @NotBlank(message = "Quốc gia không được để trống")
+    @NotBlank(message = "{valid.country_empty}")
     private String country;
 
     private String postalCode;

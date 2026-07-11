@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @RequiredArgsConstructor
@@ -55,7 +56,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public RoleResponse createRole(RoleRequest request) {
         if (roleRepository.findByName(request.getName()).isPresent()) {
-            throw new ResourceConflictException("Role " + request.getName() + " đã tồn tại");
+            throw new ResourceConflictException(Translator.tolocale("error.role.exists", request.getName()));
         }
 
         RoleEntity role = new RoleEntity();
@@ -78,7 +79,7 @@ public class RoleServiceImpl implements RoleService {
     @CacheEvict(value = "user_details", allEntries = true)
     public RoleResponse updateRole(@NonNull Long roleId, RoleRequest request) {
         RoleEntity role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found")));
 
         role.setName(request.getName());
         role.setDescription(request.getDescription());
@@ -99,10 +100,10 @@ public class RoleServiceImpl implements RoleService {
     @CacheEvict(value = "user_details", allEntries = true)
     public void deleteRole(@NonNull Long roleId) {
         RoleEntity role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found")));
 
         if (userRepository.existsByRole(role)) {
-            throw new ResourceConflictException("Không thể xóa Role đang được sử dụng");
+            throw new ResourceConflictException(Translator.tolocale("error.role.in_use"));
         }
         roleRepository.delete(Objects.requireNonNull(role));
         log.info("Delete role and cleared all user cache");

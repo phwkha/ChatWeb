@@ -34,6 +34,7 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @Slf4j(topic = "USER-SERVICE")
@@ -64,10 +65,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse getCurrentUser(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         if (user.getUserStatus() != UserStatus.ACTIVE) {
-            throw new ResourceNotFoundException("Người dùng không tồn tại: " + username);
+            throw new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username));
         }
 
         log.info("Get current user");
@@ -77,10 +78,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDetailResponse getProfileUser(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         if (user.getUserStatus() != UserStatus.ACTIVE) {
-            throw new ResourceNotFoundException("Người dùng không tồn tại: " + username);
+            throw new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username));
         }
 
         log.info("Get profile user");
@@ -92,7 +93,7 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse updateUser(String username, UpdateUserRequest request) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         userMapper.updateUserFromRequest(request, userEntity);
 
@@ -105,7 +106,7 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public String updateAvatar(String username, MultipartFile avatarFile) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
         String oldAvatar = userEntity.getAvatar();
         String newUrl = storageService.uploadAvatar(avatarFile);
 
@@ -139,14 +140,14 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void initiateEmailChange(String username, String newEmail, String currentPassword) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new InvalidPasswordException("Mật khẩu không chính xác");
+            throw new InvalidPasswordException(Translator.tolocale("error.user.pw_incorrect"));
         }
 
         if (userRepository.existsByEmail(newEmail)) {
-            throw new ResourceConflictException("Email đã tồn tại");
+            throw new ResourceConflictException(Translator.tolocale("error.user.email_exists"));
         }
 
         generateAndSenResponseToken(user, OtpType.EMAIL_CHANGE, newEmail, newEmail);
@@ -158,10 +159,10 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void initiatePhoneChange(String username, String newPhone, String currentPassword) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new InvalidPasswordException("Mật khẩu không chính xác");
+            throw new InvalidPasswordException(Translator.tolocale("error.user.pw_incorrect"));
         }
 
         generateAndSenResponseToken(user, OtpType.PHONE_CHANGE, newPhone, user.getEmail());
@@ -173,7 +174,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserDetailResponse addAddress(String username, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
         ;
         AddressEntity newAddress = userMapper.toAddressEntity(request);
 
@@ -189,13 +190,13 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse updateAddress(String username, Long addressId, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         AddressEntity addressToUpdate = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
                 .orElseThrow(
-                        () -> new ResourceNotFoundException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của bạn"));
+                        () -> new ResourceNotFoundException(Translator.tolocale("error.user.address_not_owned")));
 
         userMapper.updateAddressFromRequest(request, addressToUpdate);
 
@@ -209,12 +210,12 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse deleteAddress(String username, Long addressId) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         AddressEntity addressToDelete = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Địa chỉ không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.address_not_found")));
 
         user.removeAddress(addressToDelete);
 
@@ -227,7 +228,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public List<AddressResponse> getAllAddresses(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         log.info("Get all address for user");
         return user.getAddresses().stream()
@@ -239,13 +240,13 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public AddressResponse getAddressById(String username, Long addressId) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         AddressEntity address = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
                 .orElseThrow(
-                        () -> new AccessForbiddenException("Địa chỉ không tồn tại hoặc không thuộc sở hữu của bạn"));
+                        () -> new AccessForbiddenException(Translator.tolocale("error.user.address_not_owned")));
         log.info("Get address for user");
         return userMapper.toAddressResponse(address);
     }
@@ -255,7 +256,7 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public void deleteUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
         boolean hasChatHistory = messageRepository.existsBySenderOrRecipient(username);
 
         if (hasChatHistory) {
@@ -263,8 +264,8 @@ public class UserServiceImpl implements UserService {
             userEntity.setOnline(false);
             userEntity.setEmail(null);
             userEntity.setPhone(null);
-            userEntity.setFirstName("Tài khoản");
-            userEntity.setLastName("đã xóa");
+            userEntity.setFirstName(Translator.tolocale("sys.account"));
+            userEntity.setLastName(Translator.tolocale("sys.deleted"));
             userEntity.setAvatar(null);
             userRepository.save(userEntity);
             log.info("Soft deleted user: {} (user has message history)", username);
@@ -279,14 +280,14 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public void changePassword(String username, String currentPassword, String newPassword) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         if (!passwordEncoder.matches(currentPassword, userEntity.getPassword())) {
-            throw new InvalidPasswordException("Mật khẩu hiện tại không chính xác!");
+            throw new InvalidPasswordException(Translator.tolocale("error.user.current_pw_incorrect"));
         }
 
         if (passwordEncoder.matches(newPassword, userEntity.getPassword())) {
-            throw new PasswordMismatchException("Mật khẩu mới không được trùng với mật khẩu cũ!");
+            throw new PasswordMismatchException(Translator.tolocale("error.user.new_pw_same"));
         }
 
         userEntity.setPassword(passwordEncoder.encode(newPassword));
@@ -314,13 +315,13 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void verifyEmailChange(String username, String otp) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
 
         String oldEmail = user.getEmail();
         String newEmail = validateRedisOtp(username, OtpType.EMAIL_CHANGE, otp);
 
         if (newEmail == null || newEmail.isEmpty()) {
-            throw new InvalidDataException("Dữ liệu email mới bị lỗi");
+            throw new InvalidDataException(Translator.tolocale("error.user.invalid_new_email"));
         }
 
         user.setEmail(newEmail);
@@ -335,12 +336,12 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void verifyPhoneChange(String username, String otp) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
 
         String newPhone = validateRedisOtp(username, OtpType.PHONE_CHANGE, otp);
 
         if (newPhone == null || newPhone.isEmpty()) {
-            throw new InvalidDataException("Dữ liệu số điện thoại mới bị lỗi");
+            throw new InvalidDataException(Translator.tolocale("error.user.invalid_new_phone"));
         }
 
         user.setPhone(newPhone);
@@ -352,18 +353,18 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void resendEmailChangeOtp(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
 
         String redisKey = "otp:" + OtpType.EMAIL_CHANGE.name() + ":" + user.getUsername();
         String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
         if (oldValue == null)
-            throw new ResourceNotFoundException("Yêu cầu không tồn tại");
+            throw new ResourceNotFoundException(Translator.tolocale("error.user.req_not_found"));
 
         String[] parts = oldValue.split(":");
         String newEmail = parts.length > 1 ? parts[1] : null;
 
         if (newEmail == null)
-            throw new InvalidDataException("Không tìm thấy email mới trong yêu cầu");
+            throw new InvalidDataException(Translator.tolocale("error.user.missing_new_email"));
 
         resendRedisOtp(username, OtpType.EMAIL_CHANGE, newEmail);
     }
@@ -372,7 +373,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void resendPhoneChangeOtp(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
 
         resendRedisOtp(username, OtpType.PHONE_CHANGE, user.getEmail());
     }
@@ -385,7 +386,7 @@ public class UserServiceImpl implements UserService {
         String value = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (value == null) {
-            throw new InvalidOtpException("Mã OTP đã hết hạn hoặc yêu cầu không tồn tại");
+            throw new InvalidOtpException(Translator.tolocale("error.auth.otp_expired_or_req_missing"));
         }
 
         String[] parts = value.split(":");
@@ -399,10 +400,10 @@ public class UserServiceImpl implements UserService {
             if (attempts != null && attempts >= 5) {
                 redisTemplate.delete(redisKey);
                 redisTemplate.delete(attemptKey);
-                throw new InvalidOtpException("Bạn đã nhập sai quá 5 lần. Mã OTP đã bị hủy.");
+                throw new InvalidOtpException(Translator.tolocale("error.auth.otp_canceled_5_times"));
             }
 
-            throw new InvalidOtpException("Mã OTP không chính xác (Lần thử " + attempts + "/5)");
+            throw new InvalidOtpException(Translator.tolocale("error.auth.invalid_otp_attempts", attempts));
         }
 
         redisTemplate.delete(redisKey);
@@ -416,13 +417,13 @@ public class UserServiceImpl implements UserService {
         String cooldownKey = "cooldown:resend:" + identifier;
 
         if (Boolean.TRUE.equals(redisTemplate.hasKey(cooldownKey))) {
-            throw new ResourceConflictException("Vui lòng đợi 60 giây trước khi gửi lại OTP.");
+            throw new ResourceConflictException(Translator.tolocale("error.auth.wait_60s"));
         }
 
         String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (oldValue == null) {
-            throw new ResourceNotFoundException("Yêu cầu không tồn tại hoặc đã hết hạn. Vui lòng thực hiện lại.");
+            throw new ResourceNotFoundException(Translator.tolocale("error.auth.req_expired"));
         }
 
         String[] parts = oldValue.split(":");

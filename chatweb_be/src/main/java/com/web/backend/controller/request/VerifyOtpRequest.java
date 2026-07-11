@@ -6,10 +6,10 @@ import lombok.Data;
 
 @Data
 public class VerifyOtpRequest {
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không đúng định dạng")
+    @NotBlank(message = "{valid.email_empty}")
+    @Email(message = "{valid.email_format}")
     private String email;
 
-    @NotBlank(message = "Mã OTP không được để trống")
+    @NotBlank(message = "{valid.otp_empty}")
     private String otp;
 }

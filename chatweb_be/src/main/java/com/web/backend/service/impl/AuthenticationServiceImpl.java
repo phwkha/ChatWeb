@@ -23,6 +23,7 @@ import com.web.backend.repository.UserRepository;
 import com.web.backend.service.AuthenticationService;
 import com.web.backend.service.JwtService;
 import com.web.backend.service.util.CuckooFilterService;
+import com.web.backend.config.LocalResolverConfig.Translator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -79,21 +80,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         boolean mightExistEmail = cuckooFilterService.exists(EMAIL_FILTER_KEY, createUserRequest.getEmail());
         if (mightExistEmail) {
             if (userRepository.existsByEmail(createUserRequest.getEmail())) {
-                throw new ResourceConflictException("Email đã được sử dụng");
+                throw new ResourceConflictException(Translator.tolocale("error.auth.email_used"));
             }
         }
 
         boolean mightExistUsername = cuckooFilterService.exists(USERNAME_FILTER_KEY, createUserRequest.getUsername());
         if (mightExistUsername) {
             if (userRepository.existsByUsername(createUserRequest.getUsername())) {
-                throw new ResourceConflictException("Tên đăng nhập đã tồn tại");
+                throw new ResourceConflictException(Translator.tolocale("error.auth.username_exists"));
             }
         }
 
         SecureRandom secureRandom = new SecureRandom();
         String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
         RoleEntity defaultRole = roleRepository.findByName("USER")
-                .orElseThrow(() -> new ResourceNotFoundException("Role USER chưa có"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.auth.role_user_missing")));
 
         RegisterData data = RegisterData.builder()
                 .username(createUserRequest.getUsername())
@@ -132,9 +133,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             tokenVersion = userPrincipal.getTokenVersion();
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (LockedException e) {
-            throw new AccessForbiddenException("Tài khoản của bạn đã bị khóa!");
+            throw new AccessForbiddenException(Translator.tolocale("error.auth.account_locked"));
         } catch (AuthenticationException e) {
-            throw new AuthenticationFailedException("Tên đăng nhập hoặc mật khẩu không chính xác");
+            throw new AuthenticationFailedException(Translator.tolocale("error.auth.invalid_credentials"));
         }
 
         String accessToken = jwtService.generateAccessToken(
@@ -171,20 +172,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public String refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isEmpty()) {
-            throw new InvalidDataException("Refresh Token không tồn tại");
+            throw new InvalidDataException(Translator.tolocale("error.auth.missing_refresh"));
         }
 
         String username = jwtService.extractUsername(refreshToken, TokenType.REFRESH_TOKEN);
 
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
 
         Integer tokenVersionInJwt = jwtService.extractClaim(refreshToken, TokenType.REFRESH_TOKEN,
                 claims -> claims.get("v", Integer.class));
         Integer currentVersion = user.getTokenVersion() == null ? 0 : user.getTokenVersion();
 
         if (tokenVersionInJwt == null || !tokenVersionInJwt.equals(currentVersion)) {
-            throw new AccessForbiddenException("Refresh token đã hết hạn do thay đổi mật khẩu/đăng xuất");
+            throw new AccessForbiddenException(Translator.tolocale("error.auth.refresh_expired"));
         }
 
         List<String> authorities = new ArrayList<>();
@@ -192,7 +193,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.getAuthorities().forEach(authority -> authorities.add(authority.getAuthority()));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException("Tài khoản đã bị khóa hoặc User không tồn tại");
+            throw new AccessForbiddenException(Translator.tolocale("error.auth.locked_or_not_found"));
         }
         log.info("Refresh token with user: {}", username);
         return jwtService.generateAccessToken(
@@ -205,10 +206,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     public void initiateForgotPassword(String email) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Email không tồn tại trong hệ thống"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.auth.email_not_found")));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException("Tài khoản đã bị khóa hoặc không tồn tại.");
+            throw new AccessForbiddenException(Translator.tolocale("error.auth.locked_not_found"));
         }
 
         generateAndSenResponseToken(user, OtpType.PASSWORD_RESET, null, user.getEmail());
@@ -238,15 +239,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         RegisterData data = (RegisterData) redisTemplate.opsForValue().get(redisKey);
 
         if (data == null) {
-            throw new ResourceNotFoundException("Mã OTP đã hết hạn hoặc email không tồn tại");
+            throw new ResourceNotFoundException(Translator.tolocale("error.auth.otp_expired_or_email_missing"));
         }
 
         if (!data.getOtp().equals(request.getOtp())) {
-            throw new InvalidOtpException("Mã OTP không chính xác");
+            throw new InvalidOtpException(Translator.tolocale("error.auth.invalid_otp"));
         }
 
         if (userRepository.existsByUsername(data.getUsername()) || userRepository.existsByEmail(data.getEmail())) {
-            throw new ResourceConflictException("Tài khoản đã bị đăng ký bởi người khác.");
+            throw new ResourceConflictException(Translator.tolocale("error.auth.registered_by_other"));
         }
 
         UserEntity newUser = new UserEntity();
@@ -260,10 +261,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         RoleEntity role;
         if (roleId != null) {
             role = roleRepository.findById(roleId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
+                    .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found")));
         } else {
             role = roleRepository.findByName("USER")
-                    .orElseThrow(() -> new ResourceNotFoundException("Role mặc định (USER) không tồn tại"));
+                    .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.default_not_found")));
         }
         newUser.setRole(role);
 
@@ -285,7 +286,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String cooldownKey = "cooldown:resend:" + email;
 
         if (Boolean.TRUE.equals(redisTemplate.hasKey(cooldownKey))) {
-            throw new ResourceConflictException("Vui lòng đợi 60 giây trước khi gửi lại OTP.");
+            throw new ResourceConflictException(Translator.tolocale("error.auth.wait_60s"));
         }
 
         RegisterData data = (RegisterData) redisTemplate.opsForValue().get(redisKey);
@@ -307,24 +308,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (userOpt.isPresent()) {
             UserEntity user = userOpt.get();
             if (user.getUserStatus() == UserStatus.ACTIVE) {
-                throw new ResourceConflictException("Tài khoản này đã được kích hoạt, vui lòng đăng nhập.");
+                throw new ResourceConflictException(Translator.tolocale("error.auth.already_active"));
             }
             if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-                throw new ResourceConflictException("Tài khoản này đã bị khóa hoặc xóa. Vui lòng liên hệ Admin.");
+                throw new ResourceConflictException(Translator.tolocale("error.auth.account_locked_deleted"));
             }
         }
 
-        throw new ResourceNotFoundException("Yêu cầu đăng ký không tồn tại hoặc đã hết hạn. Vui lòng đăng ký lại.");
+        throw new ResourceNotFoundException(Translator.tolocale("error.auth.reg_expired"));
     }
 
     @Override
     @Transactional
     public void verifyPasswordReset(String email, String otp, String newPassword) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException("Tài khoản đã bị khóa hoặc không tồn tại.");
+            throw new AccessForbiddenException(Translator.tolocale("error.auth.locked_not_found"));
         }
 
         validateRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, otp);
@@ -338,10 +339,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     public void resendForgotPasswordOtp(String email) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng email"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.email_user_not_found")));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException("Tài khoản đã bị khóa hoặc không tồn tại.");
+            throw new AccessForbiddenException(Translator.tolocale("error.auth.locked_not_found"));
         }
 
         resendRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, email);
@@ -355,7 +356,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String value = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (value == null) {
-            throw new InvalidOtpException("Mã OTP đã hết hạn hoặc yêu cầu không tồn tại");
+            throw new InvalidOtpException(Translator.tolocale("error.auth.otp_expired_or_req_missing"));
         }
 
         String[] parts = value.split(":");
@@ -369,10 +370,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             if (attempts != null && attempts >= 5) {
                 redisTemplate.delete(redisKey);
                 redisTemplate.delete(attemptKey);
-                throw new InvalidOtpException("Bạn đã nhập sai quá 5 lần. Mã OTP đã bị hủy.");
+                throw new InvalidOtpException(Translator.tolocale("error.auth.otp_canceled_5_times"));
             }
 
-            throw new InvalidOtpException("Mã OTP không chính xác (Lần thử " + attempts + "/5)");
+            throw new InvalidOtpException(Translator.tolocale("error.auth.invalid_otp_attempts", attempts));
         }
 
         redisTemplate.delete(redisKey);
@@ -386,13 +387,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String cooldownKey = "cooldown:resend:" + identifier;
 
         if (Boolean.TRUE.equals(redisTemplate.hasKey(cooldownKey))) {
-            throw new ResourceConflictException("Vui lòng đợi 60 giây trước khi gửi lại OTP.");
+            throw new ResourceConflictException(Translator.tolocale("error.auth.wait_60s"));
         }
 
         String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (oldValue == null) {
-            throw new ResourceNotFoundException("Yêu cầu không tồn tại hoặc đã hết hạn. Vui lòng thực hiện lại.");
+            throw new ResourceNotFoundException(Translator.tolocale("error.auth.req_expired"));
         }
 
         String[] parts = oldValue.split(":");

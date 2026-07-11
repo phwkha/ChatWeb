@@ -48,6 +48,7 @@ import com.web.backend.exception.WebSocketErrorHandler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Slf4j(topic = "MESSAGE-SERVICE")
 @Service
@@ -86,18 +87,18 @@ public class MessageServiceImpl implements MessageService {
     public void sendPrivateMessage(String sender, ChatMessageRequest request) {
 
         UserEntity recipientEntity = userRepository.findByUsername(request.getRecipient())
-                .orElseThrow(() -> new ResourceNotFoundException("Người nhận không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.msg.recipient_not_found")));
 
         if (recipientEntity.getUserStatus() == UserStatus.INACTIVE) {
-            throw new AccessForbiddenException("Không thể nhắn tin, tài khoản này đã bị xóa.");
+            throw new AccessForbiddenException(Translator.tolocale("error.msg.send_deleted"));
         }
         if (recipientEntity.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException("Không thể nhắn tin, tài khoản này đang bị tạm khóa.");
+            throw new AccessForbiddenException(Translator.tolocale("error.msg.send_locked"));
         }
 
         if (!friendService.isFriend(Objects.requireNonNull(sender),
                 Objects.requireNonNull(request.getRecipient()))) {
-            throw new AccessForbiddenException("Hai người chưa kết bạn, không thể nhắn tin.");
+            throw new AccessForbiddenException(Translator.tolocale("error.msg.not_friends"));
         }
 
         ChatMessage chatMessage = messageMapper.toEntity(request);
@@ -120,7 +121,7 @@ public class MessageServiceImpl implements MessageService {
             if (ex != null) {
                 log.error("Lỗi nghiêm trọng: Không thể đẩy message lên Kafka. Topic: {}", chatTopic, ex);
                 webSocketErrorHandler.handleChatError(sender, request,
-                        "Hệ thống tin nhắn đang quá tải, không thể gửi tin.");
+                        Translator.tolocale("error.msg.system_overload"));
             } else {
                 log.debug("Message: Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
             }
@@ -159,7 +160,7 @@ public class MessageServiceImpl implements MessageService {
             if (ex != null) {
                 log.error("Lỗi nghiêm trọng: Không thể đẩy system message lên Kafka. Topic: {}", chatTopic, ex);
                 webSocketErrorHandler.handleChatError(currentUsername, request,
-                        "Hệ thống tin nhắn đang quá tải, không thể gửi tin.");
+                        Translator.tolocale("error.msg.system_overload"));
             } else {
                 log.debug("System message: Push Kafka thành công offset: {}", result.getRecordMetadata().offset());
             }

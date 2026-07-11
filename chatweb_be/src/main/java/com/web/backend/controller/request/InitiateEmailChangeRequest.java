@@ -6,10 +6,10 @@ import lombok.Data;
 
 @Data
 public class InitiateEmailChangeRequest {
-    @NotBlank(message = "Email mới không được để trống")
-    @Email(message = "Email không hợp lệ")
+    @NotBlank(message = "{valid.new_email_empty}")
+    @Email(message = "{valid.email_invalid}")
     private String newEmail;
 
-    @NotBlank(message = "Cần nhập mật khẩu hiện tại để xác nhận")
+    @NotBlank(message = "{valid.require_current_pwd}")
     private String currentPassword;
 }

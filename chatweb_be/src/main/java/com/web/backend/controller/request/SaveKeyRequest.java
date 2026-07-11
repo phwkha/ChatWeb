@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class SaveKeyRequest {
-    @NotBlank(message = "Key cannot be empty")
+    @NotBlank(message = "{valid.key_empty}")
     private String key;
 }

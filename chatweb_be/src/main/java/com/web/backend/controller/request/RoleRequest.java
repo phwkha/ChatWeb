@@ -6,7 +6,7 @@ import java.util.List;
 
 @Data
 public class RoleRequest {
-    @NotBlank(message = "Tên role không được để trống")
+    @NotBlank(message = "{valid.role_empty}")
     private String name;
 
     private String description;

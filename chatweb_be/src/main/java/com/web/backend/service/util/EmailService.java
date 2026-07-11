@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Slf4j(topic = "EMAIL-SERVICE")
 @Service
@@ -37,11 +38,8 @@ public class EmailService {
     public void sendOtpEmail(String to, String name, String otp) {
         log.info("Sending OTP via Gmail to: {}", to);
 
-        String subject = "ChatWeb - Mã Xác Nhận OTP";
-        String content = "Xin chào " + name + ",\n\n" +
-                "Mã xác nhận (OTP) của bạn là: " + otp + "\n\n" +
-                "Vui lòng không chia sẻ mã này cho bất kỳ ai. Mã có hiệu lực trong 5 phút.\n\n" +
-                "Trân trọng,\nĐội ngũ ChatWeb";
+        String subject = Translator.tolocale("email.otp.subject");
+        String content = Translator.tolocale("email.otp.body", name, otp);
 
         sendTextEmail(to, subject, content);
     }

@@ -7,11 +7,11 @@ import lombok.Data;
 @Data
 public class LoginRequest {
 
-    @NotBlank(message = "Tên đăng nhập không được để trống")
+    @NotBlank(message = "{valid.username_empty}")
     private String username;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+    @NotBlank(message = "{valid.pwd_empty}")
+    @Size(min = 6, message = "{valid.pwd_min_6}")
     private String password;
 
 }

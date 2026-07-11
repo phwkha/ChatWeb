@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class MarkReadRequest {
-    @NotBlank(message = "Sender username cannot be empty")
+    @NotBlank(message = "{valid.sender_empty}")
     private String sender;
 }

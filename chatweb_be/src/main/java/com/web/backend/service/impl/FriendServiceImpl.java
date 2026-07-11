@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @RequiredArgsConstructor
@@ -59,16 +60,16 @@ public class FriendServiceImpl implements FriendService {
         @Transactional
         public void sendFriendRequest(String requesterUsername, String addresseeUsername) {
                 if (requesterUsername.equals(addresseeUsername))
-                        throw new InvalidDataException("Lỗi: Tự kết bạn");
+                        throw new InvalidDataException(Translator.tolocale("error.friend.self_add"));
 
                 UserEntity requester = getUser(requesterUsername);
                 UserEntity addressee = getUser(addresseeUsername);
 
                 if (addressee.getUserStatus() == UserStatus.INACTIVE) {
-                    throw new AccessForbiddenException("Không thể gửi lời mời, tài khoản này đã bị xóa.");
+                    throw new AccessForbiddenException(Translator.tolocale("error.friend.send_deleted"));
                 }
                 if (addressee.getUserStatus() == UserStatus.LOCKED) {
-                    throw new AccessForbiddenException("Không thể gửi lời mời, tài khoản này đang bị tạm khóa.");
+                    throw new AccessForbiddenException(Translator.tolocale("error.friend.send_locked"));
                 }
 
                 Optional<FriendshipEntity> existingRelation = friendshipRepository.findByUsers(requester, addressee);
@@ -77,10 +78,10 @@ public class FriendServiceImpl implements FriendService {
                         FriendshipEntity f = existingRelation.get();
                         if (f.getStatus() == FriendshipStatus.BLOCKED) {
                                 throw new AccessForbiddenException(
-                                                "Không thể gửi lời mời (Đang bị chặn hoặc đã chặn).");
+                                                Translator.tolocale("error.friend.blocked_cannot_send"));
                         }
                         if (f.getStatus() == FriendshipStatus.ACCEPTED || f.getStatus() == FriendshipStatus.PENDING) {
-                                throw new ResourceConflictException("Đã tồn tại lời mời hoặc quan hệ bạn bè");
+                                throw new ResourceConflictException(Translator.tolocale("error.friend.invite_exists"));
                         }
                 }
 
@@ -96,7 +97,7 @@ public class FriendServiceImpl implements FriendService {
                                                 : requester.getUsername()))
                                 .build();
                 SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications(
-                                "Lời mời kết bạn mới",
+                                Translator.tolocale("sys.msg.new_friend_invite"),
                                 data);
 
                 NotificationMessageResponse senderData = NotificationMessageResponse.builder()
@@ -104,7 +105,7 @@ public class FriendServiceImpl implements FriendService {
                                 .relatedUsername(addresseeUsername)
                                 .build();
                 SocketResponse<NotificationMessageResponse> senderResponse = SocketResponse.notifications(
-                                "Đã gửi lời mời kết bạn",
+                                Translator.tolocale("success.friend.invite_sent"),
                                 senderData);
 
                 FriendNotificationMessage payload = new FriendNotificationMessage(
@@ -119,17 +120,17 @@ public class FriendServiceImpl implements FriendService {
                 UserEntity requester = getUser(requesterUsername);
 
                 if (requester.getUserStatus() == UserStatus.INACTIVE) {
-                    throw new AccessForbiddenException("Không thể chấp nhận, tài khoản này đã bị xóa.");
+                    throw new AccessForbiddenException(Translator.tolocale("error.friend.accept_deleted"));
                 }
                 if (requester.getUserStatus() == UserStatus.LOCKED) {
-                    throw new AccessForbiddenException("Không thể chấp nhận, tài khoản này đang bị tạm khóa.");
+                    throw new AccessForbiddenException(Translator.tolocale("error.friend.accept_locked"));
                 }
 
                 FriendshipEntity friendship = friendshipRepository.findByUsers(acceptor, requester)
-                                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lời mời"));
+                                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.friend.invite_not_found")));
 
                 if (friendship.getStatus() == FriendshipStatus.ACCEPTED) {
-                        throw new ResourceConflictException("Đã là bạn bè");
+                        throw new ResourceConflictException(Translator.tolocale("error.friend.already_friends"));
                 }
 
                 friendship.setStatus(FriendshipStatus.ACCEPTED);
@@ -144,7 +145,7 @@ public class FriendServiceImpl implements FriendService {
                                                 : acceptor.getUsername()))
                                 .build();
                 SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications(
-                                "Đã chấp nhận kết bạn",
+                                Translator.tolocale("success.friend.accepted"),
                                 data);
 
                 NotificationMessageResponse acceptorData = NotificationMessageResponse.builder()
@@ -152,7 +153,7 @@ public class FriendServiceImpl implements FriendService {
                                 .relatedUsername(requesterUsername)
                                 .build();
                 SocketResponse<NotificationMessageResponse> acceptorResponse = SocketResponse.notifications(
-                                "Đã chấp nhận kết bạn",
+                                Translator.tolocale("success.friend.accepted"),
                                 acceptorData);
 
                 FriendNotificationMessage payload = new FriendNotificationMessage(
@@ -226,7 +227,7 @@ public class FriendServiceImpl implements FriendService {
                 UserEntity user2 = getUser(targetUsername);
 
                 FriendshipEntity friendship = friendshipRepository.findByUsers(user1, user2)
-                                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy mối quan hệ"));
+                                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.friend.relation_not_found")));
 
                 boolean isAccepted = friendship.getStatus() == FriendshipStatus.ACCEPTED;
                 boolean isRequester = friendship.getRequester().getUsername().equals(currentUsername);
@@ -244,7 +245,7 @@ public class FriendServiceImpl implements FriendService {
 
                         FriendNotificationMessage payload = new FriendNotificationMessage(
                                         currentUsername, targetUsername, "/queue/notifications", null,
-                                        SocketResponse.notifications("Đã hủy kết bạn", data));
+                                        SocketResponse.notifications(Translator.tolocale("success.friend.unfriended"), data));
                         eventPublisher.publishEvent(
                                         new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
 
@@ -257,7 +258,7 @@ public class FriendServiceImpl implements FriendService {
 
                                 FriendNotificationMessage payload = new FriendNotificationMessage(
                                                 currentUsername, targetUsername, "/queue/notifications", null,
-                                                SocketResponse.notifications("Đã rút lại lời mời kết bạn", data));
+                                                SocketResponse.notifications(Translator.tolocale("success.friend.invite_retracted"), data));
                                 eventPublisher.publishEvent(
                                                 new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
 
@@ -269,7 +270,7 @@ public class FriendServiceImpl implements FriendService {
 
                                 FriendNotificationMessage payload = new FriendNotificationMessage(
                                                 currentUsername, targetUsername, "/queue/notifications", null,
-                                                SocketResponse.notifications("Đã từ chối lời mời kết bạn", data));
+                                                SocketResponse.notifications(Translator.tolocale("success.friend.invite_declined"), data));
                                 eventPublisher.publishEvent(
                                                 new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
                         }
@@ -315,7 +316,7 @@ public class FriendServiceImpl implements FriendService {
 
         private UserEntity getUser(String username) {
                 return userRepository.findByUsername(username)
-                                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại"));
+                                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
         }
 
         private <T> PageResponse<T> buildPageResponse(Page<?> pageResult, List<T> content) {

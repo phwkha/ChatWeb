@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Tag(name = "Message Controller")
 @RestController
@@ -38,7 +39,7 @@ public class MessageController {
 
         CursorResponse<ChatMessageResponse> response = messageService.findPrivateMessageWithCursor(user1, user2, cursor, size);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Get private messages success", response));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.msg.get_private"), response));
     }
 
     @Operation(summary = "Get unread counts", description = "API endpoint for get unread counts")
@@ -48,7 +49,7 @@ public class MessageController {
 
         log.info("Fetching unread counts for user: {}", user.getUsername());
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Get unread counts success",messageService.getUnreadMessageCounts(user.getUsername())));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.msg.get_unread"),messageService.getUnreadMessageCounts(user.getUsername())));
     }
 
     @Operation(summary = "Mark as read", description = "API endpoint for mark as read")
@@ -63,6 +64,6 @@ public class MessageController {
 
         messageService.markMessagesAsRead(user.getUsername(), request.getSender());
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Messages marked as read", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.msg.mark_read"), null));
     }
 }

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Slf4j(topic = "USER-CONTROLLER")
 @Tag(name = "User Controller")
@@ -33,7 +34,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(Authentication authentication) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get current user: {}", userEntityPrincipal.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy thông tin người dùng thành công", userService.getCurrentUser(userEntityPrincipal.getUsername())));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.get_info"), userService.getCurrentUser(userEntityPrincipal.getUsername())));
     }
 
     @Operation(summary = "Get profile user", description = "API endpoint for get profile user")
@@ -42,7 +43,7 @@ public class UserController {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get profile user: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Lấy thông tin người dùng thành công",
+                Translator.tolocale("success.user.get_info"),
                 userService.getProfileUser(userEntityPrincipal.getUsername())));
     }
 
@@ -58,7 +59,7 @@ public class UserController {
         log.info("Updating profile for user: {}", username);
 
         UserDetailResponse updatedUser = userService.updateUser(username, updateUserRequest);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật hồ sơ thành công", updatedUser));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_profile"), updatedUser));
     }
 
     @Operation(summary = "Update avatar", description = "API endpoint for update avatar")
@@ -71,7 +72,7 @@ public class UserController {
 
         String urlAvatar = userService.updateAvatar(userEntity.getUsername(), avatarFile);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật ảnh đại diện thành công", urlAvatar));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_avatar"), urlAvatar));
     }
 
     @Operation(summary = "Change password", description = "API endpoint for change password")
@@ -84,7 +85,7 @@ public class UserController {
         log.info("User {} changed password successfully", userEntityPrincipal.getUsername());
         userService.changePassword(userEntityPrincipal.getUsername(), request.getCurrentPassword(), request.getNewPassword());
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đổi mật khẩu thành công", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.change_pwd"), null));
     }
 
     @Operation(summary = "Delete user", description = "API endpoint for delete user")
@@ -97,7 +98,7 @@ public class UserController {
         log.warn("User {} is deleting their account", username);
         userService.deleteUser(username);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa tài khoản thành công", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.del_account"), null));
     }
 
     @Operation(summary = "Add address", description = "API endpoint for add address")
@@ -111,7 +112,7 @@ public class UserController {
         UserDetailResponse result = userService.addAddress(currentUser.getUsername(), addressRequest);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(HttpStatus.CREATED.value(), "Thêm địa chỉ mới thành công", result));
+                .body(ApiResponse.success(HttpStatus.CREATED.value(), Translator.tolocale("success.user.add_address"), result));
     }
 
     @Operation(summary = "Update address", description = "API endpoint for update address")
@@ -125,7 +126,7 @@ public class UserController {
         log.info("Updating address {} for user {}", addressId, currentUser.getUsername());
         UserDetailResponse result = userService.updateAddress(currentUser.getUsername(), addressId, addressRequest);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật địa chỉ thành công", result));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_address"), result));
     }
 
     @Operation(summary = "Delete address", description = "API endpoint for delete address")
@@ -138,7 +139,7 @@ public class UserController {
         log.info("Deleting address {} for user {}", addressId, currentUser.getUsername());
         UserDetailResponse result = userService.deleteAddress(currentUser.getUsername(), addressId);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa địa chỉ thành công", result));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.del_address"), result));
     }
 
     @Operation(summary = "Get all addresses", description = "API endpoint for get all addresses")
@@ -147,7 +148,7 @@ public class UserController {
         UserEntity currentUser = (UserEntity) authentication.getPrincipal();
         log.info("Get all address for user: {}", currentUser.getUsername());
         List<AddressResponse> addresses = userService.getAllAddresses(currentUser.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách địa chỉ thành công", addresses));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.get_addresses"), addresses));
     }
 
     @Operation(summary = "Get address detail", description = "API endpoint for get address detail")
@@ -158,7 +159,7 @@ public class UserController {
         UserEntity currentUser = (UserEntity) authentication.getPrincipal();
         log.info("Get address for user: {}", currentUser.getUsername());
         AddressResponse address = userService.getAddressById(currentUser.getUsername(), addressId);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy chi tiết địa chỉ thành công", address));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.get_address"), address));
     }
 
     @Operation(summary = "Initiate email change", description = "API endpoint for initiate email change")
@@ -172,7 +173,7 @@ public class UserController {
         userService.initiateEmailChange(user.getUsername(), request.getNewEmail(), request.getCurrentPassword());
 
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Mã xác thực đã được gửi đến email mới: " + request.getNewEmail(), null));
+                Translator.tolocale("success.user.otp_sent_to_new_email", request.getNewEmail()), null));
     }
 
     @Operation(summary = "Verify email change", description = "API endpoint for verify email change")
@@ -185,7 +186,7 @@ public class UserController {
         log.info("Email changed successfully for user: {}", user.getUsername());
         userService.verifyEmailChange(user.getUsername(), request.getOtp());
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật email thành công!", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_email"), null));
     }
 
     @Operation(summary = "Resend email verification", description = "API endpoint for resend email verification")
@@ -196,7 +197,7 @@ public class UserController {
         userService.resendEmailChangeOtp(user.getUsername());
 
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Đã gửi lại mã xác thực vào email mới.", null));
+                Translator.tolocale("success.user.otp_resent_to_new_email"), null));
     }
 
     @Operation(summary = "Initiate phone change", description = "API endpoint for initiate phone change")
@@ -210,7 +211,7 @@ public class UserController {
         userService.initiatePhoneChange(user.getUsername(), request.getNewPhone(), request.getCurrentPassword());
 
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Mã xác thực đã được gửi để xác nhận đổi số điện thoại.", null));
+                Translator.tolocale("success.user.otp_phone_sent"), null));
     }
 
     @Operation(summary = "Verify phone change", description = "API endpoint for verify phone change")
@@ -224,7 +225,7 @@ public class UserController {
         userService.verifyPhoneChange(user.getUsername(), request.getOtp());
 
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Cập nhật số điện thoại thành công!", null));
+                Translator.tolocale("success.user.phone_updated"), null));
     }
 
     @Operation(summary = "Resend phone verification", description = "API endpoint for resend phone verification")
@@ -235,7 +236,7 @@ public class UserController {
         userService.resendPhoneChangeOtp(user.getUsername());
         log.info("Resent Phone Change OTP for user: {}", user.getUsername());
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Đã gửi lại mã xác thực đổi số điện thoại.", null));
+                Translator.tolocale("success.user.otp_phone_resent"), null));
     }
 
 }

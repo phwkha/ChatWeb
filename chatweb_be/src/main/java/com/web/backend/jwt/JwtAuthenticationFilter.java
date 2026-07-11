@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Component
 @RequiredArgsConstructor
@@ -53,7 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     ApiResponse<?> apiResponse = ApiResponse.error(
                             HttpStatus.UNAUTHORIZED.value(),
-                            "Token đã đăng xuất (Blacklisted)");
+                            Translator.tolocale("error.ws.blacklisted"));
 
                     ObjectMapper objectMapper = new ObjectMapper();
                     response.getWriter().write(objectMapper.writeValueAsString(apiResponse));

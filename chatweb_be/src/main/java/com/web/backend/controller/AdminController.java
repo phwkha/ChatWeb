@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Tag(name = "Admin Controller")
 @RestController
@@ -43,7 +44,7 @@ public class AdminController {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get all user by: {}", userEntityPrincipal.getUsername());
         PageResponse<UserSummaryResponse> users = adminService.getAllUsers(page, size, sortBy);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách user thành công", users));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.get_users"), users));
     }
 
     @Operation(summary = "Get online users", description = "API endpoint for get online users")
@@ -53,7 +54,7 @@ public class AdminController {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get online users: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Lấy danh sách người dùng trực tuyến thành công",
+                Translator.tolocale("success.admin.get_online_users"),
                 adminService.getOnlineUsers()));
     }
 
@@ -64,7 +65,7 @@ public class AdminController {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get user by: {}", userEntityPrincipal.getUsername());
         UserDetailResponse user = adminService.getUserByUsername(username);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy thông tin user thành công", user));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.get_user"), user));
     }
 
     @Operation(summary = "Add user", description = "API endpoint for add user")
@@ -75,7 +76,7 @@ public class AdminController {
         log.info("Add user by: {}", userEntityPrincipal.getUsername());
         UserResponse newUser = adminService.adminCreateUser(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(HttpStatus.CREATED.value(), "Tạo user thành công", newUser));
+                .body(ApiResponse.success(HttpStatus.CREATED.value(), Translator.tolocale("success.admin.create_user"), newUser));
     }
 
     @Operation(summary = "Unlock user", description = "API endpoint for unlock user")
@@ -85,7 +86,7 @@ public class AdminController {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Unlock user by: {}", userEntityPrincipal.getUsername());
         UserResponse unlockedUser = adminService.unlockUser(username);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Mở khóa user thành công", unlockedUser));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.unlock_user"), unlockedUser));
     }
 
     @Operation(summary = "Lock user", description = "API endpoint for lock user")
@@ -95,7 +96,7 @@ public class AdminController {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Lock user by: {}", userEntityPrincipal.getUsername());
         UserResponse lockedUser = adminService.lockUser(username);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Khóa user thành công", lockedUser));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.lock_user"), lockedUser));
     }
 
     @Operation(summary = "Delete avatar", description = "API endpoint for delete avatar")
@@ -105,7 +106,7 @@ public class AdminController {
         UserEntity userEntity = (UserEntity) authentication.getPrincipal();
         log.info("delete avatar by: {}", userEntity.getUsername());
         adminService.deleteAvatar(username);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa avatar thành công",null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.del_avatar"),null));
     }
 
     @Operation(summary = "Update user", description = "API endpoint for update user")
@@ -118,7 +119,7 @@ public class AdminController {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Update user by: {}", userEntityPrincipal.getUsername());
         UserResponse updatedUser = adminService.adminUpdateUser(username, request);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật user thành công", updatedUser));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.update_user"), updatedUser));
     }
 
     @Operation(summary = "Delete user", description = "API endpoint for delete user")
@@ -131,7 +132,7 @@ public class AdminController {
         adminService.adminDeleteUser(username, adminPrincipal.getUsername());
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
-                .body(ApiResponse.success(HttpStatus.NO_CONTENT.value(), "Xóa user thành công", null));
+                .body(ApiResponse.success(HttpStatus.NO_CONTENT.value(), Translator.tolocale("success.admin.del_user"), null));
     }
 
     @Operation(summary = "Get all addresses for user", description = "API endpoint for get all addresses for user")
@@ -162,7 +163,7 @@ public class AdminController {
         AddressResponse address = adminService.adminGetAddressById(username, addressId);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Lấy chi tiết địa chỉ thành công",
+                Translator.tolocale("success.user.get_address"),
                 address));
     }
 

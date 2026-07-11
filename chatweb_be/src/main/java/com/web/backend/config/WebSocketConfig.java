@@ -25,6 +25,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -73,7 +74,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             String key = "blacklist:" + token;
                             if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
                                 log.info("Token hết hạn");
-                                throw new MessagingException("Token đã đăng xuất (Blacklisted)");
+                                throw new MessagingException(Translator.tolocale("error.ws.blacklisted"));
                             }
 
                             String username = jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
@@ -91,7 +92,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
                                     if (tokenVersionInJwt == null || !tokenVersionInJwt.equals(currentVersion)) {
                                         log.warn("Token version mismatch for user in WebSocket: {}", username);
-                                        throw new MessagingException("Token không hợp lệ (Phiên bản cũ)");
+                                        throw new MessagingException(Translator.tolocale("error.ws.invalid_token_version"));
                                     }
                                 }
 
@@ -102,10 +103,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             }
                         } catch (Exception e) {
                             log.error("WebSocket Auth Failed: {}", e.getMessage());
-                            throw new MessagingException("Lỗi xác thực: " + e.getMessage());
+                            throw new MessagingException(Translator.tolocale("error.ws.auth_failed", e.getMessage()));
                         }
                     } else {
-                        throw new MessagingException("Không tìm thấy Access Token (Header/Cookie)");
+                        throw new MessagingException(Translator.tolocale("error.ws.missing_token"));
                     }
                 }
                 return message;

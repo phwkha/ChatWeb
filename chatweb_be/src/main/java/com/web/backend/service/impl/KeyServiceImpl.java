@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @Slf4j(topic = "KEY-SERVICE")
@@ -24,7 +25,7 @@ public class KeyServiceImpl implements KeyService {
     public void saveRsaKey(String username, String encryptedKey) {
 
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         userEntity.setEncryptedRsaPrivateKey(encryptedKey);
 
@@ -36,10 +37,10 @@ public class KeyServiceImpl implements KeyService {
     public String getRsaKey(String username) {
 
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         if (userEntity.getUserStatus() != UserStatus.ACTIVE) {
-            throw new AccessForbiddenException("Tài khoản đã bị khóa hoặc không kích hoạt.");
+            throw new AccessForbiddenException(Translator.tolocale("error.key.locked_inactive"));
         }
 
         String key = userEntity.getEncryptedRsaPrivateKey();
@@ -54,7 +55,7 @@ public class KeyServiceImpl implements KeyService {
     @Override
     public String getPublicKey(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
         log.info("Get public key");
         return userEntity.getPublicKey();
     }
@@ -63,7 +64,7 @@ public class KeyServiceImpl implements KeyService {
     @CacheEvict(value = "user_details", key = "#username")
     public void savePublicKey(String username, String publicKey) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
         userEntity.setPublicKey(publicKey);
         userRepository.save(userEntity);
         log.info("Saved public key for user");

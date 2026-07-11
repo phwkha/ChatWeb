@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @RequiredArgsConstructor
@@ -49,19 +50,19 @@ public class StorageServiceImpl implements StorageService {
     private String uploadFile(MultipartFile file, String folder, Long maxSize, String resourceType) {
         try {
             if (file.isEmpty()) {
-                throw new InvalidDataException("File không được để trống");
+                throw new InvalidDataException(Translator.tolocale("error.storage.empty_file"));
             }
 
             if (!resourceType.equals("raw")) {
                 String contentType = file.getContentType();
                 if (contentType == null || !contentType.startsWith(resourceType + "/")) {
-                    throw new InvalidDataException("Định dạng file không hợp lệ. Chỉ chấp nhận: " + resourceType);
+                    throw new InvalidDataException(Translator.tolocale("error.storage.invalid_format", resourceType));
                 }
             }
 
             if (file.getSize() > maxSize) {
                 long sizeInMb = maxSize / (1024 * 1024);
-                throw new InvalidDataException("File quá lớn. Vui lòng chọn file dưới " + sizeInMb + "MB");
+                throw new InvalidDataException(Translator.tolocale("error.storage.file_too_large", sizeInMb));
             }
 
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
@@ -76,7 +77,7 @@ public class StorageServiceImpl implements StorageService {
 
         } catch (IOException e) {
             log.error("Upload failed: {}", e.getMessage());
-            throw new RuntimeException("Lỗi upload file: " + e.getMessage());
+            throw new RuntimeException(Translator.tolocale("error.storage.upload_failed", e.getMessage()));
         }
     }
 

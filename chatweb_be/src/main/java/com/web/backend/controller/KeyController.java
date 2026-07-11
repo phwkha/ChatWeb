@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 
 @Tag(name = "Key Controller")
@@ -34,7 +35,7 @@ public class KeyController {
         log.info("Fetching RSA key for user: {}", user.getUsername());
 
         return ResponseEntity.ok(
-                ApiResponse.success(HttpStatus.OK.value(), "Get RSA key successfully",
+                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.key.get_rsa"),
                         RsaKeyResponse.builder().privateKey(keyService.getRsaKey(user.getUsername())).build()
                         )
         );
@@ -53,7 +54,7 @@ public class KeyController {
         keyService.saveRsaKey(user.getUsername(), request.getKey());
 
         return ResponseEntity.ok(
-                ApiResponse.success(HttpStatus.OK.value(), "RSA key saved successfully", null)
+                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.key.save_rsa"), null)
         );
     }
 
@@ -63,7 +64,7 @@ public class KeyController {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get public key: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                "Lấy khóa công khai thành công",
+                Translator.tolocale("success.key.get_pub"),
                 keyService.getPublicKey(username)));
     }
 
@@ -73,7 +74,7 @@ public class KeyController {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Saved public key for user: {}", userEntityPrincipal.getUsername());
         keyService.savePublicKey(userEntityPrincipal.getUsername(), request.getPublicKey());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lưu khóa công khai thành công", null));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.key.save_pub"), null));
     }
 
 }

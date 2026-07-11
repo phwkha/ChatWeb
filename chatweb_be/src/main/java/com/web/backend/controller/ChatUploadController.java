@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Tag(name = "Chat Upload Controller")
 @RestController
@@ -29,7 +30,7 @@ public class ChatUploadController {
     public ResponseEntity<ApiResponse<String>> uploadChatImage(@RequestParam("image") MultipartFile file) {
         log.info("upload image");
         String url = storageService.upLoadImage(file);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Upload thành công", url));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.chat.upload"), url));
     }
 
     @Operation(summary = "Upload chat video", description = "API endpoint for upload chat video")
@@ -37,6 +38,6 @@ public class ChatUploadController {
     public ResponseEntity<ApiResponse<String>> uploadChatVideo(@RequestParam("video") MultipartFile file) {
         log.info("upload video");
         String url = storageService.uploadVideo(file);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Upload thành công", url));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.chat.upload"), url));
     }
 }

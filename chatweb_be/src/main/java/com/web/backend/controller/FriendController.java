@@ -13,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Tag(name = "Friend Controller")
 @RestController
@@ -36,7 +37,7 @@ public class FriendController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Lấy danh sách lời mời thành công",
+                Translator.tolocale("success.friend.get_invites"),
                 friendService.getPendingRequests(user.getUsername(), page, size, sortBy)
         ));
     }
@@ -51,7 +52,7 @@ public class FriendController {
         UserEntity user = (UserEntity) auth.getPrincipal();
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Lấy danh sách lời mời đã gửi thành công",
+                Translator.tolocale("success.friend.get_sent_invites"),
                 friendService.getSentRequests(user.getUsername(), page, size)
         ));
     }
@@ -69,7 +70,7 @@ public class FriendController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Lấy danh sách bạn bè thành công",
+                Translator.tolocale("success.friend.get_friends"),
                 friendService.getFriendsList(user.getUsername(), page, size, sortBy)
         ));
     }
@@ -85,7 +86,7 @@ public class FriendController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Thao tác thành công",
+                Translator.tolocale("success.sys.operation"),
                 null
         ));
     }

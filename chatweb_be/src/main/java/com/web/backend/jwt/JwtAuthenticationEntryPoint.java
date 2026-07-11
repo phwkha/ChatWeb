@@ -10,6 +10,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
@@ -20,7 +21,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         ApiResponse<?> apiResponse = ApiResponse.builder()
                 .code(HttpStatus.UNAUTHORIZED.value())
                 .status("error")
-                .message("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại!")
+                .message(Translator.tolocale("error.auth.session_expired"))
                 .build();
 
         ObjectMapper objectMapper = new ObjectMapper();

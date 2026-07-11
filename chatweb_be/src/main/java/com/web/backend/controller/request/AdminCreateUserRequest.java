@@ -6,25 +6,25 @@ import lombok.Data;
 @Data
 public class AdminCreateUserRequest {
 
-    @NotBlank(message = "Tên đăng nhập không được để trống")
+    @NotBlank(message = "{valid.username_empty}")
     private String username;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 8, message = "Mật khẩu phải có ít nhất 8 ký tự")
+    @NotBlank(message = "{valid.pwd_empty}")
+    @Size(min = 8, message = "{valid.pwd_min_8}")
     private String password;
 
-    @NotBlank(message = "Họ không được để trống")
+    @NotBlank(message = "{valid.last_name_empty}")
     private String firstName;
     private String lastName;
 
     @Pattern(
             regexp = "^(0[0-9]{9}|\\+84[0-9]{9})$",
-            message = "Số điện thoại không hợp lệ"
+            message = "{valid.phone_invalid}"
     )
     private String phone;
 
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không hợp lệ")
+    @NotBlank(message = "{valid.email_empty}")
+    @Email(message = "{valid.email_invalid}")
     private String email;
 
     private Long roleId;

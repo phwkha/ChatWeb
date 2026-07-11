@@ -15,6 +15,6 @@ public class ResetPasswordRequest {
     private String otp;
 
     @NotBlank
-    @Size(min = 6, message = "Mật khẩu mới phải có ít nhất 6 ký tự")
+    @Size(min = 6, message = "{valid.new_pwd_min_6}")
     private String newPassword;
 }

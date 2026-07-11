@@ -11,6 +11,7 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Component
 public class JwtAccessDeniedHandler implements AccessDeniedHandler {
@@ -22,7 +23,7 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
         ApiResponse<?> apiResponse = ApiResponse.builder()
                 .code(HttpStatus.FORBIDDEN.value())
                 .status("error")
-                .message("Bạn không có quyền truy cập tài nguyên này (Forbidden)")
+                .message(Translator.tolocale("error.auth.forbidden"))
                 .build();
 
         ObjectMapper objectMapper = new ObjectMapper();

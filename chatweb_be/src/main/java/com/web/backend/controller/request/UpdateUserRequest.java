@@ -13,7 +13,7 @@ public class UpdateUserRequest {
 
     @Pattern(
             regexp = "^(0[0-9]{9}|\\+84[0-9]{9})$",
-            message = "Số điện thoại không hợp lệ"
+            message = "{valid.phone_invalid}"
     )
     private String phone;
     private Date birthday;

@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.validation.BindingResult;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @ControllerAdvice
 @RequiredArgsConstructor
@@ -31,7 +32,7 @@ public class WebSocketErrorHandler {
 
         String username = (authentication != null) ? authentication.getName() : "unknows";
 
-        String errorMessage = "Dữ liệu gửi lên không hợp lệ";
+        String errorMessage = Translator.tolocale("error.ws.invalid_data");
 
         BindingResult bindingResult = ex.getBindingResult();
         if (bindingResult != null) {

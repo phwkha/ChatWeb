@@ -12,13 +12,13 @@ import java.util.Map;
 
 @Data
 public class ChatMessageRequest {
-    @NotBlank(message = "Tên người nhận không được để trống")
+    @NotBlank(message = "{valid.recipient_empty}")
     private String recipient;
 
-    @Size(max = 10000, message = "Nội dung tin nhắn không được quá 10.000 ký tự")
+    @Size(max = 10000, message = "{valid.msg_max_10000}")
     private String content;
     private ContentType contentType;
-    @NotNull(message = "Loại tin nhắn không được để trống")
+    @NotNull(message = "{valid.msg_type_empty}")
     private MessageType messageType;
     private String color;
 

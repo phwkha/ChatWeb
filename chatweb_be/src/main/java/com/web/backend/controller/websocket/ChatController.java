@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import com.web.backend.exception.WebSocketErrorHandler;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Controller
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class ChatController {
             messageService.sendSystemMessage(currentUsername, request);
         } catch (Exception e) {
             log.error("Error sending system message: {}", e.getMessage());
-            webSocketErrorHandler.handleChatError(currentUsername, request, "Lỗi không thể nhắn tin hệ thống");
+            webSocketErrorHandler.handleChatError(currentUsername, request, Translator.tolocale("error.chat.sys_msg_fail"));
         }
     }
 

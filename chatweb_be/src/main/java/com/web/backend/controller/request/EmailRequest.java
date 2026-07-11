@@ -6,13 +6,13 @@ import lombok.Data;
 
 @Data
 public class EmailRequest {
-    @NotBlank(message = "Người nhận (to) không được để trống")
-    @Email(message = "Địa chỉ email không hợp lệ")
+    @NotBlank(message = "{valid.to_empty}")
+    @Email(message = "{valid.email_addr_invalid}")
     private String to;
 
-    @NotBlank(message = "Tiêu đề (subject) không được để trống")
+    @NotBlank(message = "{valid.subject_empty}")
     private String subject;
 
-    @NotBlank(message = "Nội dung (text) không được để trống")
+    @NotBlank(message = "{valid.text_empty}")
     private String text;
 }

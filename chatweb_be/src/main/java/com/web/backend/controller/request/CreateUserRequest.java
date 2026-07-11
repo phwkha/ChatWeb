@@ -8,14 +8,14 @@ import lombok.Data;
 @Data
 public class CreateUserRequest {
 
-    @NotBlank(message = "Tên đăng nhập không được để trống")
+    @NotBlank(message = "{valid.username_empty}")
     private String username;
 
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không hợp lệ")
+    @NotBlank(message = "{valid.email_empty}")
+    @Email(message = "{valid.email_invalid}")
     private String email;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 8, message = "Mật khẩu phải có ít nhất 8 ký tự")
+    @NotBlank(message = "{valid.pwd_empty}")
+    @Size(min = 8, message = "{valid.pwd_min_8}")
     private String password; //
 }

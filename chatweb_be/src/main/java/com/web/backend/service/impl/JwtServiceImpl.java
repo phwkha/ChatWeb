@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.util.*;
 import java.util.function.Function;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @Slf4j(topic = "JWT-SERVICE")
@@ -89,7 +90,7 @@ public class JwtServiceImpl implements JwtService {
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (SignatureException | ExpiredJwtException e) {
-            throw new AccessDeniedException("Access Denied, error: " + e.getMessage());
+            throw new AccessDeniedException(Translator.tolocale("error.auth.access_denied", e.getMessage()));
         }
     }
 
@@ -125,7 +126,7 @@ public class JwtServiceImpl implements JwtService {
             case REFRESH_TOKEN -> {
                 return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKeyRefresh));
             }
-            default -> throw new InvalidDataException("Type token không hợp lệ");
+            default -> throw new InvalidDataException(Translator.tolocale("error.jwt.invalid_type"));
         }
     }
 }

@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 public class MessageSystemRequest {
-    @NotBlank(message = "Email mới không được để trống")
+    @NotBlank(message = "{valid.new_email_empty}")
     private String content;
 
     private Long survivalTime;

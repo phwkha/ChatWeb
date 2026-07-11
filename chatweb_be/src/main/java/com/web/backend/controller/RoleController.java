@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Tag(name = "Role Controller")
 @RestController
@@ -38,7 +39,7 @@ public class RoleController {
         log.info("Get all roles: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Lấy danh sách Role thành công",
+                Translator.tolocale("success.role.get_list"),
                 roleService.getAllRoles()));
     }
 
@@ -50,7 +51,7 @@ public class RoleController {
         log.info("Get all permission: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Lấy danh sách Permission thành công",
+                Translator.tolocale("success.role.get_permissions"),
                 roleService.getAllPermissions()));
     }
 
@@ -63,7 +64,7 @@ public class RoleController {
         log.info("Create role: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
                 HttpStatus.CREATED.value(),
-                "Tạo Role thành công",
+                Translator.tolocale("success.role.create"),
                 roleService.createRole(request)));
     }
 
@@ -76,7 +77,7 @@ public class RoleController {
         log.info("Update role: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Cập nhật Role thành công",
+                Translator.tolocale("success.role.update"),
                 roleService.updateRole(id, request)));
     }
 
@@ -89,7 +90,7 @@ public class RoleController {
         roleService.deleteRole(id);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.NO_CONTENT.value(),
-                "Xóa Role thành công",
+                Translator.tolocale("success.role.delete"),
                 null));
     }
 }

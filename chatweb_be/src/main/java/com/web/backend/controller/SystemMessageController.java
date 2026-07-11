@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.RestController;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 
 @Tag(name = "System Message Controller")
@@ -35,6 +36,6 @@ public class SystemMessageController {
 
         CursorResponse<MessageSystemResponse> response = messageService.findSystemMessageWithCursor(cursor, size);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Get system message success", response));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.sys.get_msg"), response));
     }
 }

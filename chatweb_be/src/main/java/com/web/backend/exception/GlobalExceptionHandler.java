@@ -30,6 +30,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.util.HashMap;
 import java.util.Map;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Slf4j(topic = "GLOBAL-EXCEPTION-HANDLER")
 @RestControllerAdvice
@@ -54,21 +55,21 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
         log.error("Http Request Method Not Supported: {}", ex.getMessage());
         return ApiResponse.error(HttpStatus.METHOD_NOT_ALLOWED.value(),
-                "Phương thức " + ex.getMethod() + " không được hỗ trợ cho endpoint này");
+                Translator.tolocale("error.sys.method") + ex.getMethod() + Translator.tolocale("error.sys.method_not_supported"));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
         log.error("Missing Servlet Request Parameter: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Thiếu tham số bắt buộc: " + ex.getParameterName());
+        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale("error.sys.missing_param", ex.getParameterName()));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
         log.error("Method Argument Type Mismatch: {}", ex.getMessage());
-        String message = String.format("Tham số '%s' không đúng định dạng mong muốn", ex.getName());
+        String message = String.format(Translator.tolocale("error.sys.param_format"), ex.getName());
         return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), message);
     }
 
@@ -76,14 +77,14 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         log.warn("Bad JSON: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Dữ liệu gửi lên không đúng định dạng.");
+        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale("error.sys.bad_format"));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiResponse<Void> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
         log.error("DB Constraint: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.CONFLICT.value(), "Dữ liệu không hợp lệ hoặc đã tồn tại trong hệ thống.");
+        return ApiResponse.error(HttpStatus.CONFLICT.value(), Translator.tolocale("error.sys.conflict"));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -164,7 +165,7 @@ public class GlobalExceptionHandler {
         
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Dữ liệu đầu vào không hợp lệ", errors));
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale("error.sys.invalid_input"), errors));
     }
 
     @ExceptionHandler(Exception.class)
@@ -173,7 +174,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "Hệ thống đang bận, vui lòng thử lại sau."));
+                .body(ApiResponse.error(500, Translator.tolocale("error.sys.busy")));
     }
 
     // private ApiResponse<ErrorDebugInfo> buildErrorForDev(HttpStatus status,

@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @Slf4j(topic = "ADMIN-SERVICE")
@@ -103,10 +104,10 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public UserDetailResponse getUserByUsername(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         if (userEntity.getUserStatus() == UserStatus.INACTIVE) {
-            throw new ResourceNotFoundException("Người dùng không tồn tại: " + username);
+            throw new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username));
         }
         log.info("Get user");
         return userMapper.toUserDetailResponse(userEntity);
@@ -116,11 +117,11 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(rollbackFor = Exception.class)
     public UserResponse adminCreateUser(AdminCreateUserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new ResourceConflictException("Tên đăng nhập đã tồn tại: " + request.getUsername());
+            throw new ResourceConflictException(Translator.tolocale("error.admin.username_exists", request.getUsername()));
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ResourceConflictException("Email đã tồn tại trong hệ thống" + request.getEmail());
+            throw new ResourceConflictException(Translator.tolocale("error.admin.email_exists") + request.getEmail());
         }
 
         UserEntity user = userMapper.toEntity(request);
@@ -133,7 +134,7 @@ public class AdminServiceImpl implements AdminService {
 
         Long roleId = Objects.requireNonNull(request.getRoleId(), "RoleId cannot be null");
         RoleEntity role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Role " + roleId + " không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found_with", roleId)));
 
         user.setRole(role);
         UserEntity savedUser = userRepository.save(user);
@@ -147,7 +148,7 @@ public class AdminServiceImpl implements AdminService {
     @CacheEvict(value = "user_details", key = "#username")
     public UserResponse lockUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         userEntity.setUserStatus(UserStatus.LOCKED);
         userEntity.setOnline(false);
@@ -163,7 +164,7 @@ public class AdminServiceImpl implements AdminService {
     @CacheEvict(value = "user_details", key = "#username")
     public UserResponse unlockUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         if (userEntity.getUserStatus() == UserStatus.LOCKED) {
             userEntity.setUserStatus(UserStatus.ACTIVE);
@@ -183,7 +184,7 @@ public class AdminServiceImpl implements AdminService {
     @CacheEvict(value = "user_details", key = "#username")
     public void deleteAvatar(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         String urlAvatar = userEntity.getAvatar();
 
@@ -199,11 +200,11 @@ public class AdminServiceImpl implements AdminService {
     @CacheEvict(value = "user_details", key = "#username")
     public UserResponse adminUpdateUser(String username, AdminUpdateUserRequest request) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
 
         if (request.getEmail() != null && !request.getEmail().equals(userEntity.getEmail())) {
             if (userRepository.existsByEmail(request.getEmail())) {
-                throw new ResourceConflictException("Email đã tồn tại trong hệ thống");
+                throw new ResourceConflictException(Translator.tolocale("error.admin.email_exists"));
             }
         }
 
@@ -211,7 +212,7 @@ public class AdminServiceImpl implements AdminService {
         if (request.getRoleId() != null) {
             Long roleId = Objects.requireNonNull(request.getRoleId());
             RoleEntity newRole = roleRepository.findById(roleId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Role không tồn tại"));
+                    .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found")));
             userEntity.setRole(newRole);
         }
 
@@ -225,7 +226,7 @@ public class AdminServiceImpl implements AdminService {
     @CacheEvict(value = "user_details", key = "#targetUsername")
     public void adminDeleteUser(String targetUsername, String requesterUsername) {
         UserEntity userEntity = userRepository.findByUsername(targetUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại: " + targetUsername));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", targetUsername)));
         boolean hasChatHistory = messageRepository.existsBySenderOrRecipient(targetUsername);
 
         if (hasChatHistory) {
@@ -233,8 +234,8 @@ public class AdminServiceImpl implements AdminService {
             userEntity.setOnline(false);
             userEntity.setEmail(null);
             userEntity.setPhone(null);
-            userEntity.setFirstName("Tài khoản");
-            userEntity.setLastName("đã xóa");
+            userEntity.setFirstName(Translator.tolocale("sys.account"));
+            userEntity.setLastName(Translator.tolocale("sys.deleted"));
             userEntity.setAvatar(null);
             userRepository.save(userEntity);
             log.info("Soft deleted user: {} (user has message history) by {}", targetUsername, requesterUsername);
@@ -250,7 +251,7 @@ public class AdminServiceImpl implements AdminService {
     public List<AddressResponse> adminGetAllAddresses(String targetUsername) {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(
-                        () -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+                        () -> new ResourceNotFoundException(Translator.tolocale("error.user.target_not_found_with", targetUsername)));
 
         log.info("Get all address for user by admin");
         return user.getAddresses().stream()
@@ -263,13 +264,13 @@ public class AdminServiceImpl implements AdminService {
     public AddressResponse adminGetAddressById(String targetUsername, Long addressId) {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(
-                        () -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+                        () -> new ResourceNotFoundException(Translator.tolocale("error.user.target_not_found_with", targetUsername)));
 
         AddressEntity address = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
                 .orElseThrow(() -> new AccessForbiddenException(
-                        "Địa chỉ không tồn tại hoặc không thuộc sở hữu của người dùng mục tiêu."));
+                        Translator.tolocale("error.admin.address_not_owned")));
 
         log.info("Get address with id for user");
         return userMapper.toAddressResponse(address);
@@ -281,13 +282,13 @@ public class AdminServiceImpl implements AdminService {
     public UserDetailResponse adminUpdateAddress(String targetUsername, Long addressId, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(
-                        () -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+                        () -> new ResourceNotFoundException(Translator.tolocale("error.user.target_not_found_with", targetUsername)));
 
         AddressEntity addressToUpdate = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Địa chỉ không tồn tại hoặc không thuộc sở hữu của người dùng mục tiêu."));
+                        Translator.tolocale("error.admin.address_not_owned")));
 
         userMapper.updateAddressFromRequest(request, addressToUpdate);
 
@@ -302,12 +303,12 @@ public class AdminServiceImpl implements AdminService {
     public void adminDeleteAddress(String targetUsername, Long addressId) {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(
-                        () -> new ResourceNotFoundException("Người dùng mục tiêu không tồn tại: " + targetUsername));
+                        () -> new ResourceNotFoundException(Translator.tolocale("error.user.target_not_found_with", targetUsername)));
 
         AddressEntity addressToDelete = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Địa chỉ không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.address_not_found")));
 
         user.removeAddress(addressToDelete);
 

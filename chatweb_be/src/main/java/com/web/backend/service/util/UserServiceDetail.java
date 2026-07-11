@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @RequiredArgsConstructor
@@ -23,15 +24,15 @@ public class UserServiceDetail implements UserDetailsService {
     @Cacheable(value = "user_details", key = "#username")
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + username));
+                .orElseThrow(() -> new UsernameNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
         if (!user.isAccountNonLocked()) {
             log.info("user locked: {}", username);
-            throw new LockedException("Tài khoản đã bị khóa. Vui lòng liên hệ Admin.");
+            throw new LockedException(Translator.tolocale("error.auth.locked_admin"));
         }
 
         if (!user.isEnabled()) {
             log.info("user not found: {}", username);
-            throw new DisabledException("Người dùng không tồn tại");
+            throw new DisabledException(Translator.tolocale("error.user.not_found"));
         }
 
         return user;
