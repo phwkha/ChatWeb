@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Email Controller")
@@ -24,6 +25,7 @@ public class EmailController {
 
     private final EmailService emailService;
 
+    @Operation(summary = "Send email", description = "API endpoint for send email")
     @PostMapping("/send")
     @PreAuthorize("hasAuthority('SEND_EMAIL')")
     public ResponseEntity<ApiResponse<Void>> sendEmail(@RequestBody @Valid EmailRequest request) {

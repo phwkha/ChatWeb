@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Message Controller")
@@ -25,6 +26,7 @@ public class MessageController {
 
     private final MessageService messageService;
 
+    @Operation(summary = "Get private message", description = "API endpoint for get private message")
     @GetMapping("/private")
     public ResponseEntity<ApiResponse<CursorResponse<ChatMessageResponse>>> getPrivateMessage(
             @RequestParam String user1,
@@ -39,6 +41,7 @@ public class MessageController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Get private messages success", response));
     }
 
+    @Operation(summary = "Get unread counts", description = "API endpoint for get unread counts")
     @GetMapping("/unread-counts")
     public ResponseEntity<ApiResponse<UnreadCountsResponse>> getUnreadCounts(Authentication auth) {
         UserEntity user = (UserEntity) auth.getPrincipal();
@@ -48,6 +51,7 @@ public class MessageController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Get unread counts success",messageService.getUnreadMessageCounts(user.getUsername())));
     }
 
+    @Operation(summary = "Mark as read", description = "API endpoint for mark as read")
     @PostMapping("/mark-as-read")
     public ResponseEntity<ApiResponse<Void>> markAsRead(
             Authentication auth,

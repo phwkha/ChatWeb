@@ -17,6 +17,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -31,6 +32,7 @@ public class AuthController {
 
     private final RateLimitingService rateLimitingService;
 
+    @Operation(summary = "Login", description = "API endpoint for login")
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<UserResponse>> login(@RequestBody @Valid LoginRequest loginRequest, HttpServletRequest request) {
 
@@ -67,6 +69,7 @@ public class AuthController {
                 .body(ApiResponse.success(HttpStatus.OK.value(), "Đăng nhập thành công",null));
     }
 
+    @Operation(summary = "Register user", description = "API endpoint for register user")
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> registerUser(@RequestBody @Valid CreateUserRequest createUserRequest) {
         log.info("Registering new user: {}", createUserRequest.getUsername());
@@ -78,6 +81,7 @@ public class AuthController {
                         "Đăng ký thành công. Vui lòng kiểm tra email để nhập mã OTP.", newUser));
     }
 
+    @Operation(summary = "Verify otp", description = "API endpoint for verify otp")
     @PostMapping("/verify-account")
     public ResponseEntity<ApiResponse<Void>> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
         log.info("Verify Otp Request: {}", request);
@@ -85,6 +89,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Kích hoạt tài khoản thành công! Bạn có thể đăng nhập ngay bây giờ.", null));
     }
 
+    @Operation(summary = "Resend otp", description = "API endpoint for resend otp")
     @PostMapping("/resend-otp")
     public ResponseEntity<ApiResponse<Void>> resendOtp(@RequestParam String email) {
         log.info("Resend Otp Request: {}", email);
@@ -92,6 +97,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đã gửi lại mã OTP.", null));
     }
 
+    @Operation(summary = "Refresh token", description = "API endpoint for refresh token")
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponse<String>> refreshToken(
             @CookieValue(name = "refreshToken", required = false) String refreshToken) {
@@ -112,6 +118,7 @@ public class AuthController {
                 .body(ApiResponse.success(HttpStatus.OK.value(), "Làm mới Token thành công", newAccessToken));
     }
 
+    @Operation(summary = "Forgot password", description = "API endpoint for forgot password")
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
         log.info("Password reset initiated for email");
@@ -119,6 +126,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Mã xác nhận đã được gửi đến email của bạn.", null));
     }
 
+    @Operation(summary = "Reset password", description = "API endpoint for reset password")
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
         log.info("Password reset successfully for user");
@@ -127,12 +135,14 @@ public class AuthController {
                 "Đặt lại mật khẩu thành công. Vui lòng đăng nhập.", null));
     }
 
+    @Operation(summary = "Resend forgot password", description = "API endpoint for resend forgot password")
     @PostMapping("/resend-forgot-password")
     public ResponseEntity<ApiResponse<Void>> resendForgotPassword(@RequestParam String email) {
         authenticationService.resendForgotPasswordOtp(email);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đã gửi lại mã xác nhận vào email.", null));
     }
 
+    @Operation(summary = "Logout", description = "API endpoint for logout")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(Authentication authentication, HttpServletRequest request) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();

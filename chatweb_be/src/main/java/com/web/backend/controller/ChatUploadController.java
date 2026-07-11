@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +24,7 @@ public class ChatUploadController {
 
     private final StorageService storageService;
 
+    @Operation(summary = "Upload chat image", description = "API endpoint for upload chat image")
     @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<String>> uploadChatImage(@RequestParam("image") MultipartFile file) {
         log.info("upload image");
@@ -30,6 +32,7 @@ public class ChatUploadController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Upload thành công", url));
     }
 
+    @Operation(summary = "Upload chat video", description = "API endpoint for upload chat video")
     @PostMapping(value = "/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<String>> uploadChatVideo(@RequestParam("video") MultipartFile file) {
         log.info("upload video");

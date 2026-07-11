@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Friend Controller")
@@ -22,6 +23,7 @@ public class FriendController {
 
     private final FriendService friendService;
 
+    @Operation(summary = "Get friend requests", description = "API endpoint for get friend requests")
     @GetMapping("/requests")
     public ResponseEntity<ApiResponse<PageResponse<UserSummaryResponse>>> getFriendRequests(
             Authentication auth,
@@ -39,6 +41,7 @@ public class FriendController {
         ));
     }
 
+    @Operation(summary = "Get sent requests", description = "API endpoint for get sent requests")
     @GetMapping("/sent")
     public ResponseEntity<ApiResponse<PageResponse<UserSummaryResponse>>> getSentRequests(
             Authentication auth,
@@ -53,6 +56,7 @@ public class FriendController {
         ));
     }
 
+    @Operation(summary = "Get friends list", description = "API endpoint for get friends list")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<UserSummaryResponse>>> getFriendsList(
             Authentication auth,
@@ -70,6 +74,7 @@ public class FriendController {
         ));
     }
 
+    @Operation(summary = "Delete friendship", description = "API endpoint for delete friendship")
     @DeleteMapping("/{username}")
     public ResponseEntity<ApiResponse<Void>> deleteFriendship(
             Authentication auth,
@@ -85,6 +90,7 @@ public class FriendController {
         ));
     }
 
+    @Operation(summary = "Block user", description = "API endpoint for block user")
     @PostMapping("/block/{username}")
     public ResponseEntity<ApiResponse<Void>> blockUser(Authentication auth, @PathVariable String username) {
         UserEntity user = (UserEntity) auth.getPrincipal();

@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -25,6 +26,7 @@ public class KeyController {
 
     private final KeyService keyService;
 
+    @Operation(summary = "Get rsa key", description = "API endpoint for get rsa key")
     @GetMapping("/rsa")
     public ResponseEntity<ApiResponse<RsaKeyResponse>> getRsaKey(Authentication auth) {
         UserEntity user = (UserEntity) auth.getPrincipal();
@@ -38,6 +40,7 @@ public class KeyController {
         );
     }
 
+    @Operation(summary = "Save rsa key", description = "API endpoint for save rsa key")
     @PostMapping("/rsa")
     public ResponseEntity<ApiResponse<Void>> saveRsaKey(
             Authentication auth,
@@ -54,6 +57,7 @@ public class KeyController {
         );
     }
 
+    @Operation(summary = "Get public key", description = "API endpoint for get public key")
     @GetMapping("/public-key/{username}")
     public ResponseEntity<ApiResponse<String>> getPublicKey(Authentication authentication, @PathVariable String username) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
@@ -63,6 +67,7 @@ public class KeyController {
                 keyService.getPublicKey(username)));
     }
 
+    @Operation(summary = "Save public key", description = "API endpoint for save public key")
     @PostMapping("/public-key")
     public ResponseEntity<ApiResponse<Void>> savePublicKey(Authentication authentication, @RequestBody @Valid SavePublicKeyRequest request) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();

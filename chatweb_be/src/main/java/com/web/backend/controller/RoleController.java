@@ -15,6 +15,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +30,7 @@ public class RoleController {
 
     private final RoleService roleService;
 
+    @Operation(summary = "Get all roles", description = "API endpoint for get all roles")
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_VIEW_ALL')")
     public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles(Authentication authentication) {
@@ -40,6 +42,7 @@ public class RoleController {
                 roleService.getAllRoles()));
     }
 
+    @Operation(summary = "Get all permissions", description = "API endpoint for get all permissions")
     @GetMapping("/permissions")
     @PreAuthorize("hasAuthority('ROLE_VIEW_ALL_PERMISSION')")
     public ResponseEntity<ApiResponse<List<PermissionResponse>>> getAllPermissions(Authentication authentication) {
@@ -51,6 +54,7 @@ public class RoleController {
                 roleService.getAllPermissions()));
     }
 
+    @Operation(summary = "Create role", description = "API endpoint for create role")
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_ADD')")
     public ResponseEntity<ApiResponse<RoleResponse>> createRole(@RequestBody @Valid RoleRequest request,
@@ -63,6 +67,7 @@ public class RoleController {
                 roleService.createRole(request)));
     }
 
+    @Operation(summary = "Update role", description = "API endpoint for update role")
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_UPDATE')")
     public ResponseEntity<ApiResponse<RoleResponse>> updateRole(@PathVariable @NonNull Long id,
@@ -75,6 +80,7 @@ public class RoleController {
                 roleService.updateRole(id, request)));
     }
 
+    @Operation(summary = "Delete role", description = "API endpoint for delete role")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable @NonNull Long id, Authentication authentication) {

@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +31,7 @@ public class AdminController {
 
     private final AdminService adminService;
 
+    @Operation(summary = "Get all users", description = "API endpoint for get all users")
     @GetMapping("/users")
     @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     public ResponseEntity<ApiResponse<PageResponse<UserSummaryResponse>>> getAllUsers(
@@ -44,6 +46,7 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách user thành công", users));
     }
 
+    @Operation(summary = "Get online users", description = "API endpoint for get online users")
     @GetMapping("/online")
     @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     public ResponseEntity<ApiResponse<OnlineUsersResponse>> getOnlineUsers(Authentication authentication) {
@@ -54,6 +57,7 @@ public class AdminController {
                 adminService.getOnlineUsers()));
     }
 
+    @Operation(summary = "Get user by username", description = "API endpoint for get user by username")
     @GetMapping("/user/{username}")
     @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     public ResponseEntity<ApiResponse<UserDetailResponse>> getUserByUsername(Authentication authentication, @PathVariable String username) {
@@ -63,6 +67,7 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy thông tin user thành công", user));
     }
 
+    @Operation(summary = "Add user", description = "API endpoint for add user")
     @PostMapping("/add")
     @PreAuthorize("hasAuthority('ADMIN_CREATE')")
     public ResponseEntity<ApiResponse<UserResponse>> addUser(Authentication authentication, @RequestBody @Valid AdminCreateUserRequest request) {
@@ -73,6 +78,7 @@ public class AdminController {
                 .body(ApiResponse.success(HttpStatus.CREATED.value(), "Tạo user thành công", newUser));
     }
 
+    @Operation(summary = "Unlock user", description = "API endpoint for unlock user")
     @PostMapping("/{username}/unlock")
     @PreAuthorize("hasAuthority('ADMIN_UNLOCK')")
     public ResponseEntity<ApiResponse<UserResponse>> unlockUser(Authentication authentication, @PathVariable String username) {
@@ -82,6 +88,7 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Mở khóa user thành công", unlockedUser));
     }
 
+    @Operation(summary = "Lock user", description = "API endpoint for lock user")
     @PostMapping("/{username}/lock")
     @PreAuthorize("hasAuthority('ADMIN_LOCK')")
     public ResponseEntity<ApiResponse<UserResponse>> lockUser(Authentication authentication, @PathVariable String username) {
@@ -91,6 +98,7 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Khóa user thành công", lockedUser));
     }
 
+    @Operation(summary = "Delete avatar", description = "API endpoint for delete avatar")
     @PostMapping("/{username}/delete-avatar")
     @PreAuthorize("hasAuthority('ADMIN_DELETE_AVATAR')")
     public ResponseEntity<ApiResponse<Void>> deleteAvatar(Authentication authentication, @PathVariable String username) {
@@ -100,6 +108,7 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa avatar thành công",null));
     }
 
+    @Operation(summary = "Update user", description = "API endpoint for update user")
     @PutMapping("/{username}")
     @PreAuthorize("hasAuthority('ADMIN_UPDATE')")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
@@ -112,6 +121,7 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật user thành công", updatedUser));
     }
 
+    @Operation(summary = "Delete user", description = "API endpoint for delete user")
     @DeleteMapping("/{username}")
     @PreAuthorize("hasAuthority('ADMIN_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable String username, Authentication authentication) {
@@ -124,6 +134,7 @@ public class AdminController {
                 .body(ApiResponse.success(HttpStatus.NO_CONTENT.value(), "Xóa user thành công", null));
     }
 
+    @Operation(summary = "Get all addresses for user", description = "API endpoint for get all addresses for user")
     @GetMapping("/user/{username}/addresses")
     @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddressesForUser(
@@ -138,6 +149,7 @@ public class AdminController {
                 addresses));
     }
 
+    @Operation(summary = "Get address by id for user", description = "API endpoint for get address by id for user")
     @GetMapping("/user/{username}/address/{addressId}")
     @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     public ResponseEntity<ApiResponse<AddressResponse>> getAddressByIdForUser(
@@ -154,6 +166,7 @@ public class AdminController {
                 address));
     }
 
+    @Operation(summary = "Update address for user", description = "API endpoint for update address for user")
     @PutMapping("/user/{username}/address/{addressId}")
     @PreAuthorize("hasAuthority('ADMIN_UPDATE')")
     public ResponseEntity<ApiResponse<UserDetailResponse>> updateAddressForUser(
@@ -172,6 +185,7 @@ public class AdminController {
                 result));
     }
 
+    @Operation(summary = "Delete address for user", description = "API endpoint for delete address for user")
     @DeleteMapping("/user/{username}/address/{addressId}")
     @PreAuthorize("hasAuthority('ADMIN_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteAddressForUser(

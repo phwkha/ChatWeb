@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,6 +28,7 @@ public class UserController {
 
     private final UserService userService;
 
+    @Operation(summary = "Get current user", description = "API endpoint for get current user")
     @GetMapping("/current")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(Authentication authentication) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
@@ -34,6 +36,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy thông tin người dùng thành công", userService.getCurrentUser(userEntityPrincipal.getUsername())));
     }
 
+    @Operation(summary = "Get profile user", description = "API endpoint for get profile user")
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<UserDetailResponse>> getProfileUser(Authentication authentication) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
@@ -43,6 +46,7 @@ public class UserController {
                 userService.getProfileUser(userEntityPrincipal.getUsername())));
     }
 
+    @Operation(summary = "Update user", description = "API endpoint for update user")
     @PutMapping("/profile")
     public ResponseEntity<ApiResponse<UserDetailResponse>> updateUser(
             @RequestBody @Valid UpdateUserRequest updateUserRequest,
@@ -57,6 +61,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật hồ sơ thành công", updatedUser));
     }
 
+    @Operation(summary = "Update avatar", description = "API endpoint for update avatar")
     @PatchMapping("/avatar")
     public ResponseEntity<ApiResponse<String>> updateAvatar(
             @RequestParam("file") MultipartFile avatarFile,
@@ -69,6 +74,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật ảnh đại diện thành công", urlAvatar));
     }
 
+    @Operation(summary = "Change password", description = "API endpoint for change password")
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<String>> changePassword(
             @RequestBody @Valid ChangePasswordRequest request,
@@ -81,6 +87,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Đổi mật khẩu thành công", null));
     }
 
+    @Operation(summary = "Delete user", description = "API endpoint for delete user")
     @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<Void>> deleteUser(Authentication authentication) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
@@ -93,6 +100,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa tài khoản thành công", null));
     }
 
+    @Operation(summary = "Add address", description = "API endpoint for add address")
     @PostMapping("/address")
     public ResponseEntity<ApiResponse<UserDetailResponse>> addAddress(
             Authentication authentication,
@@ -106,6 +114,7 @@ public class UserController {
                 .body(ApiResponse.success(HttpStatus.CREATED.value(), "Thêm địa chỉ mới thành công", result));
     }
 
+    @Operation(summary = "Update address", description = "API endpoint for update address")
     @PutMapping("/address/{addressId}")
     public ResponseEntity<ApiResponse<UserDetailResponse>> updateAddress(
             Authentication authentication,
@@ -119,6 +128,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật địa chỉ thành công", result));
     }
 
+    @Operation(summary = "Delete address", description = "API endpoint for delete address")
     @DeleteMapping("/address/{addressId}")
     public ResponseEntity<ApiResponse<UserDetailResponse>> deleteAddress(
             Authentication authentication,
@@ -131,6 +141,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa địa chỉ thành công", result));
     }
 
+    @Operation(summary = "Get all addresses", description = "API endpoint for get all addresses")
     @GetMapping("/addresses")
     public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddresses(Authentication authentication) {
         UserEntity currentUser = (UserEntity) authentication.getPrincipal();
@@ -139,6 +150,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách địa chỉ thành công", addresses));
     }
 
+    @Operation(summary = "Get address detail", description = "API endpoint for get address detail")
     @GetMapping("/address/{addressId}")
     public ResponseEntity<ApiResponse<AddressResponse>> getAddressDetail(
             Authentication authentication,
@@ -149,6 +161,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy chi tiết địa chỉ thành công", address));
     }
 
+    @Operation(summary = "Initiate email change", description = "API endpoint for initiate email change")
     @PostMapping("/initiate-email-change")
     public ResponseEntity<ApiResponse<Void>> initiateEmailChange(
             Authentication authentication,
@@ -162,6 +175,7 @@ public class UserController {
                 "Mã xác thực đã được gửi đến email mới: " + request.getNewEmail(), null));
     }
 
+    @Operation(summary = "Verify email change", description = "API endpoint for verify email change")
     @PostMapping("/verify-email-change")
     public ResponseEntity<ApiResponse<Void>> verifyEmailChange(
             Authentication authentication,
@@ -174,6 +188,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật email thành công!", null));
     }
 
+    @Operation(summary = "Resend email verification", description = "API endpoint for resend email verification")
     @PostMapping("/resend-email-verification")
     public ResponseEntity<ApiResponse<Void>> resendEmailVerification(Authentication authentication) {
         UserEntity user = (UserEntity) authentication.getPrincipal();
@@ -184,6 +199,7 @@ public class UserController {
                 "Đã gửi lại mã xác thực vào email mới.", null));
     }
 
+    @Operation(summary = "Initiate phone change", description = "API endpoint for initiate phone change")
     @PostMapping("/initiate-phone-change")
     public ResponseEntity<ApiResponse<Void>> initiatePhoneChange(
             Authentication authentication,
@@ -197,6 +213,7 @@ public class UserController {
                 "Mã xác thực đã được gửi để xác nhận đổi số điện thoại.", null));
     }
 
+    @Operation(summary = "Verify phone change", description = "API endpoint for verify phone change")
     @PostMapping("/verify-phone-change")
     public ResponseEntity<ApiResponse<Void>> verifyPhoneChange(
             Authentication authentication,
@@ -210,6 +227,7 @@ public class UserController {
                 "Cập nhật số điện thoại thành công!", null));
     }
 
+    @Operation(summary = "Resend phone verification", description = "API endpoint for resend phone verification")
     @PostMapping("/resend-phone-change-verification")
     public ResponseEntity<ApiResponse<Void>> resendPhoneVerification(Authentication authentication) {
         UserEntity user = (UserEntity) authentication.getPrincipal();
