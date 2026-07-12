@@ -24,7 +24,7 @@ public class LocalResolverConfig extends AcceptHeaderLocaleResolver implements W
         }
 
         List<Locale.LanguageRange> list = Locale.LanguageRange.parse(languageHeader);
-        Locale locale = Locale.lookup(list, List.of(Locale.of("en"), Locale.of("vi"), Locale.of("ja")));
+        Locale locale = Locale.lookup(list, List.of(new Locale("en"), new Locale("vi"), new Locale("ja")));
 
         return locale != null ? locale : Locale.ENGLISH;
     }
