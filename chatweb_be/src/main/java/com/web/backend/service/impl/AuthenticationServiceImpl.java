@@ -15,6 +15,7 @@ import com.web.backend.exception.custom.InvalidOtpException;
 import com.web.backend.exception.custom.ResourceConflictException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.kafka.producer.EmailProducer;
+import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.RegisterData;
 import com.web.backend.model.RoleEntity;
 import com.web.backend.model.UserEntity;
@@ -54,6 +55,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserRepository userRepository;
 
     private final AuthenticationManager authenticationManager;
+
+    private final UserMapper userMapper;
 
     private final JwtService jwtService;
 
@@ -122,14 +125,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         List<String> authorities = new ArrayList<>();
 
         Integer tokenVersion;
-
+        UserEntity userPrincipal;
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequest.getUsername(),
                             loginRequest.getPassword()));
             authorities.add(authentication.getAuthorities().toString());
-            UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
+            userPrincipal = (UserEntity) authentication.getPrincipal();
             tokenVersion = userPrincipal.getTokenVersion();
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (LockedException e) {
@@ -149,10 +152,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 loginRequest.getUsername(),
                 authorities,
                 tokenVersion);
+
+        UserResponse userResponse = userMapper.toUserResponse(userPrincipal);
         log.info("Login with user: {}", loginRequest.getUsername());
         return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .userResponse(userResponse)
                 .build();
     }
 
@@ -264,7 +270,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found")));
         } else {
             role = roleRepository.findByName("USER")
-                    .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.default_not_found")));
+                    .orElseThrow(
+                            () -> new ResourceNotFoundException(Translator.tolocale("error.role.default_not_found")));
         }
         newUser.setRole(role);
 
@@ -339,7 +346,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     public void resendForgotPasswordOtp(String email) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.email_user_not_found")));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(Translator.tolocale("error.user.email_user_not_found")));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
             throw new AccessForbiddenException(Translator.tolocale("error.auth.locked_not_found"));

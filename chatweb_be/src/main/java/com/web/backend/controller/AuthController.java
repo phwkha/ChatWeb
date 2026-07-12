@@ -21,7 +21,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 import com.web.backend.config.LocalResolverConfig.Translator;
 
-
 @Tag(name = "Auth Controller")
 @RestController
 @RequestMapping("/api/auth/")
@@ -35,7 +34,8 @@ public class AuthController {
 
     @Operation(summary = "Login", description = "API endpoint for login")
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<UserResponse>> login(@RequestBody @Valid LoginRequest loginRequest, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<UserResponse>> login(@RequestBody @Valid LoginRequest loginRequest,
+            HttpServletRequest request) {
 
         String ip = request.getRemoteAddr();
 
@@ -67,12 +67,14 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                .body(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.login"),null));
+                .body(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.login"),
+                        loginResponse.getUserResponse()));
     }
 
     @Operation(summary = "Register user", description = "API endpoint for register user")
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<UserResponse>> registerUser(@RequestBody @Valid CreateUserRequest createUserRequest) {
+    public ResponseEntity<ApiResponse<UserResponse>> registerUser(
+            @RequestBody @Valid CreateUserRequest createUserRequest) {
         log.info("Registering new user: {}", createUserRequest.getUsername());
 
         UserResponse newUser = authenticationService.createUser(createUserRequest);
@@ -87,7 +89,8 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
         log.info("Verify Otp Request: {}", request);
         authenticationService.verifyUser(request);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.activated"), null));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.activated"), null));
     }
 
     @Operation(summary = "Resend otp", description = "API endpoint for resend otp")
@@ -95,7 +98,8 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> resendOtp(@RequestParam String email) {
         log.info("Resend Otp Request: {}", email);
         authenticationService.resendOtp(email);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.otp_resent"), null));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.otp_resent"), null));
     }
 
     @Operation(summary = "Refresh token", description = "API endpoint for refresh token")
@@ -116,7 +120,8 @@ public class AuthController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, newAccessCookie.toString())
-                .body(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.token_refreshed"), newAccessToken));
+                .body(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.token_refreshed"),
+                        newAccessToken));
     }
 
     @Operation(summary = "Forgot password", description = "API endpoint for forgot password")
@@ -124,7 +129,8 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
         log.info("Password reset initiated for email");
         authenticationService.initiateForgotPassword(request.getEmail());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.code_sent"), null));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.code_sent"), null));
     }
 
     @Operation(summary = "Reset password", description = "API endpoint for reset password")
@@ -140,7 +146,8 @@ public class AuthController {
     @PostMapping("/resend-forgot-password")
     public ResponseEntity<ApiResponse<Void>> resendForgotPassword(@RequestParam String email) {
         authenticationService.resendForgotPasswordOtp(email);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.code_resent"), null));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.code_resent"), null));
     }
 
     @Operation(summary = "Logout", description = "API endpoint for logout")
