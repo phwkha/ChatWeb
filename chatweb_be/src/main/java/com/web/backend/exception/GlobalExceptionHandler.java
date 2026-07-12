@@ -10,6 +10,8 @@ import com.web.backend.exception.custom.PasswordMismatchException;
 import com.web.backend.exception.custom.ResourceConflictException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 
+import io.jsonwebtoken.JwtException;
+
 // import com.web.backend.controller.response.ErrorDebugInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -55,14 +57,16 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
         log.error("Http Request Method Not Supported: {}", ex.getMessage());
         return ApiResponse.error(HttpStatus.METHOD_NOT_ALLOWED.value(),
-                Translator.tolocale("error.sys.method") + ex.getMethod() + Translator.tolocale("error.sys.method_not_supported"));
+                Translator.tolocale("error.sys.method") + ex.getMethod()
+                        + Translator.tolocale("error.sys.method_not_supported"));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
         log.error("Missing Servlet Request Parameter: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale("error.sys.missing_param", ex.getParameterName()));
+        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(),
+                Translator.tolocale("error.sys.missing_param", ex.getParameterName()));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -151,9 +155,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-        
+
         org.springframework.validation.BindingResult bindingResult = ex.getBindingResult();
         if (bindingResult != null) {
             bindingResult.getAllErrors().forEach((error) -> {
@@ -162,10 +167,18 @@ public class GlobalExceptionHandler {
                 errors.put(fieldName, errorMessage);
             });
         }
-        
+
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale("error.sys.invalid_input"), errors));
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale("error.sys.invalid_input"),
+                        errors));
+    }
+
+    @ExceptionHandler(JwtException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiResponse<Void> handleJwtException(JwtException ex) {
+        log.warn("Token Error JWT: {}", ex.getMessage());
+        return ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), Translator.tolocale("error.auth.session_expired"));
     }
 
     @ExceptionHandler(Exception.class)
