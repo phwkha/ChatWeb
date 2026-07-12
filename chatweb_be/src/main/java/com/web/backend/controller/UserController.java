@@ -30,11 +30,13 @@ public class UserController {
     private final UserService userService;
 
     @Operation(summary = "Get current user", description = "API endpoint for get current user")
-    @GetMapping("/current")
-    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(Authentication authentication) {
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> getMe(Authentication authentication) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get current user: {}", userEntityPrincipal.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.get_info"), userService.getCurrentUser(userEntityPrincipal.getUsername())));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.get_info"),
+                        userService.getMe(userEntityPrincipal.getUsername())));
     }
 
     @Operation(summary = "Get profile user", description = "API endpoint for get profile user")
@@ -59,7 +61,8 @@ public class UserController {
         log.info("Updating profile for user: {}", username);
 
         UserDetailResponse updatedUser = userService.updateUser(username, updateUserRequest);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_profile"), updatedUser));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                Translator.tolocale("success.user.update_profile"), updatedUser));
     }
 
     @Operation(summary = "Update avatar", description = "API endpoint for update avatar")
@@ -72,7 +75,8 @@ public class UserController {
 
         String urlAvatar = userService.updateAvatar(userEntity.getUsername(), avatarFile);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_avatar"), urlAvatar));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                Translator.tolocale("success.user.update_avatar"), urlAvatar));
     }
 
     @Operation(summary = "Change password", description = "API endpoint for change password")
@@ -83,9 +87,11 @@ public class UserController {
 
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("User {} changed password successfully", userEntityPrincipal.getUsername());
-        userService.changePassword(userEntityPrincipal.getUsername(), request.getCurrentPassword(), request.getNewPassword());
+        userService.changePassword(userEntityPrincipal.getUsername(), request.getCurrentPassword(),
+                request.getNewPassword());
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.change_pwd"), null));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.change_pwd"), null));
     }
 
     @Operation(summary = "Delete user", description = "API endpoint for delete user")
@@ -98,7 +104,8 @@ public class UserController {
         log.warn("User {} is deleting their account", username);
         userService.deleteUser(username);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.del_account"), null));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.del_account"), null));
     }
 
     @Operation(summary = "Add address", description = "API endpoint for add address")
@@ -112,7 +119,8 @@ public class UserController {
         UserDetailResponse result = userService.addAddress(currentUser.getUsername(), addressRequest);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(HttpStatus.CREATED.value(), Translator.tolocale("success.user.add_address"), result));
+                .body(ApiResponse.success(HttpStatus.CREATED.value(), Translator.tolocale("success.user.add_address"),
+                        result));
     }
 
     @Operation(summary = "Update address", description = "API endpoint for update address")
@@ -126,7 +134,8 @@ public class UserController {
         log.info("Updating address {} for user {}", addressId, currentUser.getUsername());
         UserDetailResponse result = userService.updateAddress(currentUser.getUsername(), addressId, addressRequest);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_address"), result));
+        return ResponseEntity.ok(
+                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_address"), result));
     }
 
     @Operation(summary = "Delete address", description = "API endpoint for delete address")
@@ -139,7 +148,8 @@ public class UserController {
         log.info("Deleting address {} for user {}", addressId, currentUser.getUsername());
         UserDetailResponse result = userService.deleteAddress(currentUser.getUsername(), addressId);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.del_address"), result));
+        return ResponseEntity.ok(
+                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.del_address"), result));
     }
 
     @Operation(summary = "Get all addresses", description = "API endpoint for get all addresses")
@@ -148,7 +158,8 @@ public class UserController {
         UserEntity currentUser = (UserEntity) authentication.getPrincipal();
         log.info("Get all address for user: {}", currentUser.getUsername());
         List<AddressResponse> addresses = userService.getAllAddresses(currentUser.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.get_addresses"), addresses));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                Translator.tolocale("success.user.get_addresses"), addresses));
     }
 
     @Operation(summary = "Get address detail", description = "API endpoint for get address detail")
@@ -159,7 +170,8 @@ public class UserController {
         UserEntity currentUser = (UserEntity) authentication.getPrincipal();
         log.info("Get address for user: {}", currentUser.getUsername());
         AddressResponse address = userService.getAddressById(currentUser.getUsername(), addressId);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.get_address"), address));
+        return ResponseEntity.ok(
+                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.get_address"), address));
     }
 
     @Operation(summary = "Initiate email change", description = "API endpoint for initiate email change")
@@ -186,7 +198,8 @@ public class UserController {
         log.info("Email changed successfully for user: {}", user.getUsername());
         userService.verifyEmailChange(user.getUsername(), request.getOtp());
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_email"), null));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_email"), null));
     }
 
     @Operation(summary = "Resend email verification", description = "API endpoint for resend email verification")

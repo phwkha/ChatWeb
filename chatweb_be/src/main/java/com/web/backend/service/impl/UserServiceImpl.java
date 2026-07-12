@@ -63,9 +63,10 @@ public class UserServiceImpl implements UserService {
     private static final String EMAIL_FILTER_KEY = "filter:emails";
 
     @Override
-    public UserResponse getCurrentUser(String username) {
+    public UserResponse getMe(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale("error.user.not_found_with", username)));
 
         if (user.getUserStatus() != UserStatus.ACTIVE) {
             throw new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username));
@@ -78,7 +79,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDetailResponse getProfileUser(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale("error.user.not_found_with", username)));
 
         if (user.getUserStatus() != UserStatus.ACTIVE) {
             throw new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username));
@@ -93,7 +95,8 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse updateUser(String username, UpdateUserRequest request) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale("error.user.not_found_with", username)));
 
         userMapper.updateUserFromRequest(request, userEntity);
 
@@ -174,7 +177,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserDetailResponse addAddress(String username, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale("error.user.not_found_with", username)));
         ;
         AddressEntity newAddress = userMapper.toAddressEntity(request);
 
@@ -190,7 +194,8 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse updateAddress(String username, Long addressId, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale("error.user.not_found_with", username)));
 
         AddressEntity addressToUpdate = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
@@ -210,7 +215,8 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public UserDetailResponse deleteAddress(String username, Long addressId) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale("error.user.not_found_with", username)));
 
         AddressEntity addressToDelete = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
@@ -228,7 +234,8 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public List<AddressResponse> getAllAddresses(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale("error.user.not_found_with", username)));
 
         log.info("Get all address for user");
         return user.getAddresses().stream()
@@ -240,7 +247,8 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public AddressResponse getAddressById(String username, Long addressId) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale("error.user.not_found_with", username)));
 
         AddressEntity address = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
@@ -256,7 +264,8 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public void deleteUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale("error.user.not_found_with", username)));
         boolean hasChatHistory = messageRepository.existsBySenderOrRecipient(username);
 
         if (hasChatHistory) {
@@ -280,7 +289,8 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "user_details", key = "#username")
     public void changePassword(String username, String currentPassword, String newPassword) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale("error.user.not_found_with", username)));
 
         if (!passwordEncoder.matches(currentPassword, userEntity.getPassword())) {
             throw new InvalidPasswordException(Translator.tolocale("error.user.current_pw_incorrect"));

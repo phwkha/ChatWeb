@@ -13,7 +13,7 @@ public interface UserService {
 
     boolean userExists(String username);
 
-    UserResponse getCurrentUser(String username);
+    UserResponse getMe(String username);
 
     UserDetailResponse getProfileUser(String username);
 
