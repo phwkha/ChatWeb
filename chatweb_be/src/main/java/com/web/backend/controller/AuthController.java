@@ -148,8 +148,25 @@ public class AuthController {
     public ResponseEntity<ApiResponse<String>> logout(Authentication authentication, HttpServletRequest request) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("User logout {}", userEntityPrincipal.getUsername());
-        String token = request.getHeader("Authorization").substring(7);
-        authenticationService.logout(token);
+        String token = null;
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        if (token == null || token.isEmpty()) {
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }
+        }
+
+        if (token != null && !token.trim().isEmpty() && !token.equals("null") && !token.equals("undefined")) {
+            authenticationService.logout(token);
+        }
 
         ResponseCookie deleteAccess = ResponseCookie.from("accessToken", "")
                 .path("/").maxAge(0).build();
