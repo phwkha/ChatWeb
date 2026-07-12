@@ -6,6 +6,7 @@ target/
 .env
 .env.*
 !.env.example
+apis.json
 
 ### STS ###
 .apt_generated
