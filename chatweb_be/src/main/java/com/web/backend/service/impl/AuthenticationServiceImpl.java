@@ -1,12 +1,36 @@
 package com.web.backend.service.impl;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.Cache;
+
 import com.web.backend.common.OtpType;
 import com.web.backend.common.TokenType;
 import com.web.backend.common.UserStatus;
+import com.web.backend.config.LocalResolverConfig.Translator;
 import com.web.backend.controller.request.CreateUserRequest;
 import com.web.backend.controller.request.LoginRequest;
 import com.web.backend.controller.request.VerifyOtpRequest;
 import com.web.backend.controller.response.LoginResponse;
+import com.web.backend.controller.response.TokenResponse;
 import com.web.backend.controller.response.UserResponse;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.AuthenticationFailedException;
@@ -24,28 +48,9 @@ import com.web.backend.repository.UserRepository;
 import com.web.backend.service.AuthenticationService;
 import com.web.backend.service.JwtService;
 import com.web.backend.service.util.CuckooFilterService;
-import com.web.backend.config.LocalResolverConfig.Translator;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.authentication.LockedException;
-import org.springframework.security.core.AuthenticationException;
-
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.Objects;
 
 @Service
 @Slf4j(topic = "AUTHENTICATION-SERVICE")
@@ -59,6 +64,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserMapper userMapper;
 
     private final JwtService jwtService;
+
+    private final CacheManager cacheManager;
 
     private final EmailProducer emailKafkaProducer;
 
@@ -176,13 +183,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public String refreshToken(String refreshToken) {
+    public TokenResponse refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw new InvalidDataException(Translator.tolocale("error.auth.missing_refresh"));
         }
 
-        String username = jwtService.extractUsername(refreshToken, TokenType.REFRESH_TOKEN);
+        String blacklistKey = "blacklist:" + refreshToken;
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey))) {
+            throw new AccessForbiddenException(Translator.tolocale("error.auth.refresh_revoked"));
+        }
 
+        String username = jwtService.extractUsername(refreshToken, TokenType.REFRESH_TOKEN);
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
 
@@ -195,17 +206,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         List<String> authorities = new ArrayList<>();
-
         user.getAuthorities().forEach(authority -> authorities.add(authority.getAuthority()));
-
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
             throw new AccessForbiddenException(Translator.tolocale("error.auth.locked_or_not_found"));
         }
+
+        String newAccessToken = jwtService.generateAccessToken(user.getUsername(), authorities, currentVersion);
+        String newRefreshToken = jwtService.generateRefreshToken(user.getUsername(), authorities, currentVersion);
+
+        long remainingTime = jwtService.getRemainingTime(refreshToken);
+        if (remainingTime > 0) {
+            redisTemplate.opsForValue().set(blacklistKey, "rotated", remainingTime, TimeUnit.MILLISECONDS);
+        }
+
         log.info("Refresh token with user: {}", username);
-        return jwtService.generateAccessToken(
-                user.getUsername(),
-                authorities,
-                currentVersion);
+        return TokenResponse.builder().accessToken(newAccessToken).refreshToken(newRefreshToken).build();
     }
 
     @Override
@@ -337,8 +352,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         validateRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, otp);
 
+        user.setTokenVersion((user.getTokenVersion() == null ? 0 : user.getTokenVersion()) + 1);
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+
+        Cache userCache = cacheManager.getCache("user_details");
+        if (userCache != null && user.getUsername() != null) {
+            userCache.evict(Objects.requireNonNull(user.getUsername()));
+        }
         log.info("Password reset successfully via Redis OTP for user: {}", user.getUsername());
     }
 

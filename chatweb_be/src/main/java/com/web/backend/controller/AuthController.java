@@ -3,6 +3,7 @@ package com.web.backend.controller;
 import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.controller.response.LoginResponse;
+import com.web.backend.controller.response.TokenResponse;
 import com.web.backend.controller.response.UserResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.AuthenticationService;
@@ -59,7 +60,7 @@ public class AuthController {
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", loginResponse.getRefreshToken())
                 .httpOnly(true)
                 .secure(true)
-                .path("/auth/refresh-token")
+                .path("/api/auth/refresh-token")
                 .maxAge(7 * 24 * 60 * 60)
                 .sameSite("strict")
                 .build();
@@ -108,9 +109,9 @@ public class AuthController {
             @CookieValue(name = "refreshToken", required = false) String refreshToken) {
 
         log.info("Refresh token with user");
-        String newAccessToken = authenticationService.refreshToken(refreshToken);
+        TokenResponse newTokenResponse = authenticationService.refreshToken(refreshToken);
 
-        ResponseCookie newAccessCookie = ResponseCookie.from("accessToken", newAccessToken)
+        ResponseCookie newAccessCookie = ResponseCookie.from("accessToken", newTokenResponse.getAccessToken())
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
@@ -118,10 +119,19 @@ public class AuthController {
                 .sameSite("Strict")
                 .build();
 
+        ResponseCookie newrefreshCookie = ResponseCookie.from("refreshToken", newTokenResponse.getRefreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/auth/refresh-token")
+                .maxAge(7 * 24 * 60 * 60)
+                .sameSite("strict")
+                .build();
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, newAccessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, newrefreshCookie.toString())
                 .body(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.auth.token_refreshed"),
-                        newAccessToken));
+                        newTokenResponse.getAccessToken()));
     }
 
     @Operation(summary = "Forgot password", description = "API endpoint for forgot password")

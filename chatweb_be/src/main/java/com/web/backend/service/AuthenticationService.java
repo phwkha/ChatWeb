@@ -4,6 +4,7 @@ import com.web.backend.controller.request.CreateUserRequest;
 import com.web.backend.controller.request.LoginRequest;
 import com.web.backend.controller.request.VerifyOtpRequest;
 import com.web.backend.controller.response.LoginResponse;
+import com.web.backend.controller.response.TokenResponse;
 import com.web.backend.controller.response.UserResponse;
 
 public interface AuthenticationService {
@@ -12,7 +13,7 @@ public interface AuthenticationService {
 
     LoginResponse login(LoginRequest loginRequest);
 
-    String refreshToken(String refreshToken);
+    TokenResponse refreshToken(String refreshToken);
 
     void initiateForgotPassword(String email);
 
