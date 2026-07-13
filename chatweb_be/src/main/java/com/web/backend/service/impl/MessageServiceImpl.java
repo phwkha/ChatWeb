@@ -25,30 +25,30 @@ import org.springframework.stereotype.Service;
 import com.web.backend.common.ContentType;
 import com.web.backend.common.MessageStatus;
 import com.web.backend.common.MessageType;
+import com.web.backend.common.UserStatus;
+import com.web.backend.config.LocalResolverConfig.Translator;
 import com.web.backend.controller.request.ChatMessageRequest;
 import com.web.backend.controller.request.MessageSystemRequest;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
-import com.web.backend.common.UserStatus;
+import com.web.backend.exception.WebSocketErrorHandler;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.mapper.MessageMapper;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.model.SystemMessage;
+import com.web.backend.model.UserEntity;
 import com.web.backend.repository.MessageRepository;
 import com.web.backend.repository.SystemMessageRepository;
-import com.web.backend.model.UserEntity;
 import com.web.backend.repository.UserRepository;
 import com.web.backend.repository.projection.UnreadCountProjection;
 import com.web.backend.service.FriendService;
 import com.web.backend.service.MessageService;
-import com.web.backend.exception.WebSocketErrorHandler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Slf4j(topic = "MESSAGE-SERVICE")
 @Service
@@ -174,7 +174,7 @@ public class MessageServiceImpl implements MessageService {
 
         String conversationId = generateConversationId(user1, user2);
 
-        Pageable pageable = PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "timestamp"));
         List<ChatMessage> messages;
 
         if (cursorStr == null || cursorStr.isEmpty()) {
@@ -204,7 +204,7 @@ public class MessageServiceImpl implements MessageService {
 
                 finalMessages = uniqueMessagesMap.values().stream()
                         .sorted(Comparator.comparing((ChatMessage msg) -> msg.getTimestamp()).reversed())
-                        .limit(size)
+                        .limit(size + 1)
                         .collect(Collectors.toList());
             }
         }
@@ -215,23 +215,26 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public CursorResponse<MessageSystemResponse> findSystemMessageWithCursor(String cursorStr, int size) {
 
-        Pageable pageable = PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "timestamp"));
         List<SystemMessage> messages;
 
         if (cursorStr == null || cursorStr.isEmpty()) {
-            messages = systemMessageRepository.findInitialMessage(pageable);
+            messages = new ArrayList<>(systemMessageRepository.findInitialMessage(pageable));
         } else {
             Instant cursorTime = Instant.parse(cursorStr);
-            messages = systemMessageRepository.findMessage(cursorTime, pageable);
+            messages = new ArrayList<>(systemMessageRepository.findMessage(cursorTime, pageable));
+        }
+
+        boolean hasMore = false;
+        if (messages.size() > size) {
+            hasMore = true;
+            messages.remove(messages.size() - 1);
         }
 
         String nextCursor = null;
-        boolean hasMore = false;
-
         if (!messages.isEmpty()) {
             Instant lastMessageTime = messages.get(messages.size() - 1).getTimestamp();
             nextCursor = lastMessageTime.toString();
-            hasMore = messages.size() == size;
         }
 
         List<MessageSystemResponse> responseList = messages.stream()
@@ -299,13 +302,17 @@ public class MessageServiceImpl implements MessageService {
     }
 
     private CursorResponse<ChatMessageResponse> buildCursorResponse(List<ChatMessage> messages, int size) {
-        String nextCursor = null;
-        boolean hasMore = false;
 
+        boolean hasMore = false;
+        if (messages.size() > size) {
+            hasMore = true;
+            messages.remove(messages.size() - 1);
+        }
+
+        String nextCursor = null;
         if (!messages.isEmpty()) {
             LocalDateTime lastMessageTime = messages.get(messages.size() - 1).getTimestamp();
             nextCursor = lastMessageTime.toString();
-            hasMore = messages.size() == size;
         }
 
         List<ChatMessageResponse> responseList = messages.stream()

@@ -5,16 +5,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
-
 import java.time.Instant;
 import java.util.List;
-
 
 public interface SystemMessageRepository extends MongoRepository<SystemMessage, String> {
 
     @Query("{}")
     List<SystemMessage> findInitialMessage(Pageable pageable);
 
-    @Query("'timestamp': { '$lt': ?0 } }")
+    @Query("{'timestamp': { '$lt': ?0 } }")
     List<SystemMessage> findMessage(Instant cursor, Pageable pageable);
 }
