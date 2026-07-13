@@ -114,6 +114,7 @@ services:
       - cw_mongo
       - cw_postgres
       - cw_redis
+      - kafka
 
 networks:
   default:
