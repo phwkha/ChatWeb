@@ -29,7 +29,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -457,5 +456,4 @@ public class UserServiceImpl implements UserService {
         emailService.sendOtpEmail(emailToSend, usernameForMail, newOtp);
         log.info("Resent {} OTP to {}", type, emailToSend);
     }
-
 }
