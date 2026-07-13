@@ -189,7 +189,7 @@ public class AuthController {
                 .path("/").maxAge(0).build();
 
         ResponseCookie deleteRefresh = ResponseCookie.from("refreshToken", "")
-                .path("/auth/refresh-token").maxAge(0).build();
+                .path("/api/auth/refresh-token").maxAge(0).build();
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
