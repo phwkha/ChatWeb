@@ -66,10 +66,10 @@ public class FriendServiceImpl implements FriendService {
                 UserEntity addressee = getUser(addresseeUsername);
 
                 if (addressee.getUserStatus() == UserStatus.INACTIVE) {
-                    throw new AccessForbiddenException(Translator.tolocale("error.friend.send_deleted"));
+                        throw new AccessForbiddenException(Translator.tolocale("error.friend.send_deleted"));
                 }
                 if (addressee.getUserStatus() == UserStatus.LOCKED) {
-                    throw new AccessForbiddenException(Translator.tolocale("error.friend.send_locked"));
+                        throw new AccessForbiddenException(Translator.tolocale("error.friend.send_locked"));
                 }
 
                 Optional<FriendshipEntity> existingRelation = friendshipRepository.findByUsers(requester, addressee);
@@ -120,14 +120,15 @@ public class FriendServiceImpl implements FriendService {
                 UserEntity requester = getUser(requesterUsername);
 
                 if (requester.getUserStatus() == UserStatus.INACTIVE) {
-                    throw new AccessForbiddenException(Translator.tolocale("error.friend.accept_deleted"));
+                        throw new AccessForbiddenException(Translator.tolocale("error.friend.accept_deleted"));
                 }
                 if (requester.getUserStatus() == UserStatus.LOCKED) {
-                    throw new AccessForbiddenException(Translator.tolocale("error.friend.accept_locked"));
+                        throw new AccessForbiddenException(Translator.tolocale("error.friend.accept_locked"));
                 }
 
                 FriendshipEntity friendship = friendshipRepository.findByUsers(acceptor, requester)
-                                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.friend.invite_not_found")));
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                Translator.tolocale("error.friend.invite_not_found")));
 
                 if (friendship.getStatus() == FriendshipStatus.ACCEPTED) {
                         throw new ResourceConflictException(Translator.tolocale("error.friend.already_friends"));
@@ -164,10 +165,13 @@ public class FriendServiceImpl implements FriendService {
 
         @Override
         @Transactional(readOnly = true)
-        public PageResponse<UserSummaryResponse> getSentRequests(String currentUsername, int page, int size) {
+        public PageResponse<UserSummaryResponse> getSentRequests(String currentUsername, int page, int size,
+                        String sortDir) {
                 UserEntity currentUser = getUser(currentUsername);
 
-                Pageable pageable = PageRequest.of(page, size, Sort.by("createAt").descending());
+                Pageable pageable = PageRequest.of(page, size,
+                                Sort.by((sortDir.equalsIgnoreCase("desc")) ? Sort.Direction.DESC : Sort.Direction.ASC,
+                                                "createAt"));
 
                 Page<FriendshipEntity> pageResult = friendshipRepository.findByRequesterAndStatus(currentUser,
                                 FriendshipStatus.PENDING, pageable);
@@ -182,10 +186,11 @@ public class FriendServiceImpl implements FriendService {
         @Override
         @Transactional(readOnly = true)
         public PageResponse<UserSummaryResponse> getPendingRequests(String currentUsername, int page, int size,
-                        String sortBy) {
+                        String sortDir) {
                 UserEntity currentUser = getUser(currentUsername);
                 Pageable pageable = PageRequest.of(page, size,
-                                Sort.by(Sort.Direction.DESC, sortBy != null ? sortBy : "createAt"));
+                                Sort.by((sortDir.equalsIgnoreCase("desc")) ? Sort.Direction.DESC : Sort.Direction.ASC,
+                                                "createAt"));
 
                 Page<FriendshipEntity> pageResult = friendshipRepository.findByAddresseeAndStatus(currentUser,
                                 FriendshipStatus.PENDING, pageable);
@@ -200,10 +205,11 @@ public class FriendServiceImpl implements FriendService {
         @Override
         @Transactional(readOnly = true)
         public PageResponse<UserSummaryResponse> getFriendsList(String currentUsername, int page, int size,
-                        String sortBy) {
+                        String sortDir) {
                 UserEntity currentUser = getUser(currentUsername);
                 Pageable pageable = PageRequest.of(page, size,
-                                Sort.by(Sort.Direction.DESC, sortBy != null ? sortBy : "createAt"));
+                                Sort.by((sortDir.equalsIgnoreCase("desc")) ? Sort.Direction.DESC : Sort.Direction.ASC,
+                                                "createAt"));
 
                 Page<FriendshipEntity> pageResult = friendshipRepository.findAllAcceptedFriendships(currentUser,
                                 pageable);
@@ -227,7 +233,8 @@ public class FriendServiceImpl implements FriendService {
                 UserEntity user2 = getUser(targetUsername);
 
                 FriendshipEntity friendship = friendshipRepository.findByUsers(user1, user2)
-                                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.friend.relation_not_found")));
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                Translator.tolocale("error.friend.relation_not_found")));
 
                 boolean isAccepted = friendship.getStatus() == FriendshipStatus.ACCEPTED;
                 boolean isRequester = friendship.getRequester().getUsername().equals(currentUsername);
@@ -245,7 +252,8 @@ public class FriendServiceImpl implements FriendService {
 
                         FriendNotificationMessage payload = new FriendNotificationMessage(
                                         currentUsername, targetUsername, "/queue/notifications", null,
-                                        SocketResponse.notifications(Translator.tolocale("success.friend.unfriended"), data));
+                                        SocketResponse.notifications(Translator.tolocale("success.friend.unfriended"),
+                                                        data));
                         eventPublisher.publishEvent(
                                         new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
 
@@ -258,7 +266,9 @@ public class FriendServiceImpl implements FriendService {
 
                                 FriendNotificationMessage payload = new FriendNotificationMessage(
                                                 currentUsername, targetUsername, "/queue/notifications", null,
-                                                SocketResponse.notifications(Translator.tolocale("success.friend.invite_retracted"), data));
+                                                SocketResponse.notifications(
+                                                                Translator.tolocale("success.friend.invite_retracted"),
+                                                                data));
                                 eventPublisher.publishEvent(
                                                 new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
 
@@ -270,7 +280,9 @@ public class FriendServiceImpl implements FriendService {
 
                                 FriendNotificationMessage payload = new FriendNotificationMessage(
                                                 currentUsername, targetUsername, "/queue/notifications", null,
-                                                SocketResponse.notifications(Translator.tolocale("success.friend.invite_declined"), data));
+                                                SocketResponse.notifications(
+                                                                Translator.tolocale("success.friend.invite_declined"),
+                                                                data));
                                 eventPublisher.publishEvent(
                                                 new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
                         }
@@ -316,7 +328,8 @@ public class FriendServiceImpl implements FriendService {
 
         private UserEntity getUser(String username) {
                 return userRepository.findByUsername(username)
-                                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                Translator.tolocale("error.user.not_found")));
         }
 
         private <T> PageResponse<T> buildPageResponse(Page<?> pageResult, List<T> content) {

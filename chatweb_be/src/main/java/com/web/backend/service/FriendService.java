@@ -11,11 +11,11 @@ public interface FriendService {
 
     void acceptFriendRequest(String acceptorUsername, String requesterUsername);
 
-    PageResponse<UserSummaryResponse> getPendingRequests(String currentUsername, int page, int size, String sortBy);
+    PageResponse<UserSummaryResponse> getPendingRequests(String currentUsername, int page, int size, String sortDir);
 
-    PageResponse<UserSummaryResponse> getSentRequests(String currentUsername, int page, int size);
+    PageResponse<UserSummaryResponse> getSentRequests(String currentUsername, int page, int size, String sortDir);
 
-    PageResponse<UserSummaryResponse> getFriendsList(String currentUsername, int page, int size, String sortBy);
+    PageResponse<UserSummaryResponse> getFriendsList(String currentUsername, int page, int size, String sortDir);
 
     void deleteFriendship(String currentUsername, String targetUsername);
 
