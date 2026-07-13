@@ -38,10 +38,10 @@ public class AdminController {
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy) {
+            @RequestParam(required = false) String... sorts) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get all user by: {}", userEntityPrincipal.getUsername());
-        PageResponse<UserSummaryResponse> users = adminService.getAllUsers(page, size, sortBy);
+        PageResponse<UserSummaryResponse> users = adminService.getAllUsers(page, size, sorts);
         return ResponseEntity
                 .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.get_users"), users));
     }

@@ -11,7 +11,7 @@ public interface AdminService {
 
     PageResponse<UserSummaryResponse> getOnlineUsers(int pageNo, int pageSize);
 
-    PageResponse<UserSummaryResponse> getAllUsers(int pageNo, int pageSize, String sortBy);
+    PageResponse<UserSummaryResponse> getAllUsers(int pageNo, int pageSize, String... sorts);
 
     UserDetailResponse getUserByUsername(String username);
 

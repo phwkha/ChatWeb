@@ -1,10 +1,13 @@
 package com.web.backend.service.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.CacheEvict;
@@ -109,9 +112,28 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public PageResponse<UserSummaryResponse> getAllUsers(int pageNo, int pageSize, String sortBy) {
+    public PageResponse<UserSummaryResponse> getAllUsers(int pageNo, int pageSize, String... sorts) {
+
+        List<Sort.Order> orders = new ArrayList<>();
+        if (sorts != null) {
+            for (String sortBy : sorts) {
+                Pattern pattern = Pattern.compile("(\\w+?)(:)(.*)");
+                Matcher matcher = pattern.matcher(sortBy);
+                if (matcher.find()) {
+                    if (matcher.group(3).equalsIgnoreCase("asc")) {
+                        orders.add(new Sort.Order(Sort.Direction.ASC, Objects.requireNonNull(matcher.group(1))));
+                    } else {
+                        orders.add(new Sort.Order(Sort.Direction.DESC, Objects.requireNonNull(matcher.group(1))));
+                    }
+                }
+            }
+        }
+
+        if (orders.isEmpty()) {
+            orders.add(new Sort.Order(Sort.Direction.DESC, "id"));
+        }
         Pageable pageable = PageRequest.of(pageNo, pageSize,
-                Sort.by(Sort.Direction.DESC, sortBy != null ? sortBy : "id"));
+                Sort.by(orders));
 
         Page<UserEntity> pageResult;
 
