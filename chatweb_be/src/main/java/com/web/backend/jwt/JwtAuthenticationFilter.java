@@ -11,7 +11,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -24,19 +23,30 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 import java.io.IOException;
 import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j(topic = "JWT-AUTHENTICATION-FLITER")
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-
     private final UserServiceDetail userServiceDetail;
-
     private final RedisTemplate<String, Object> redisTemplate;
+    private final HandlerExceptionResolver exceptionResolver;
+
+    public JwtAuthenticationFilter(
+            JwtService jwtService,
+            UserServiceDetail userServiceDetail,
+            RedisTemplate<String, Object> redisTemplate,
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) {
+        this.jwtService = jwtService;
+        this.userServiceDetail = userServiceDetail;
+        this.redisTemplate = redisTemplate;
+        this.exceptionResolver = exceptionResolver;
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
@@ -99,7 +109,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            log.error("Cannot set user authentication: {}", e.getMessage());
+            log.error("Token error: {}", e.getMessage());
+            exceptionResolver.resolveException(request, response, null, e);
+            return; // Dừng filter chain nếu có lỗi (đã đẩy lỗi cho GlobalExceptionHandler)
         }
         filterChain.doFilter(request, response);
     }

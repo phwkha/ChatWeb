@@ -1,5 +1,26 @@
 package com.web.backend.exception;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import com.web.backend.config.LocalResolverConfig.Translator;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.AuthenticationFailedException;
@@ -10,29 +31,9 @@ import com.web.backend.exception.custom.PasswordMismatchException;
 import com.web.backend.exception.custom.ResourceConflictException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-
-// import com.web.backend.controller.response.ErrorDebugInfo;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
-import org.springframework.validation.FieldError;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-
-import java.util.HashMap;
-import java.util.Map;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Slf4j(topic = "GLOBAL-EXCEPTION-HANDLER")
 @RestControllerAdvice
@@ -159,7 +160,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
 
-        org.springframework.validation.BindingResult bindingResult = ex.getBindingResult();
+        BindingResult bindingResult = ex.getBindingResult();
         if (bindingResult != null) {
             bindingResult.getAllErrors().forEach((error) -> {
                 String fieldName = ((FieldError) error).getField();
@@ -174,11 +175,18 @@ public class GlobalExceptionHandler {
                         errors));
     }
 
+    @ExceptionHandler(ExpiredJwtException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiResponse<Void> handleExpiredJwtException(ExpiredJwtException ex) {
+        log.info("Token Expired: {}", ex.getMessage());
+        return ApiResponse.error(4011, Translator.tolocale("error.auth.token_expired"));
+    }
+
     @ExceptionHandler(JwtException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ApiResponse<Void> handleJwtException(JwtException ex) {
         log.warn("Token Error JWT: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), Translator.tolocale("error.auth.session_expired"));
+        return ApiResponse.error(4012, Translator.tolocale("error.auth.token_invalid"));
     }
 
     @ExceptionHandler(Exception.class)
