@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface AdminService {
 
-    OnlineUsersResponse getOnlineUsers();
+    PageResponse<UserSummaryResponse> getOnlineUsers(int pageNo, int pageSize);
 
     PageResponse<UserSummaryResponse> getAllUsers(int pageNo, int pageSize, String sortBy);
 

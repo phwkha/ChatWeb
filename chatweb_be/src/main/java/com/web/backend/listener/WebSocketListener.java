@@ -1,8 +1,7 @@
 package com.web.backend.listener;
 
-import com.web.backend.service.UserService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.security.Principal;
+
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -10,7 +9,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import java.security.Principal;
+import com.web.backend.service.UserService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
@@ -36,7 +38,7 @@ public class WebSocketListener {
 
             Long count = redisTemplate.opsForHash().increment(ONLINE_USERS_COUNT_KEY, username, 1);
 
-            redisTemplate.opsForSet().add(ONLINE_USERS_KEY, username);
+            redisTemplate.opsForZSet().add(ONLINE_USERS_KEY, username, System.currentTimeMillis());
 
             if (count != null && count == 1) {
                 userService.setUserOnlineStatus(username, true);
@@ -63,7 +65,7 @@ public class WebSocketListener {
 
             if (count != null && count <= 0) {
 
-                redisTemplate.opsForSet().remove(ONLINE_USERS_KEY, username);
+                redisTemplate.opsForZSet().remove(ONLINE_USERS_KEY, username);
 
                 redisTemplate.opsForHash().delete(ONLINE_USERS_COUNT_KEY, username);
 

@@ -4,7 +4,6 @@ import com.web.backend.controller.request.AddressRequest;
 import com.web.backend.controller.request.AdminCreateUserRequest;
 import com.web.backend.controller.request.AdminUpdateUserRequest;
 import com.web.backend.controller.response.*;
-import com.web.backend.controller.response.AddressResponse;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.AdminService;
@@ -39,74 +38,88 @@ public class AdminController {
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy
-    ) {
+            @RequestParam(defaultValue = "id") String sortBy) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get all user by: {}", userEntityPrincipal.getUsername());
         PageResponse<UserSummaryResponse> users = adminService.getAllUsers(page, size, sortBy);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.get_users"), users));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.get_users"), users));
     }
 
     @Operation(summary = "Get online users", description = "API endpoint for get online users")
     @GetMapping("/online")
     @PreAuthorize("hasAuthority('ADMIN_VIEW')")
-    public ResponseEntity<ApiResponse<OnlineUsersResponse>> getOnlineUsers(Authentication authentication) {
+    public ResponseEntity<ApiResponse<PageResponse<UserSummaryResponse>>> getOnlineUsers(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get online users: {}", userEntityPrincipal.getUsername());
+        PageResponse<UserSummaryResponse> userPageResponse = adminService.getOnlineUsers(page, size);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
                 Translator.tolocale("success.admin.get_online_users"),
-                adminService.getOnlineUsers()));
+                userPageResponse));
     }
 
     @Operation(summary = "Get user by username", description = "API endpoint for get user by username")
     @GetMapping("/user/{username}")
     @PreAuthorize("hasAuthority('ADMIN_VIEW')")
-    public ResponseEntity<ApiResponse<UserDetailResponse>> getUserByUsername(Authentication authentication, @PathVariable String username) {
+    public ResponseEntity<ApiResponse<UserDetailResponse>> getUserByUsername(Authentication authentication,
+            @PathVariable String username) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Get user by: {}", userEntityPrincipal.getUsername());
         UserDetailResponse user = adminService.getUserByUsername(username);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.get_user"), user));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.get_user"), user));
     }
 
     @Operation(summary = "Add user", description = "API endpoint for add user")
     @PostMapping("/add")
     @PreAuthorize("hasAuthority('ADMIN_CREATE')")
-    public ResponseEntity<ApiResponse<UserResponse>> addUser(Authentication authentication, @RequestBody @Valid AdminCreateUserRequest request) {
+    public ResponseEntity<ApiResponse<UserResponse>> addUser(Authentication authentication,
+            @RequestBody @Valid AdminCreateUserRequest request) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Add user by: {}", userEntityPrincipal.getUsername());
         UserResponse newUser = adminService.adminCreateUser(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(HttpStatus.CREATED.value(), Translator.tolocale("success.admin.create_user"), newUser));
+                .body(ApiResponse.success(HttpStatus.CREATED.value(), Translator.tolocale("success.admin.create_user"),
+                        newUser));
     }
 
     @Operation(summary = "Unlock user", description = "API endpoint for unlock user")
     @PostMapping("/{username}/unlock")
     @PreAuthorize("hasAuthority('ADMIN_UNLOCK')")
-    public ResponseEntity<ApiResponse<UserResponse>> unlockUser(Authentication authentication, @PathVariable String username) {
+    public ResponseEntity<ApiResponse<UserResponse>> unlockUser(Authentication authentication,
+            @PathVariable String username) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Unlock user by: {}", userEntityPrincipal.getUsername());
         UserResponse unlockedUser = adminService.unlockUser(username);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.unlock_user"), unlockedUser));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                Translator.tolocale("success.admin.unlock_user"), unlockedUser));
     }
 
     @Operation(summary = "Lock user", description = "API endpoint for lock user")
     @PostMapping("/{username}/lock")
     @PreAuthorize("hasAuthority('ADMIN_LOCK')")
-    public ResponseEntity<ApiResponse<UserResponse>> lockUser(Authentication authentication, @PathVariable String username) {
+    public ResponseEntity<ApiResponse<UserResponse>> lockUser(Authentication authentication,
+            @PathVariable String username) {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Lock user by: {}", userEntityPrincipal.getUsername());
         UserResponse lockedUser = adminService.lockUser(username);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.lock_user"), lockedUser));
+        return ResponseEntity.ok(
+                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.lock_user"), lockedUser));
     }
 
     @Operation(summary = "Delete avatar", description = "API endpoint for delete avatar")
     @PostMapping("/{username}/delete-avatar")
     @PreAuthorize("hasAuthority('ADMIN_DELETE_AVATAR')")
-    public ResponseEntity<ApiResponse<Void>> deleteAvatar(Authentication authentication, @PathVariable String username) {
+    public ResponseEntity<ApiResponse<Void>> deleteAvatar(Authentication authentication,
+            @PathVariable String username) {
         UserEntity userEntity = (UserEntity) authentication.getPrincipal();
         log.info("delete avatar by: {}", userEntity.getUsername());
         adminService.deleteAvatar(username);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.del_avatar"),null));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.del_avatar"), null));
     }
 
     @Operation(summary = "Update user", description = "API endpoint for update user")
@@ -119,7 +132,8 @@ public class AdminController {
         UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
         log.info("Update user by: {}", userEntityPrincipal.getUsername());
         UserResponse updatedUser = adminService.adminUpdateUser(username, request);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.admin.update_user"), updatedUser));
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                Translator.tolocale("success.admin.update_user"), updatedUser));
     }
 
     @Operation(summary = "Delete user", description = "API endpoint for delete user")
@@ -132,7 +146,8 @@ public class AdminController {
         adminService.adminDeleteUser(username, adminPrincipal.getUsername());
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
-                .body(ApiResponse.success(HttpStatus.NO_CONTENT.value(), Translator.tolocale("success.admin.del_user"), null));
+                .body(ApiResponse.success(HttpStatus.NO_CONTENT.value(), Translator.tolocale("success.admin.del_user"),
+                        null));
     }
 
     @Operation(summary = "Get all addresses for user", description = "API endpoint for get all addresses for user")
