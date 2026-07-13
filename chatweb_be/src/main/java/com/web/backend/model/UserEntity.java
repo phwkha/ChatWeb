@@ -81,6 +81,9 @@ public class UserEntity extends AbstractEntity<Long> implements UserDetails {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Set<SimpleGrantedAuthority> authorities = new HashSet<>();
         if (this.role != null) {
+            if (this.role.getName() != null) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + this.role.getName().toUpperCase()));
+            }
             for (PermissionEntity permission : this.role.getPermissions()) {
                 authorities.add(new SimpleGrantedAuthority(permission.getName()));
             }
