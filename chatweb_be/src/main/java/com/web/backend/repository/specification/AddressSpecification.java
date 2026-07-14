@@ -6,10 +6,13 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
+import com.web.backend.model.AddressEntity;
 import com.web.backend.model.UserEntity;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.AllArgsConstructor;
@@ -17,7 +20,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class UserSpecification implements Specification<UserEntity> {
+public class AddressSpecification implements Specification<UserEntity> {
 
     private List<SpecSearchCriteria> criteriaList;
 
@@ -25,9 +28,12 @@ public class UserSpecification implements Specification<UserEntity> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public Predicate toPredicate(@NonNull final Root<UserEntity> root, @Nullable final CriteriaQuery<?> query,
             @NonNull final CriteriaBuilder builder) {
+
+        Join<UserEntity, AddressEntity> addressJoin = root.join("addresses", JoinType.INNER);
+
         Predicate finalPredicate = null;
         for (SpecSearchCriteria criteria : criteriaList) {
-            Class<?> javaType = root.get(criteria.getKey()).getJavaType();
+            Class<?> javaType = addressJoin.get(criteria.getKey()).getJavaType();
             Object value = criteria.getValue();
 
             if (javaType.isEnum() && value instanceof String) {
@@ -39,16 +45,16 @@ public class UserSpecification implements Specification<UserEntity> {
             }
 
             Predicate currentPredicate = switch (criteria.getOperation()) {
-                case EQUALITY -> builder.equal(root.get(criteria.getKey()), value);
-                case NEGATION -> builder.notEqual(root.get(criteria.getKey()), value);
+                case EQUALITY -> builder.equal(addressJoin.get(criteria.getKey()), value);
+                case NEGATION -> builder.notEqual(addressJoin.get(criteria.getKey()), value);
                 case GREATER_THAN ->
-                    builder.greaterThan(root.get(criteria.getKey()), value.toString().toLowerCase());
-                case LESS_THAN -> builder.lessThan(root.get(criteria.getKey()), value.toString().toLowerCase());
+                    builder.greaterThan(addressJoin.get(criteria.getKey()), value.toString().toLowerCase());
+                case LESS_THAN -> builder.lessThan(addressJoin.get(criteria.getKey()), value.toString().toLowerCase());
                 case LIKE ->
-                    builder.like(root.get(criteria.getKey()), "%" + value.toString().toLowerCase() + "%");
-                case STARTS_WITH -> builder.like(root.get(criteria.getKey()), value + "%");
-                case ENDS_WITH -> builder.like(root.get(criteria.getKey()), "%" + value);
-                case CONTAINS -> builder.like(root.get(criteria.getKey()), "%" + value + "%");
+                    builder.like(addressJoin.get(criteria.getKey()), "%" + value.toString().toLowerCase() + "%");
+                case STARTS_WITH -> builder.like(addressJoin.get(criteria.getKey()), value + "%");
+                case ENDS_WITH -> builder.like(addressJoin.get(criteria.getKey()), "%" + value);
+                case CONTAINS -> builder.like(addressJoin.get(criteria.getKey()), "%" + value + "%");
             };
             if (finalPredicate == null) {
                 finalPredicate = currentPredicate;
@@ -60,6 +66,7 @@ public class UserSpecification implements Specification<UserEntity> {
                 }
             }
         }
+
         return finalPredicate;
     }
 }

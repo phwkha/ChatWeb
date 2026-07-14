@@ -1,5 +1,6 @@
 package com.web.backend.controller;
 
+import com.web.backend.config.LocalResolverConfig.Translator;
 import com.web.backend.controller.response.UserSummaryResponse;
 import com.web.backend.controller.response.PageResponse;
 import com.web.backend.controller.response.UserDetailResponse;
@@ -27,7 +28,7 @@ public class SearchUserController {
     @Operation(summary = "Search users by keyword", description = "Search users by username, email, first name or last name")
     @GetMapping("/users")
     public ResponseEntity<ApiResponse<PageResponse<UserSummaryResponse>>> searchUsers(
-            @RequestParam String keyword,
+            @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "desc") String sortDir) {
@@ -38,20 +39,22 @@ public class SearchUserController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Search successful",
+                Translator.tolocale("success.search.users"),
                 result));
     }
 
     @Operation(summary = "Advance search query by specifications", description = "Return list of users")
-    @GetMapping(path = "/advance-search-with-specification")
+    @GetMapping(path = "/users/filter")
     public ResponseEntity<ApiResponse<PageResponse<UserDetailResponse>>> advanceSearchWithSpecifications(
             Pageable pageable,
             @RequestParam(required = false) String[] user,
             @RequestParam(required = false) String[] address) {
 
+        log.info("Advance searching users with specifications");
+
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                "Search successful",
+                Translator.tolocale("success.search.advance"),
                 searchUserService.advanceSearchWithSpecifications(pageable, user, address)));
     }
 }

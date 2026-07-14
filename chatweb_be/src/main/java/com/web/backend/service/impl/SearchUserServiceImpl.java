@@ -12,8 +12,9 @@ import com.web.backend.controller.response.UserSummaryResponse;
 import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.UserEntity;
 import com.web.backend.repository.UserRepository;
-import com.web.backend.repository.specification.SearchRepository;
-import com.web.backend.repository.specification.UserSpecificationsBuilder;
+import com.web.backend.repository.specification.AddressSpecification;
+import com.web.backend.repository.specification.SearchSpecificationsBuilder;
+import com.web.backend.repository.specification.UserSpecification;
 import com.web.backend.service.SearchUserService;
 
 import org.springframework.data.domain.Page;
@@ -34,15 +35,13 @@ public class SearchUserServiceImpl implements SearchUserService {
 
     private final UserRepository userRepository;
 
-    private final SearchRepository searchRepository;
-
     private final UserMapper userMapper;
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<UserSummaryResponse> searchUsers(String keyword, int page, int size, String sortDir) {
         Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "id"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "username"));
 
         Page<UserEntity> pageResult = userRepository.searchUsersByKeyword(keyword, UserStatus.INACTIVE, pageable);
 
@@ -64,37 +63,38 @@ public class SearchUserServiceImpl implements SearchUserService {
     public PageResponse<UserDetailResponse> advanceSearchWithSpecifications(Pageable pageable, String[] user,
             String[] address) {
 
-        if (user != null && address != null) {
-            List<UserDetailResponse> content = searchRepository.searchUserByCriteriaWithJoin(pageable, user, address);
-            Long totalPage = searchRepository.countUserJoinAddress(user, address);
-            return PageResponse.<UserDetailResponse>builder()
-                    .content(content)
-                    .pageNo(pageable.getPageNumber())
-                    .pageSize(pageable.getPageSize())
-                    .totalElements(totalPage)
-                    .totalPages((int) Math.ceil((double) totalPage / pageable.getPageSize()))
-                    .last(content.size() < pageable.getPageSize())
-                    .build();
+        Specification<UserEntity> finalSpec = Specification.unrestricted();
+        Pattern pattern = Pattern.compile("(\\w+?)([<:>~!])(\\*?)(.*?)(\\*?)");
 
-        } else if (user != null) {
-            UserSpecificationsBuilder userSpecificationsBuilder = new UserSpecificationsBuilder();
-            Pattern pattern = Pattern.compile("(\\w+?)([<:>~!])(\\*?)(.*?)(\\*?)");
+        if (user != null && user.length > 0) {
+            SearchSpecificationsBuilder userBuilder = new SearchSpecificationsBuilder();
             for (String str : user) {
                 Matcher matcher = pattern.matcher(str);
                 if (matcher.find()) {
-                    userSpecificationsBuilder.with(matcher.group(1), matcher.group(2), matcher.group(4),
+                    userBuilder.with(matcher.group(1), matcher.group(2), matcher.group(4),
                             matcher.group(3), matcher.group(5));
                 }
             }
-            Specification<UserEntity> spec = userSpecificationsBuilder.build();
-            if (spec == null) {
-                return convertToPageResponse(userRepository.findAll(Objects.requireNonNull(pageable)));
+            if (!userBuilder.params.isEmpty()) {
+                finalSpec = finalSpec.and(new UserSpecification(userBuilder.params));
             }
-            Page<UserEntity> users = userRepository.findAll(spec, Objects.requireNonNull(pageable));
-
-            return convertToPageResponse(users);
         }
-        return convertToPageResponse(userRepository.findAll(Objects.requireNonNull(pageable)));
+
+        if (address != null && address.length > 0) {
+            SearchSpecificationsBuilder addressBuilder = new SearchSpecificationsBuilder();
+            for (String str : address) {
+                Matcher matcher = pattern.matcher(str);
+                if (matcher.find()) {
+                    addressBuilder.with(matcher.group(1), matcher.group(2), matcher.group(4),
+                            matcher.group(3), matcher.group(5));
+                }
+            }
+            if (!addressBuilder.params.isEmpty()) {
+                finalSpec = finalSpec.and(new AddressSpecification(addressBuilder.params));
+            }
+        }
+        Page<UserEntity> users = userRepository.findAll(finalSpec, Objects.requireNonNull(pageable));
+        return convertToPageResponse(users);
     }
 
     private PageResponse<UserDetailResponse> convertToPageResponse(Page<UserEntity> pageResult) {
