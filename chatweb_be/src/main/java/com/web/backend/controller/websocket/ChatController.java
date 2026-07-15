@@ -2,6 +2,7 @@ package com.web.backend.controller.websocket;
 
 import com.web.backend.controller.request.ChatMessageRequest;
 import com.web.backend.controller.request.MessageSystemRequest;
+import com.web.backend.controller.request.ReactionRequest;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.MessageService;
 import jakarta.validation.Valid;
@@ -36,7 +37,8 @@ public class ChatController {
             messageService.sendSystemMessage(currentUsername, request);
         } catch (Exception e) {
             log.error("Error sending system message: {}", e.getMessage());
-            webSocketErrorHandler.handleChatError(currentUsername, request, Translator.tolocale("error.chat.sys_msg_fail"));
+            webSocketErrorHandler.handleChatError(currentUsername, request,
+                    Translator.tolocale("error.chat.sys_msg_fail"));
         }
     }
 
@@ -53,6 +55,24 @@ public class ChatController {
 
         } catch (Exception e) {
             log.error("Error sending private message: {}", e.getMessage());
+            webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
+        }
+    }
+
+    @MessageMapping("/chat/reaction")
+    public void reactToMessage(@Payload @Valid ReactionRequest request, Authentication authentication) {
+
+        UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
+        String senderUsername = userPrincipal.getUsername();
+
+        try {
+            log.debug("Reaction from {} to message {} of {}",
+                    senderUsername, request.getMessageId(), request.getRecipient());
+
+            messageService.reactToMessage(senderUsername, request);
+
+        } catch (Exception e) {
+            log.error("Error processing reaction: {}", e.getMessage());
             webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
         }
     }

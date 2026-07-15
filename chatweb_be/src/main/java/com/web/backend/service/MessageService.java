@@ -2,6 +2,7 @@ package com.web.backend.service;
 
 import com.web.backend.controller.request.ChatMessageRequest;
 import com.web.backend.controller.request.MessageSystemRequest;
+import com.web.backend.controller.request.ReactionRequest;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
@@ -20,4 +21,6 @@ public interface MessageService {
     UnreadCountsResponse getUnreadMessageCounts(String recipientUsername);
 
     void markMessagesAsRead(String recipientUsername, String senderUsername);
+
+    void reactToMessage(String senderUsername, ReactionRequest request);
 }

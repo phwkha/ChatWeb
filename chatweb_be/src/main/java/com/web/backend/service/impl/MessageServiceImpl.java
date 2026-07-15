@@ -18,9 +18,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 
 import com.web.backend.common.ContentType;
 import com.web.backend.common.MessageStatus;
@@ -29,6 +33,7 @@ import com.web.backend.common.UserStatus;
 import com.web.backend.config.LocalResolverConfig.Translator;
 import com.web.backend.controller.request.ChatMessageRequest;
 import com.web.backend.controller.request.MessageSystemRequest;
+import com.web.backend.controller.request.ReactionRequest;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
@@ -64,6 +69,8 @@ public class MessageServiceImpl implements MessageService {
     private final FriendService friendService;
 
     private final RedisTemplate<String, Object> redisTemplate;
+
+    private final MongoTemplate mongoTemplate;
 
     private final MessageMapper messageMapper;
 
@@ -166,6 +173,47 @@ public class MessageServiceImpl implements MessageService {
             }
         });
         log.info("{} Chat system message success", systemMessage.getSender());
+    }
+
+    @Override
+    public void reactToMessage(String senderUsername, ReactionRequest request) {
+
+        if (!friendService.isFriend(Objects.requireNonNull(senderUsername),
+                Objects.requireNonNull(request.getRecipient()))) {
+            throw new AccessForbiddenException(Translator.tolocale("error.msg.not_friends"));
+        }
+
+        String convId = generateConversationId(senderUsername, request.getRecipient());
+        Query query = new Query(Criteria.where("id").is(request.getMessageId()).and("conversationId").is(convId));
+        Update update = new Update();
+
+        String reactionField = "reactions." + senderUsername;
+        if (request.getReactionType() != null) {
+            update.set(reactionField, request.getReactionType());
+        } else {
+            update.unset(reactionField);
+        }
+        mongoTemplate.updateFirst(query, update, ChatMessage.class);
+
+        String redisKey = "chat:recent:" + convId;
+        redisTemplate.delete(redisKey);
+
+        ChatMessage reactionMsg = new ChatMessage();
+        reactionMsg.setId(request.getMessageId());
+        reactionMsg.setConversationId(convId);
+        reactionMsg.setSender(senderUsername);
+        reactionMsg.setRecipient(request.getRecipient());
+        reactionMsg.setMessageType(MessageType.REACTION);
+        reactionMsg.setContent(request.getReactionType() != null ? request.getReactionType().toString() : "");
+        reactionMsg.setTimestamp(LocalDateTime.now());
+
+        kafkaTemplate.send(Objects.requireNonNull(chatTopic), reactionMsg).whenComplete((result, ex) -> {
+            if (ex != null) {
+                log.error("Reaction: Failed to push to Kafka. Topic: {}", chatTopic, ex);
+            } else {
+                log.debug("Reaction: Successfully pushed to Kafka");
+            }
+        });
     }
 
     @Override

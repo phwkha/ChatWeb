@@ -1,3 +1,4 @@
+
 package com.web.backend.controller;
 
 import com.web.backend.controller.response.CursorResponse;
@@ -16,7 +17,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.RestController;
 import com.web.backend.config.LocalResolverConfig.Translator;
 
-
 @Tag(name = "System Message Controller")
 @RestController
 @RequiredArgsConstructor
@@ -30,12 +30,12 @@ public class SystemMessageController {
     @GetMapping("/message")
     public ResponseEntity<ApiResponse<CursorResponse<MessageSystemResponse>>> getSystemMessages(
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int size
-    ){
+            @RequestParam(defaultValue = "20") int size) {
         log.info("Fetching system message");
 
         CursorResponse<MessageSystemResponse> response = messageService.findSystemMessageWithCursor(cursor, size);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.sys.get_msg"), response));
+        return ResponseEntity
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.sys.get_msg"), response));
     }
 }
