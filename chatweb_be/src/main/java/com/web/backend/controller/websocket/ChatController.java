@@ -86,4 +86,36 @@ public class ChatController {
         }
     }
 
+    @MessageMapping("/chat/editMessage")
+    public void editMessage(@Payload @Valid com.web.backend.controller.request.EditMessageRequest request, Authentication authentication) {
+        UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
+        String senderUsername = userPrincipal.getUsername();
+        try {
+            log.debug("Edit message {} from {}", request.getMessageId(), senderUsername);
+            messageService.editMessage(senderUsername, request);
+        } catch (AccessForbiddenException | ResourceNotFoundException | InvalidDataException e) {
+            log.warn("Business error editing message: {}", e.getMessage());
+            webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
+        } catch (Exception e) {
+            log.error("System error editing message: ", e);
+            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale("error.sys.busy"));
+        }
+    }
+
+    @MessageMapping("/chat/revokeMessage")
+    public void revokeMessage(@Payload @Valid com.web.backend.controller.request.RevokeMessageRequest request, Authentication authentication) {
+        UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
+        String senderUsername = userPrincipal.getUsername();
+        try {
+            log.debug("Revoke message {} from {}", request.getMessageId(), senderUsername);
+            messageService.revokeMessage(senderUsername, request);
+        } catch (AccessForbiddenException | ResourceNotFoundException | InvalidDataException e) {
+            log.warn("Business error revoking message: {}", e.getMessage());
+            webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
+        } catch (Exception e) {
+            log.error("System error revoking message: ", e);
+            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale("error.sys.busy"));
+        }
+    }
+
 }

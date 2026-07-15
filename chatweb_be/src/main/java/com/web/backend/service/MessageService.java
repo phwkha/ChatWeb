@@ -25,4 +25,8 @@ public interface MessageService {
     void reactToMessage(String senderUsername, ReactionRequest request);
 
     ChatMessageResponse getMessageById(String messageId, String currentUsername);
+
+    void editMessage(String senderUsername, com.web.backend.controller.request.EditMessageRequest request);
+
+    void revokeMessage(String senderUsername, com.web.backend.controller.request.RevokeMessageRequest request);
 }

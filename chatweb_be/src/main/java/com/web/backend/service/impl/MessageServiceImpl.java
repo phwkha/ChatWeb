@@ -273,6 +273,44 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
+    public void editMessage(String senderUsername, com.web.backend.controller.request.EditMessageRequest request) {
+        ChatMessage message = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.msg.not_found")));
+        
+        if (!message.getSender().equals(senderUsername)) {
+            throw new AccessForbiddenException(Translator.tolocale("error.msg.edit_forbidden"));
+        }
+        
+        message.setContent(request.getNewContent());
+        message.setEdited(true);
+        
+        kafkaTemplate.send(Objects.requireNonNull(chatTopic), message).whenComplete((result, ex) -> {
+            if (ex != null) log.error("Failed to push edit to Kafka", ex);
+        });
+    }
+
+    @Override
+    public void revokeMessage(String senderUsername, com.web.backend.controller.request.RevokeMessageRequest request) {
+        ChatMessage message = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.msg.not_found")));
+        
+        if (!message.getSender().equals(senderUsername)) {
+            throw new AccessForbiddenException(Translator.tolocale("error.msg.delete_forbidden"));
+        }
+        
+        message.setContent("");
+        message.setFileUrl(null);
+        message.setFileName(null);
+        message.setFileSize(null);
+        message.setReactions(null);
+        message.setDeleted(true);
+        
+        kafkaTemplate.send(Objects.requireNonNull(chatTopic), message).whenComplete((result, ex) -> {
+            if (ex != null) log.error("Failed to push revoke to Kafka", ex);
+        });
+    }
+
+    @Override
     public CursorResponse<MessageSystemResponse> findSystemMessageWithCursor(String cursorStr, int size) {
 
         Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "timestamp"));
