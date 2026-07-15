@@ -11,6 +11,6 @@ public class ChangePasswordRequest {
     private String currentPassword;
 
     @NotBlank(message = "{valid.new_pwd_empty}")
-    @Size(min = 6, message = "{valid.new_pwd_min_6}")
+    @Size(min = 8, message = "{valid.pwd_min_8}")
     private String newPassword;
 }

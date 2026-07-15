@@ -7,14 +7,14 @@ import lombok.Data;
 
 @Data
 public class ResetPasswordRequest {
-    @NotBlank
-    @Email
+    @NotBlank(message = "{valid.email_empty}")
+    @Email(message = "{valid.email_invalid}")
     private String email;
 
-    @NotBlank
+    @NotBlank(message = "{valid.otp_empty}")
     private String otp;
 
-    @NotBlank
-    @Size(min = 6, message = "{valid.new_pwd_min_6}")
+    @NotBlank(message = "{valid.new_pwd_empty}")
+    @Size(min = 8, message = "{valid.pwd_min_8}")
     private String newPassword;
 }
