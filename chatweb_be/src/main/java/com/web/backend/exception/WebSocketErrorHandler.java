@@ -4,6 +4,7 @@ import com.web.backend.controller.response.form.SocketResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.converter.MessageConversionException;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -41,6 +42,18 @@ public class WebSocketErrorHandler {
                 errorMessage = fieldError.getDefaultMessage();
             }
         }
+
+        this.handleChatError(username, null, errorMessage);
+    }
+
+    @MessageExceptionHandler(MessageConversionException.class)
+    public void handleMessageConversionException(
+            MessageConversionException ex,
+            Authentication authentication) {
+
+        String username = (authentication != null) ? authentication.getName() : "unknows";
+
+        String errorMessage = Translator.tolocale("error.sys.bad_format");
 
         this.handleChatError(username, null, errorMessage);
     }
