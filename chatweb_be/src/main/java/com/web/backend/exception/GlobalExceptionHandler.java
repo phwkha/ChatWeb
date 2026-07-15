@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -30,6 +31,8 @@ import com.web.backend.exception.custom.InvalidPasswordException;
 import com.web.backend.exception.custom.PasswordMismatchException;
 import com.web.backend.exception.custom.ResourceConflictException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
+
+import jakarta.validation.ConstraintViolationException;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -187,6 +190,21 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleJwtException(JwtException ex) {
         log.warn("Token Error JWT: {}", ex.getMessage());
         return ApiResponse.error(4012, Translator.tolocale("error.auth.token_invalid"));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    @ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
+    public ApiResponse<Void> handleMaxSizeException(MaxUploadSizeExceededException exc) {
+        log.warn("File too large: {}", exc.getMessage());
+        return ApiResponse.error(HttpStatus.PAYLOAD_TOO_LARGE.value(),
+                Translator.tolocale("error.storage.file_too_large", "20")); // Assuming 20MB limit
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleConstraintViolationException(ConstraintViolationException ex) {
+        log.warn("Invalid param/path variable: {}", ex.getMessage());
+        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale("error.sys.invalid_input"));
     }
 
     @ExceptionHandler(Exception.class)
