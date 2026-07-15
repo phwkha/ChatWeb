@@ -23,4 +23,6 @@ public interface MessageService {
     void markMessagesAsRead(String recipientUsername, String senderUsername);
 
     void reactToMessage(String senderUsername, ReactionRequest request);
+
+    ChatMessageResponse getMessageById(String messageId, String currentUsername);
 }

@@ -261,6 +261,18 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
+    public ChatMessageResponse getMessageById(String messageId, String currentUsername) {
+        ChatMessage message = messageRepository.findById(Objects.requireNonNull(messageId))
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.msg.not_found")));
+        
+        if (!message.getConversationId().contains(currentUsername)) {
+            throw new AccessForbiddenException(Translator.tolocale("error.msg.recipient_not_found"));
+        }
+        
+        return messageMapper.toResponse(message);
+    }
+
+    @Override
     public CursorResponse<MessageSystemResponse> findSystemMessageWithCursor(String cursorStr, int size) {
 
         Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "timestamp"));

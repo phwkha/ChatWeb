@@ -66,4 +66,18 @@ public class MessageController {
 
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.msg.mark_read"), null));
     }
+
+    @Operation(summary = "Get message by ID", description = "API endpoint to fetch a specific message by its ID")
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<ChatMessageResponse>> getMessageById(
+            @PathVariable String id,
+            Authentication auth) {
+        
+        UserEntity user = (UserEntity) auth.getPrincipal();
+        log.info("Fetching message ID {} for user: {}", id, user.getUsername());
+        
+        ChatMessageResponse response = messageService.getMessageById(id, user.getUsername());
+        
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.msg.get_message"), response));
+    }
 }
