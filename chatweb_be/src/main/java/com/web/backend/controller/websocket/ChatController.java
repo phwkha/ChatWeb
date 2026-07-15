@@ -14,6 +14,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import com.web.backend.exception.WebSocketErrorHandler;
+import com.web.backend.exception.custom.AccessForbiddenException;
+import com.web.backend.exception.custom.InvalidDataException;
+import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Controller
@@ -53,9 +56,12 @@ public class ChatController {
 
             messageService.sendPrivateMessage(senderUsername, request);
 
-        } catch (Exception e) {
-            log.error("Error sending private message: {}", e.getMessage());
+        } catch (AccessForbiddenException | ResourceNotFoundException | InvalidDataException e) {
+            log.warn("Business error sending private message: {}", e.getMessage());
             webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
+        } catch (Exception e) {
+            log.error("System error sending private message: ", e);
+            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale("error.sys.busy"));
         }
     }
 
@@ -71,9 +77,12 @@ public class ChatController {
 
             messageService.reactToMessage(senderUsername, request);
 
-        } catch (Exception e) {
-            log.error("Error processing reaction: {}", e.getMessage());
+        } catch (AccessForbiddenException | ResourceNotFoundException | InvalidDataException e) {
+            log.warn("Business error processing reaction: {}", e.getMessage());
             webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
+        } catch (Exception e) {
+            log.error("System error processing reaction: ", e);
+            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale("error.sys.busy"));
         }
     }
 

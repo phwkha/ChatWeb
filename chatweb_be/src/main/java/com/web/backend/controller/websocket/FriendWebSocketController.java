@@ -1,6 +1,5 @@
 package com.web.backend.controller.websocket;
 
-import com.web.backend.controller.response.form.SocketResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.FriendService;
 import lombok.RequiredArgsConstructor;
@@ -9,9 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
+import com.web.backend.exception.WebSocketErrorHandler;
+import com.web.backend.exception.custom.AccessForbiddenException;
+import com.web.backend.exception.custom.InvalidDataException;
+import com.web.backend.exception.custom.ResourceConflictException;
+import com.web.backend.exception.custom.ResourceNotFoundException;
+import com.web.backend.config.LocalResolverConfig.Translator;
 import java.util.Objects;
 
 @Controller
@@ -20,7 +24,7 @@ import java.util.Objects;
 public class FriendWebSocketController {
 
     private final FriendService friendService;
-    private final SimpMessagingTemplate simpMessagingTemplate;
+    private final WebSocketErrorHandler webSocketErrorHandler;
 
     @MessageMapping("/friend/request")
     public void handleFriendRequest(@Payload @NonNull String targetUsername, @NonNull Authentication auth) {
@@ -29,8 +33,12 @@ public class FriendWebSocketController {
         try {
             friendService.sendFriendRequest(username, targetUsername);
 
+        } catch (AccessForbiddenException | ResourceNotFoundException | ResourceConflictException | InvalidDataException e) {
+            log.warn("Business error handling friend request: {}", e.getMessage());
+            webSocketErrorHandler.handleChatError(username, targetUsername, e.getMessage());
         } catch (Exception e) {
-            sendError(username, e.getMessage());
+            log.error("System error handling friend request: ", e);
+            webSocketErrorHandler.handleChatError(username, targetUsername, Translator.tolocale("error.sys.busy"));
         }
     }
 
@@ -41,13 +49,14 @@ public class FriendWebSocketController {
         try {
             friendService.acceptFriendRequest(username, requesterUsername);
 
+        } catch (AccessForbiddenException | ResourceNotFoundException | ResourceConflictException | InvalidDataException e) {
+            log.warn("Business error accepting friend request: {}", e.getMessage());
+            webSocketErrorHandler.handleChatError(username, requesterUsername, e.getMessage());
         } catch (Exception e) {
-            sendError(username, e.getMessage());
+            log.error("System error accepting friend request: ", e);
+            webSocketErrorHandler.handleChatError(username, requesterUsername, Translator.tolocale("error.sys.busy"));
         }
     }
 
-    private void sendError(@NonNull String username, String msg) {
-        simpMessagingTemplate.convertAndSendToUser(username, "/queue/errors",
-                SocketResponse.error(msg != null ? msg : "Unknown error", username));
-    }
+
 }
