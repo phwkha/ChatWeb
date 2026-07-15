@@ -341,6 +341,7 @@ public class MessageServiceImpl implements MessageService {
         redisTemplate.opsForHash().delete(key, senderUsername);
         ChatMessage statusMsg = new ChatMessage();
         statusMsg.setMessageType(MessageType.STATUS);
+        statusMsg.setStatus(MessageStatus.READ);
         statusMsg.setSender(senderUsername);
         statusMsg.setRecipient(recipientUsername);
 
