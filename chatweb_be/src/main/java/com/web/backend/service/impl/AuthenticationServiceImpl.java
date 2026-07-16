@@ -182,6 +182,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
+    @Transactional
+    public void logoutAllDevices(String username) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+
+        Integer currentVersion = user.getTokenVersion() == null ? 0 : user.getTokenVersion();
+        user.setTokenVersion(currentVersion + 1);
+        userRepository.save(user);
+
+        Cache userCache = cacheManager.getCache("user_details");
+        if (userCache != null) {
+            userCache.evict(Objects.requireNonNull(username));
+        }
+        log.info("User {} logged out from all devices (token version incremented)", username);
+    }
+
+    @Override
     public TokenResponse refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw new InvalidDataException(Translator.tolocale("error.auth.missing_refresh"));

@@ -38,7 +38,7 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final OAuth2AuthenticationSuccessHandler OAuth2AuthenticationSuccessHandler;
-    
+
     private final OAuth2AuthenticationFailureHandler oauth2AuthenticationFailureHandler;
 
     private final CustomOAuth2UserService customOAuth2UserService;
@@ -62,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/api/auth/logout").authenticated()
+                        .requestMatchers("/api/auth/logout-all-devices").authenticated()
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

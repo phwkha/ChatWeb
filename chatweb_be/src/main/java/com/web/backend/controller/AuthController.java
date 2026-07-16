@@ -221,4 +221,53 @@ public class AuthController {
                                 .header(HttpHeaders.SET_COOKIE, deleteRefresh.toString())
                                 .body(ApiResponse.success(200, Translator.tolocale("success.auth.logout"), null));
         }
+
+        @Operation(summary = "Logout all devices", description = "API endpoint to invalidate all refresh tokens globally")
+        @PostMapping("/logout-all-devices")
+        public ResponseEntity<ApiResponse<String>> logoutAllDevices(Authentication authentication,
+                        HttpServletRequest request) {
+                UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+                log.info("User logout all devices {}", userEntityPrincipal.getUsername());
+
+                authenticationService.logoutAllDevices(userEntityPrincipal.getUsername());
+
+                String accesstoken = null;
+                String refreshtoken = null;
+                if (request.getCookies() != null) {
+                        for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                                if ("accessToken".equals(cookie.getName())) {
+                                        accesstoken = cookie.getValue();
+                                }
+                                if ("refreshToken".equals(cookie.getName())) {
+                                        refreshtoken = cookie.getValue();
+                                }
+                        }
+                }
+                if (accesstoken == null || accesstoken.isEmpty()) {
+                        String authHeader = request.getHeader("Authorization");
+                        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                                accesstoken = authHeader.substring(7);
+                        }
+                }
+
+                if (accesstoken != null && !accesstoken.trim().isEmpty() && !accesstoken.equals("null")
+                                && !accesstoken.equals("undefined")) {
+                        authenticationService.logout(accesstoken, TokenType.ACCESS_TOKEN);
+                }
+                if (refreshtoken != null && !refreshtoken.trim().isEmpty() && !refreshtoken.equals("null")
+                                && !refreshtoken.equals("undefined")) {
+                        authenticationService.logout(refreshtoken, TokenType.REFRESH_TOKEN);
+                }
+
+                ResponseCookie deleteAccess = ResponseCookie.from("accessToken", "")
+                                .path("/").maxAge(0).build();
+
+                ResponseCookie deleteRefresh = ResponseCookie.from("refreshToken", "")
+                                .path("/api/auth").maxAge(0).build();
+
+                return ResponseEntity.ok()
+                                .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
+                                .header(HttpHeaders.SET_COOKIE, deleteRefresh.toString())
+                                .body(ApiResponse.success(200, Translator.tolocale("success.auth.logout"), null));
+        }
 }
