@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.web.backend.common.AuthProvider;
 import com.web.backend.common.OtpType;
 import com.web.backend.common.TokenType;
 import com.web.backend.common.UserStatus;
@@ -279,6 +280,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         newUser.setEmail(data.getEmail());
         newUser.setPassword(data.getPassword());
         newUser.setUserStatus(UserStatus.ACTIVE);
+        newUser.setAuthProvider(AuthProvider.LOCAL);
         newUser.setCreateAt(new Date());
 
         Long roleId = data.getRoleId();
