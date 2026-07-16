@@ -52,21 +52,8 @@ public class AuthController {
 
                 LoginResponse loginResponse = authenticationService.login(loginRequest);
 
-                ResponseCookie accessCookie = ResponseCookie.from("accessToken", loginResponse.getAccessToken())
-                                .httpOnly(true)
-                                .secure(true)
-                                .path("/")
-                                .maxAge(15 * 60)
-                                .sameSite("strict")
-                                .build();
-
-                ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", loginResponse.getRefreshToken())
-                                .httpOnly(true)
-                                .secure(true)
-                                .path("/api/auth/refresh-token")
-                                .maxAge(7 * 24 * 60 * 60)
-                                .sameSite("strict")
-                                .build();
+                ResponseCookie accessCookie = buildCookie("accessToken", loginResponse.getAccessToken(), "/", 15 * 60);
+                ResponseCookie refreshCookie = buildCookie("refreshToken", loginResponse.getRefreshToken(), "/api/auth/refresh-token", 7 * 24 * 60 * 60);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
@@ -117,22 +104,8 @@ public class AuthController {
                 log.info("Refresh token with user");
                 TokenResponse newTokenResponse = authenticationService.refreshToken(refreshToken);
 
-                ResponseCookie newAccessCookie = ResponseCookie.from("accessToken", newTokenResponse.getAccessToken())
-                                .httpOnly(true)
-                                .secure(true)
-                                .path("/")
-                                .maxAge(15 * 60)
-                                .sameSite("Strict")
-                                .build();
-
-                ResponseCookie newrefreshCookie = ResponseCookie
-                                .from("refreshToken", newTokenResponse.getRefreshToken())
-                                .httpOnly(true)
-                                .secure(true)
-                                .path("/api/auth")
-                                .maxAge(7 * 24 * 60 * 60)
-                                .sameSite("strict")
-                                .build();
+                ResponseCookie newAccessCookie = buildCookie("accessToken", newTokenResponse.getAccessToken(), "/", 15 * 60);
+                ResponseCookie newrefreshCookie = buildCookie("refreshToken", newTokenResponse.getRefreshToken(), "/api/auth", 7 * 24 * 60 * 60);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, newAccessCookie.toString())
@@ -176,45 +149,10 @@ public class AuthController {
         public ResponseEntity<ApiResponse<String>> logout(Authentication authentication, HttpServletRequest request) {
                 UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
                 log.info("User logout {}", userEntityPrincipal.getUsername());
-                String accesstoken = null;
-                String refreshtoken = null;
-                if (request.getCookies() != null) {
-                        for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-                                if ("accessToken".equals(cookie.getName())) {
-                                        accesstoken = cookie.getValue();
-                                        break;
-                                }
-                        }
-                }
-                if (request.getCookies() != null) {
-                        for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-                                if ("refreshToken".equals(cookie.getName())) {
-                                        refreshtoken = cookie.getValue();
-                                        break;
-                                }
-                        }
-                }
-                if (accesstoken == null || accesstoken.isEmpty()) {
-                        String authHeader = request.getHeader("Authorization");
-                        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                                accesstoken = authHeader.substring(7);
-                        }
-                }
+                clearTokens(request);
 
-                if (accesstoken != null && !accesstoken.trim().isEmpty() && !accesstoken.equals("null")
-                                && !accesstoken.equals("undefined")) {
-                        authenticationService.logout(accesstoken, TokenType.ACCESS_TOKEN);
-                }
-                if (refreshtoken != null && !refreshtoken.trim().isEmpty() && !refreshtoken.equals("null")
-                                && !refreshtoken.equals("undefined")) {
-                        authenticationService.logout(refreshtoken, TokenType.REFRESH_TOKEN);
-                }
-
-                ResponseCookie deleteAccess = ResponseCookie.from("accessToken", "")
-                                .path("/").maxAge(0).build();
-
-                ResponseCookie deleteRefresh = ResponseCookie.from("refreshToken", "")
-                                .path("/api/auth").maxAge(0).build();
+                ResponseCookie deleteAccess = buildCookie("accessToken", "", "/", 0);
+                ResponseCookie deleteRefresh = buildCookie("refreshToken", "", "/api/auth", 0);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
@@ -231,6 +169,18 @@ public class AuthController {
 
                 authenticationService.logoutAllDevices(userEntityPrincipal.getUsername());
 
+                clearTokens(request);
+
+                ResponseCookie deleteAccess = buildCookie("accessToken", "", "/", 0);
+                ResponseCookie deleteRefresh = buildCookie("refreshToken", "", "/api/auth", 0);
+
+                return ResponseEntity.ok()
+                                .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
+                                .header(HttpHeaders.SET_COOKIE, deleteRefresh.toString())
+                                .body(ApiResponse.success(200, Translator.tolocale("success.auth.logout"), null));
+        }
+
+        private void clearTokens(HttpServletRequest request) {
                 String accesstoken = null;
                 String refreshtoken = null;
                 if (request.getCookies() != null) {
@@ -258,16 +208,15 @@ public class AuthController {
                                 && !refreshtoken.equals("undefined")) {
                         authenticationService.logout(refreshtoken, TokenType.REFRESH_TOKEN);
                 }
+        }
 
-                ResponseCookie deleteAccess = ResponseCookie.from("accessToken", "")
-                                .path("/").maxAge(0).build();
-
-                ResponseCookie deleteRefresh = ResponseCookie.from("refreshToken", "")
-                                .path("/api/auth").maxAge(0).build();
-
-                return ResponseEntity.ok()
-                                .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
-                                .header(HttpHeaders.SET_COOKIE, deleteRefresh.toString())
-                                .body(ApiResponse.success(200, Translator.tolocale("success.auth.logout"), null));
+        private ResponseCookie buildCookie(String name, String value, String path, long maxAge) {
+                return ResponseCookie.from(name, value)
+                                .httpOnly(true)
+                                .secure(true)
+                                .path(path)
+                                .maxAge(maxAge)
+                                .sameSite("Strict")
+                                .build();
         }
 }
