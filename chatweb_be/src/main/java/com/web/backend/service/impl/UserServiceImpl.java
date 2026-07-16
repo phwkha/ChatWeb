@@ -1,5 +1,6 @@
 package com.web.backend.service.impl;
 
+import com.web.backend.common.AuthProvider;
 import com.web.backend.common.OtpType;
 import com.web.backend.common.UserStatus;
 import com.web.backend.controller.request.*;
@@ -144,6 +145,10 @@ public class UserServiceImpl implements UserService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
 
+        if (user.getAuthProvider() != AuthProvider.LOCAL) {
+            throw new AccessForbiddenException(Translator.tolocale("error.user.social_account_not_allowed"));
+        }
+
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new InvalidPasswordException(Translator.tolocale("error.user.pw_incorrect"));
         }
@@ -162,6 +167,10 @@ public class UserServiceImpl implements UserService {
     public void initiatePhoneChange(String username, String newPhone, String currentPassword) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+
+        if (user.getAuthProvider() != AuthProvider.LOCAL) {
+            throw new AccessForbiddenException(Translator.tolocale("error.user.social_account_not_allowed"));
+        }
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new InvalidPasswordException(Translator.tolocale("error.user.pw_incorrect"));
@@ -290,6 +299,10 @@ public class UserServiceImpl implements UserService {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Translator.tolocale("error.user.not_found_with", username)));
+
+        if (userEntity.getAuthProvider() != AuthProvider.LOCAL) {
+            throw new AccessForbiddenException(Translator.tolocale("error.user.social_account_not_allowed"));
+        }
 
         if (!passwordEncoder.matches(currentPassword, userEntity.getPassword())) {
             throw new InvalidPasswordException(Translator.tolocale("error.user.current_pw_incorrect"));

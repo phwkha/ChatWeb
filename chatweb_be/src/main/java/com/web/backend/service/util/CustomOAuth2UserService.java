@@ -77,11 +77,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         Optional<UserEntity> userByEmail = userRepository.findByEmail(email);
         if (userByEmail.isPresent()) {
-            log.info("User found by email {}. Linking account with new providerId: {}", email, providerId);
-            UserEntity existingUser = userByEmail.get();
-            existingUser.setProviderId(providerId);
-            existingUser.setAuthProvider(determineAuthProvider(userRequest));
-            return userRepository.save(existingUser);
+            log.warn("OAuth2 login failed: Email {} is already registered with another method.", email);
+            throw new OAuth2AuthenticationException("error.oauth2.email_already_exists");
         }
 
         log.info("User not found. Registering new user with email: {}", email);
