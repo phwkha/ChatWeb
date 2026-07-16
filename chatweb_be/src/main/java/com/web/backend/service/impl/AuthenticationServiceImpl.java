@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,7 +21,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.Cache;
 
 import com.web.backend.common.OtpType;
 import com.web.backend.common.TokenType;
@@ -170,15 +170,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public void logout(String accessToken) {
-        long remainingTime = jwtService.getRemainingTime(accessToken);
+    public void logout(String token, TokenType tokenType) {
+        long remainingTime = jwtService.getRemainingTime(token, tokenType);
 
         if (remainingTime > 0) {
-            // 2. Lưu vào Redis (Blacklist)
-            String key = "blacklist:" + accessToken;
+            String key = "blacklist:" + token;
             redisTemplate.opsForValue().set(key, "logged_out", remainingTime, TimeUnit.MILLISECONDS);
         }
-
         log.info("Token added to blacklist with TTL: {} ms", remainingTime);
     }
 
@@ -187,15 +185,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw new InvalidDataException(Translator.tolocale("error.auth.missing_refresh"));
         }
-
-        String blacklistKey = "blacklist:" + refreshToken;
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey))) {
-            throw new AccessForbiddenException(Translator.tolocale("error.auth.refresh_revoked"));
-        }
-
         String username = jwtService.extractUsername(refreshToken, TokenType.REFRESH_TOKEN);
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+
+        String blacklistKey = "blacklist:" + refreshToken;
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey))) {
+            user.setTokenVersion(user.getTokenVersion() == null ? 0 : user.getTokenVersion() + 1);
+            userRepository.save(user);
+            Cache userCache = cacheManager.getCache("user_details");
+            if (userCache != null && user.getUsername() != null) {
+                userCache.evict(Objects.requireNonNull(user.getUsername()));
+            }
+            throw new AccessForbiddenException(Translator.tolocale("error.auth.refresh_revoked"));
+        }
 
         Integer tokenVersionInJwt = jwtService.extractClaim(refreshToken, TokenType.REFRESH_TOKEN,
                 claims -> claims.get("v", Integer.class));
@@ -214,7 +217,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String newAccessToken = jwtService.generateAccessToken(user.getUsername(), authorities, currentVersion);
         String newRefreshToken = jwtService.generateRefreshToken(user.getUsername(), authorities, currentVersion);
 
-        long remainingTime = jwtService.getRemainingTime(refreshToken);
+        long remainingTime = jwtService.getRemainingTime(refreshToken, TokenType.REFRESH_TOKEN);
         if (remainingTime > 0) {
             redisTemplate.opsForValue().set(blacklistKey, "rotated", remainingTime, TimeUnit.MILLISECONDS);
         }

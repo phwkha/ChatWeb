@@ -67,8 +67,8 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
-    public long getRemainingTime(String token) {
-        Date expiration = extractClaim(token, TokenType.ACCESS_TOKEN, claims -> claims.getExpiration());
+    public long getRemainingTime(String token, TokenType tokenType) {
+        Date expiration = extractClaim(token, tokenType, claims -> claims.getExpiration());
         long now = System.currentTimeMillis();
         long remaining = expiration.getTime() - now;
         return Math.max(remaining, 0);

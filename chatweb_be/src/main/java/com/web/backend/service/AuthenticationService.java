@@ -1,5 +1,6 @@
 package com.web.backend.service;
 
+import com.web.backend.common.TokenType;
 import com.web.backend.controller.request.CreateUserRequest;
 import com.web.backend.controller.request.LoginRequest;
 import com.web.backend.controller.request.VerifyOtpRequest;
@@ -9,7 +10,7 @@ import com.web.backend.controller.response.UserResponse;
 
 public interface AuthenticationService {
 
-    void logout(String accessToken);
+    void logout(String token, TokenType tokenType);
 
     LoginResponse login(LoginRequest loginRequest);
 
