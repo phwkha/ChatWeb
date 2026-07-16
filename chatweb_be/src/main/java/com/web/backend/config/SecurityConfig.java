@@ -3,6 +3,9 @@ package com.web.backend.config;
 import com.web.backend.jwt.JwtAccessDeniedHandler;
 import com.web.backend.jwt.JwtAuthenticationEntryPoint;
 import com.web.backend.jwt.JwtAuthenticationFilter;
+import com.web.backend.oauth2.OAuth2AuthenticationSuccessHandler;
+import com.web.backend.oauth2.OAuth2AuthenticationFailureHandler;
+import com.web.backend.service.util.CustomOAuth2UserService;
 import com.web.backend.service.util.UserServiceDetail;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +37,12 @@ import java.util.Arrays;
 @Slf4j(topic = "SECURITY-CONFIG")
 public class SecurityConfig {
 
+    private final OAuth2AuthenticationSuccessHandler OAuth2AuthenticationSuccessHandler;
+    
+    private final OAuth2AuthenticationFailureHandler oauth2AuthenticationFailureHandler;
+
+    private final CustomOAuth2UserService customOAuth2UserService;
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     private final UserServiceDetail userServiceDetail;
@@ -51,12 +60,18 @@ public class SecurityConfig {
                         .accessDeniedHandler(jwtAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/api/auth/logout").authenticated()
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService))
+                        .successHandler(OAuth2AuthenticationSuccessHandler)
+                        .failureHandler(oauth2AuthenticationFailureHandler));
 
         return http.build();
     }

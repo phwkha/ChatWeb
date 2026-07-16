@@ -20,35 +20,37 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<UserEntity, Long>, JpaSpecificationExecutor<UserEntity> {
 
-    @EntityGraph(attributePaths = { "role", "role.permissions" })
-    Optional<UserEntity> findByUsername(String username);
+        @EntityGraph(attributePaths = { "role", "role.permissions" })
+        Optional<UserEntity> findByUsername(String username);
 
-    Optional<UserEntity> findByEmail(String email);
+        Optional<UserEntity> findByEmail(String email);
 
-    List<UserEntity> findByUsernameIn(Collection<String> usernames);
+        Optional<UserEntity> findByProviderId(String providerId);
 
-    @EntityGraph(attributePaths = { "role", "role.permissions" })
-    Page<UserEntity> findAllByUserStatusNot(UserStatus status, Pageable pageable);
+        List<UserEntity> findByUsernameIn(Collection<String> usernames);
 
-    boolean existsByUsername(String username);
+        @EntityGraph(attributePaths = { "role", "role.permissions" })
+        Page<UserEntity> findAllByUserStatusNot(UserStatus status, Pageable pageable);
 
-    boolean existsByEmail(String email);
+        boolean existsByUsername(String username);
 
-    boolean existsByRole(RoleEntity role);
+        boolean existsByEmail(String email);
 
-    @Modifying
-    @Transactional
-    @Query("UPDATE UserEntity u SET u.isOnline = :isOnline WHERE u.username = :username")
-    void updateOnlineStatus(String username, boolean isOnline);
+        boolean existsByRole(RoleEntity role);
 
-    @EntityGraph(attributePaths = { "role", "role.permissions" })
-    @Query("SELECT u FROM UserEntity u WHERE u.userStatus != :status AND " +
-            "(LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    Page<UserEntity> searchUsersByKeyword(
-            @Param("keyword") String keyword,
-            @Param("status") UserStatus status,
-            Pageable pageable);
+        @Modifying
+        @Transactional
+        @Query("UPDATE UserEntity u SET u.isOnline = :isOnline WHERE u.username = :username")
+        void updateOnlineStatus(String username, boolean isOnline);
+
+        @EntityGraph(attributePaths = { "role", "role.permissions" })
+        @Query("SELECT u FROM UserEntity u WHERE u.userStatus != :status AND " +
+                        "(LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                        "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                        "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                        "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+        Page<UserEntity> searchUsersByKeyword(
+                        @Param("keyword") String keyword,
+                        @Param("status") UserStatus status,
+                        Pageable pageable);
 }

@@ -1,5 +1,6 @@
 package com.web.backend.model;
 
+import com.web.backend.common.AuthProvider;
 import com.web.backend.common.GenderType;
 import com.web.backend.common.UserStatus;
 import jakarta.persistence.*;
@@ -15,6 +16,13 @@ import java.util.*;
 @Getter
 @Setter
 public class UserEntity extends AbstractEntity<Long> implements UserDetails {
+
+    @Column(name = "auth_provider")
+    @Enumerated(EnumType.STRING)
+    private AuthProvider authProvider;
+
+    @Column(unique = true)
+    private String providerId;
 
     @Column(unique = true, nullable = false)
     private String username;
