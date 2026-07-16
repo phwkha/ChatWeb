@@ -12,6 +12,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Objects;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -53,7 +56,8 @@ public class AuthController {
                 LoginResponse loginResponse = authenticationService.login(loginRequest);
 
                 ResponseCookie accessCookie = buildCookie("accessToken", loginResponse.getAccessToken(), "/", 15 * 60);
-                ResponseCookie refreshCookie = buildCookie("refreshToken", loginResponse.getRefreshToken(), "/api/auth/refresh-token", 7 * 24 * 60 * 60);
+                ResponseCookie refreshCookie = buildCookie("refreshToken", loginResponse.getRefreshToken(),
+                                "/api/auth/refresh-token", 7 * 24 * 60 * 60);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
@@ -104,8 +108,10 @@ public class AuthController {
                 log.info("Refresh token with user");
                 TokenResponse newTokenResponse = authenticationService.refreshToken(refreshToken);
 
-                ResponseCookie newAccessCookie = buildCookie("accessToken", newTokenResponse.getAccessToken(), "/", 15 * 60);
-                ResponseCookie newrefreshCookie = buildCookie("refreshToken", newTokenResponse.getRefreshToken(), "/api/auth", 7 * 24 * 60 * 60);
+                ResponseCookie newAccessCookie = buildCookie("accessToken", newTokenResponse.getAccessToken(), "/",
+                                15 * 60);
+                ResponseCookie newrefreshCookie = buildCookie("refreshToken", newTokenResponse.getRefreshToken(),
+                                "/api/auth", 7 * 24 * 60 * 60);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, newAccessCookie.toString())
@@ -211,7 +217,7 @@ public class AuthController {
         }
 
         private ResponseCookie buildCookie(String name, String value, String path, long maxAge) {
-                return ResponseCookie.from(name, value)
+                return ResponseCookie.from(Objects.requireNonNull(name), value)
                                 .httpOnly(true)
                                 .secure(true)
                                 .path(path)
