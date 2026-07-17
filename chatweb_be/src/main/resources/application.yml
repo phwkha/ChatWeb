@@ -11,7 +11,6 @@ spring:
     encoding: UTF-8
   profiles:
     active: @spring.profiles.active@
-#    active: prod
 
 management:
   endpoints:
