@@ -19,7 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import org.springframework.context.annotation.Profile;
+
 @Component
+@Profile("!test")
 @RequiredArgsConstructor
 @Slf4j(topic = "DATABASE-SEEDER")
 public class DataSeeder implements CommandLineRunner {
