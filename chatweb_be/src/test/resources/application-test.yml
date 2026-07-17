@@ -1,0 +1,61 @@
+spring:
+  main:
+    allow-circular-references: true
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: dummy
+            client-secret: dummy
+  mail:
+    host: dummy
+    username: dummy
+    expiration-minutes: 5
+  kafka:
+    topic:
+      friend: dummy
+      chat:
+        messages: dummy
+        system-messages: dummy
+        save: dummy
+      email:
+        email-topic: dummy
+        group-id: dummy
+
+cloudinary:
+  cloud-name: dummy
+  api-key: dummy
+  api-secret: dummy
+
+app:
+  upload:
+    avatar:
+      max-size: 1048576
+    max-size-video: 1048576
+    max-size-image: 1048576
+  oauth2:
+    redirect-uri: dummy
+
+jwt:
+  expiry-minutes: 5
+  expiry-day: 1
+  secret-key-access: dummy-secret-key-that-is-at-least-32-bytes-long-for-hmac
+  secret-key-refresh: dummy-secret-key-that-is-at-least-32-bytes-long-for-hmac
+
+openapi:
+  service:
+    api-docs: dummy
+    title: dummy
+    version: dummy
+    server: dummy
