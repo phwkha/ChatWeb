@@ -14,20 +14,20 @@ import java.util.List;
 
 public interface MessageRepository extends MongoRepository<ChatMessage, String> {
 
-    @Query("{ 'conversationId': ?0, 'messageType': 'PRIVATE_CHAT' }")
+    @Query("{ 'conversationId': ?0, 'messageType': 'CHAT' }")
     List<ChatMessage> findByConversationId(String conversationId, Pageable pageable);
 
-    @Query("{ 'conversationId': ?0, 'messageType': 'PRIVATE_CHAT', 'timestamp': { '$lt': ?1 } }")
+    @Query("{ 'conversationId': ?0, 'messageType': 'CHAT', 'timestamp': { '$lt': ?1 } }")
     List<ChatMessage> findByConversationIdAndTimestampBefore(String conversationId, LocalDateTime cursor, Pageable pageable);
 
-    @Query("{ 'recipient': ?0, 'sender': ?1, 'status': 'SENT', 'messageType': 'PRIVATE_CHAT' }")
+    @Query("{ 'recipient': ?0, 'sender': ?1, 'status': 'SENT', 'messageType': 'CHAT' }")
     List<ChatMessage> findUnreadMessagesFromSender(String recipient, String sender);
 
     @Query(value = "{ $or: [ { 'sender': ?0 }, { 'recipient': ?0 } ] }", exists = true)
     boolean existsBySenderOrRecipient(String username);
 
     @Aggregation(pipeline = {
-            "{ '$match': { 'recipient': ?0, 'status': 'SENT', 'messageType': 'PRIVATE_CHAT' } }",
+            "{ '$match': { 'recipient': ?0, 'status': 'SENT', 'messageType': 'CHAT' } }",
             "{ '$group': { '_id': '$sender', 'count': { '$sum': 1 } } }",
             "{ '$project': { 'sender': '$_id', 'count': 1, '_id': 0 } }"
     })
