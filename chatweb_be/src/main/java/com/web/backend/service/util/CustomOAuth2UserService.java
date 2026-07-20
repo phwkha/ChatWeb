@@ -114,7 +114,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         String username = oAuth2User.getAttribute(NAME_STRING);
         if (username != null) {
-            username = username.toString().replaceAll("\\s+", "");
+            username = username.replaceAll("\\s+", "");
         } else {
             username = "user";
         }

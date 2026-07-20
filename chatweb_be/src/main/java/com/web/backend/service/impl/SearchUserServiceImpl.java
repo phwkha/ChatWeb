@@ -51,7 +51,7 @@ public class SearchUserServiceImpl implements SearchUserService {
 
         List<UserSummaryResponse> content = pageResult.getContent().stream()
                 .map(userMapper::toUserSummaryResponse)
-                .collect(Collectors.toList());
+                .toList();
 
         return PageResponse.<UserSummaryResponse>builder()
                 .content(content)

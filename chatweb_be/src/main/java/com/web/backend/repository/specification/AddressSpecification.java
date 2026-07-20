@@ -22,7 +22,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class AddressSpecification implements Specification<UserEntity> {
 
-    private List<SpecSearchCriteria> criteriaList;
+    private transient List<SpecSearchCriteria> criteriaList;
 
     private static final String ADDRESSES_STRING = "addresses";
 

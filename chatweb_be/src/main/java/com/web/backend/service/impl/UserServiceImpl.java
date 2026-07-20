@@ -57,6 +57,8 @@ public class UserServiceImpl implements UserService {
 
     private final CuckooFilterService cuckooFilterService;
 
+    private SecureRandom secureRandom = new SecureRandom();
+
     @Value("${spring.mail.expiration-minutes}")
     private int expirationMinutes;
 
@@ -154,8 +156,7 @@ public class UserServiceImpl implements UserService {
 
     private void generateAndSenResponseToken(UserEntity user, OtpType type, String extraData, String targetEmail) {
 
-        SecureRandom secureRandom = new SecureRandom();
-        String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
+        String otp = String.valueOf(100000 + this.secureRandom.nextInt(900000));
 
         String redisKey = OTP_STRING + type.name() + ":" + user.getUsername();
 
@@ -276,7 +277,7 @@ public class UserServiceImpl implements UserService {
         log.info("Get all address for user");
         return user.getAddresses().stream()
                 .map(userMapper::toAddressResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -479,8 +480,7 @@ public class UserServiceImpl implements UserService {
         String[] parts = oldValue.split(":");
         String extraData = parts.length > 1 ? parts[1] : "";
 
-        SecureRandom secureRandom = new SecureRandom();
-        String newOtp = String.valueOf(100000 + secureRandom.nextInt(900000));
+        String newOtp = String.valueOf(100000 + this.secureRandom.nextInt(900000));
 
         String newValue = newOtp + (extraData.isEmpty() ? "" : ":" + extraData);
 

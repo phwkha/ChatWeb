@@ -214,7 +214,7 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleMaxSizeException(MaxUploadSizeExceededException exc) {
         log.warn("File too large: {}", exc.getMessage());
         return ApiResponse.error(HttpStatus.PAYLOAD_TOO_LARGE.value(),
-                Translator.tolocale(ERROR_STORAGE_FILE_TOO_LARGE_STRING, STR_20_STRING)); // Assuming 20MB limit
+                Translator.tolocale(ERROR_STORAGE_FILE_TOO_LARGE_STRING, STR_20_STRING));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

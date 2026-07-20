@@ -78,6 +78,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final CuckooFilterService cuckooFilterService;
 
+    private SecureRandom secureRandom = new SecureRandom();
+
     @Value("${spring.mail.expiration-minutes}")
     private int expirationMinutes;
 
@@ -139,8 +141,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             }
         }
 
-        SecureRandom secureRandom = new SecureRandom();
-        String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
+        String otp = String.valueOf(100000 + this.secureRandom.nextInt(900000));
         RoleEntity defaultRole = roleRepository.findByName(USER_STRING)
                 .orElseThrow(
                         () -> new ResourceNotFoundException(Translator.tolocale(ERROR_AUTH_ROLE_USER_MISSING_STRING)));
@@ -300,8 +301,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private void generateAndSenResponseToken(UserEntity user, OtpType type, String extraData, String targetEmail) {
 
-        SecureRandom secureRandom = new SecureRandom();
-        String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
+        String otp = String.valueOf(100000 + this.secureRandom.nextInt(900000));
 
         String redisKey = "otp:" + type.name() + ":" + user.getUsername();
 
@@ -376,8 +376,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         RegisterData data = (RegisterData) redisTemplate.opsForValue().get(redisKey);
 
         if (data != null) {
-            SecureRandom secureRandom = new SecureRandom();
-            String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
+            String otp = String.valueOf(100000 + this.secureRandom.nextInt(900000));
 
             data.setOtp(otp);
             redisTemplate.opsForValue().set(redisKey, Objects.requireNonNull(data), expirationMinutes,
@@ -491,8 +490,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String[] parts = oldValue.split(":");
         String extraData = parts.length > 1 ? parts[1] : "";
 
-        SecureRandom secureRandom = new SecureRandom();
-        String newOtp = String.valueOf(100000 + secureRandom.nextInt(900000));
+        String newOtp = String.valueOf(100000 + this.secureRandom.nextInt(900000));
 
         String newValue = newOtp + (extraData.isEmpty() ? "" : ":" + extraData);
 

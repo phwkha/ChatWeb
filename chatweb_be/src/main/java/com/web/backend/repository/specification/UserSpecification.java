@@ -19,7 +19,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class UserSpecification implements Specification<UserEntity> {
 
-    private List<SpecSearchCriteria> criteriaList;
+    private transient List<SpecSearchCriteria> criteriaList;
 
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })

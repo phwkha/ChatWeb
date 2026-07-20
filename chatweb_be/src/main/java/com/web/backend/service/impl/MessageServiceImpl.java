@@ -274,7 +274,7 @@ public class MessageServiceImpl implements MessageService {
                 finalMessages = uniqueMessagesMap.values().stream()
                         .sorted(Comparator.comparing((ChatMessage msg) -> msg.getTimestamp()).reversed())
                         .limit(size + 1)
-                        .collect(Collectors.toList());
+                        .toList();
             }
         }
         log.info("Fetching private messages");

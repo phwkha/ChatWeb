@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
@@ -50,7 +49,7 @@ public class RoleServiceImpl implements RoleService {
         log.info("Get all roles");
         return roleRepository.findAll().stream()
                 .map(userMapper::toRoleResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -58,7 +57,7 @@ public class RoleServiceImpl implements RoleService {
         log.info("Get all permission");
         return permissionRepository.findAll().stream()
                 .map(userMapper::toPermissionResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

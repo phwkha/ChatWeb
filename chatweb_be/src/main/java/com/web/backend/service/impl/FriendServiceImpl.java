@@ -35,7 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
@@ -54,7 +53,9 @@ public class FriendServiceImpl implements FriendService {
         private final UserMapper userMapper;
 
         @Value("${spring.kafka.topic.friend}")
-        private String FRIEND_TOPIC;
+        private String friendTopic;
+
+        private static final String FRIENDS_STRING = "friends:";
 
         private static final String DESC_STRING = "desc";
 
@@ -138,7 +139,7 @@ public class FriendServiceImpl implements FriendService {
                 FriendNotificationMessage payload = new FriendNotificationMessage(
                                 requesterUsername, addresseeUsername, QUEUE_NOTIFICATIONS_STRING, senderResponse,
                                 response);
-                eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
+                eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(friendTopic), payload));
         }
 
         @Override
@@ -165,8 +166,8 @@ public class FriendServiceImpl implements FriendService {
                 friendship.setStatus(FriendshipStatus.ACCEPTED);
                 friendshipRepository.save(friendship);
 
-                redisTemplate.opsForSet().add("friends:" + acceptorUsername, requesterUsername);
-                redisTemplate.opsForSet().add("friends:" + requesterUsername, acceptorUsername);
+                redisTemplate.opsForSet().add(FRIENDS_STRING + acceptorUsername, requesterUsername);
+                redisTemplate.opsForSet().add(FRIENDS_STRING + requesterUsername, acceptorUsername);
 
                 NotificationMessageResponse data = NotificationMessageResponse.builder()
                                 .status(NotificationsStatus.FRIEND_ACCEPTED)
@@ -188,7 +189,7 @@ public class FriendServiceImpl implements FriendService {
                 FriendNotificationMessage payload = new FriendNotificationMessage(
                                 acceptorUsername, requesterUsername, QUEUE_NOTIFICATIONS_STRING, acceptorResponse,
                                 response);
-                eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
+                eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(friendTopic), payload));
         }
 
         @Override
@@ -207,7 +208,7 @@ public class FriendServiceImpl implements FriendService {
 
                 List<UserSummaryResponse> content = pageResult.getContent().stream()
                                 .map(f -> userMapper.toUserSummaryResponse(f.getAddressee()))
-                                .collect(Collectors.toList());
+                                .toList();
 
                 return buildPageResponse(pageResult, content);
         }
@@ -227,7 +228,7 @@ public class FriendServiceImpl implements FriendService {
 
                 List<UserSummaryResponse> content = pageResult.getContent().stream()
                                 .map(f -> userMapper.toUserSummaryResponse(f.getRequester()))
-                                .collect(Collectors.toList());
+                                .toList();
 
                 return buildPageResponse(pageResult, content);
         }
@@ -252,7 +253,7 @@ public class FriendServiceImpl implements FriendService {
                                                         : f.getRequester();
                                         return userMapper.toUserSummaryResponse(friend);
                                 })
-                                .collect(Collectors.toList());
+                                .toList();
 
                 return buildPageResponse(pageResult, content);
         }
@@ -270,8 +271,8 @@ public class FriendServiceImpl implements FriendService {
                 boolean isAccepted = friendship.getStatus() == FriendshipStatus.ACCEPTED;
                 boolean isRequester = friendship.getRequester().getUsername().equals(currentUsername);
 
-                redisTemplate.opsForSet().remove("friends:" + currentUsername, targetUsername);
-                redisTemplate.opsForSet().remove("friends:" + targetUsername, currentUsername);
+                redisTemplate.opsForSet().remove(FRIENDS_STRING + currentUsername, targetUsername);
+                redisTemplate.opsForSet().remove(FRIENDS_STRING + targetUsername, currentUsername);
 
                 friendshipRepository.delete(friendship);
 
@@ -287,7 +288,7 @@ public class FriendServiceImpl implements FriendService {
                                                         Translator.tolocale(SUCCESS_FRIEND_UNFRIENDED_STRING),
                                                         data));
                         eventPublisher.publishEvent(
-                                        new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
+                                        new KafkaDispatchEvent(Objects.requireNonNull(friendTopic), payload));
 
                 } else {
                         if (isRequester) {
@@ -303,7 +304,7 @@ public class FriendServiceImpl implements FriendService {
                                                                                 SUCCESS_FRIEND_INVITE_RETRACTED_STRING),
                                                                 data));
                                 eventPublisher.publishEvent(
-                                                new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
+                                                new KafkaDispatchEvent(Objects.requireNonNull(friendTopic), payload));
 
                         } else {
                                 NotificationMessageResponse data = NotificationMessageResponse.builder()
@@ -318,7 +319,7 @@ public class FriendServiceImpl implements FriendService {
                                                                                 SUCCESS_FRIEND_INVITE_DECLINED_STRING),
                                                                 data));
                                 eventPublisher.publishEvent(
-                                                new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
+                                                new KafkaDispatchEvent(Objects.requireNonNull(friendTopic), payload));
                         }
                 }
         }
@@ -338,8 +339,8 @@ public class FriendServiceImpl implements FriendService {
 
                 friendshipRepository.save(friendship);
 
-                redisTemplate.opsForSet().remove("friends:" + blockerUsername, targetUsername);
-                redisTemplate.opsForSet().remove("friends:" + targetUsername, blockerUsername);
+                redisTemplate.opsForSet().remove(FRIENDS_STRING + blockerUsername, targetUsername);
+                redisTemplate.opsForSet().remove(FRIENDS_STRING + targetUsername, blockerUsername);
 
                 log.info("User {} blocked {}", blockerUsername, targetUsername);
         }
@@ -347,15 +348,15 @@ public class FriendServiceImpl implements FriendService {
         @Override
         public boolean isFriend(@NonNull String user1, @NonNull String user2) {
 
-                Boolean isMember = redisTemplate.opsForSet().isMember("friends:" + user1, user2);
+                Boolean isMember = redisTemplate.opsForSet().isMember(FRIENDS_STRING + user1, user2);
                 if (Boolean.TRUE.equals(isMember))
                         return true;
 
                 boolean existsInDb = friendshipRepository.existsFriendship(user1, user2);
 
                 if (existsInDb) {
-                        redisTemplate.opsForSet().add("friends:" + user1, user2);
-                        redisTemplate.opsForSet().add("friends:" + user2, user1);
+                        redisTemplate.opsForSet().add(FRIENDS_STRING + user1, user2);
+                        redisTemplate.opsForSet().add(FRIENDS_STRING + user2, user1);
                 }
                 return existsInDb;
         }
