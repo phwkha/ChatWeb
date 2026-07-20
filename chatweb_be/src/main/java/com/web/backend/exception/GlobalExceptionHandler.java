@@ -180,13 +180,11 @@ public class GlobalExceptionHandler {
         Map<String, String> errors = new HashMap<>();
 
         BindingResult bindingResult = ex.getBindingResult();
-        if (bindingResult != null) {
-            bindingResult.getAllErrors().forEach((error) -> {
-                String fieldName = ((FieldError) error).getField();
-                String errorMessage = error.getDefaultMessage();
-                errors.put(fieldName, errorMessage);
-            });
-        }
+        bindingResult.getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
@@ -232,20 +230,4 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error(500, Translator.tolocale(ERROR_SYS_BUSY_STRING)));
     }
-
-    // private ApiResponse<ErrorDebugInfo> buildErrorForDev(HttpStatus status,
-    // Exception ex, String userMessage) {
-
-    // ErrorDebugInfo debugInfo = ErrorDebugInfo.builder()
-    // .exceptionType(ex.getClass().getSimpleName())
-    // .devMessage(ex.getMessage())
-    // .build();
-
-    // return ApiResponse.<ErrorDebugInfo>builder()
-    // .code(status.value())
-    // .status(ERROR_STRING)
-    // .message(userMessage)
-    // .data(debugInfo)
-    // .build();
-    // }
 }
