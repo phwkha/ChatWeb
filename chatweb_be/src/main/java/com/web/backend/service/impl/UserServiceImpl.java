@@ -33,7 +33,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
@@ -215,7 +214,6 @@ public class UserServiceImpl implements UserService {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
-        ;
         AddressEntity newAddress = userMapper.toAddressEntity(request);
 
         user.addAddress(newAddress);
