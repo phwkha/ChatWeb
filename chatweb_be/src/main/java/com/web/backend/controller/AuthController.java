@@ -38,6 +38,32 @@ public class AuthController {
 
         private final RateLimitingService rateLimitingService;
 
+        private static final String API_AUTH_REFRESH_TOKEN_STRING = "/api/auth/refresh-token";
+
+        private static final String AUTHORIZATION_STRING = "Authorization";
+        private static final String BEARER_STRING = "Bearer ";
+
+        private static final String NULL_STRING = "null";
+        private static final String UNDEFINED_STRING = "undefined";
+
+        private static final String STRICT_STRING = "Strict";
+        private static final String AUTH_PATH = "/api/auth";
+
+        private static final String ACCESSTOKEN = "accessToken";
+        private static final String REFRESHTOKEN = "refreshToken";;
+
+        private static final String ERROR_AUTH_TOO_MANY_ATTEMPTS_STRING = "error.auth.too_many_attempts";
+
+        private static final String SUCCESS_AUTH_ACTIVATED_STRING = "success.auth.activated";
+        private static final String SUCCESS_AUTH_CODE_RESENT_STRING = "success.auth.code_resent";
+        private static final String SUCCESS_AUTH_CODE_SENT_STRING = "success.auth.code_sent";
+        private static final String SUCCESS_AUTH_LOGIN_STRING = "success.auth.login";
+        private static final String SUCCESS_AUTH_LOGOUT_STRING = "success.auth.logout";
+        private static final String SUCCESS_AUTH_OTP_RESENT_STRING = "success.auth.otp_resent";
+        private static final String SUCCESS_AUTH_PWD_RESET_STRING = "success.auth.pwd_reset";
+        private static final String SUCCESS_AUTH_REGISTERED_STRING = "success.auth.registered";
+        private static final String SUCCESS_AUTH_TOKEN_REFRESHED_STRING = "success.auth.token_refreshed";
+
         @Operation(summary = "Login", description = "API endpoint for login")
         @PostMapping("/login")
         public ResponseEntity<ApiResponse<UserResponse>> login(@RequestBody @Valid LoginRequest loginRequest,
@@ -48,22 +74,22 @@ public class AuthController {
                 if (!rateLimitingService.allowRequest(ip, "login", 5, 60)) {
                         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                                         .body(ApiResponse.error(429,
-                                                        Translator.tolocale("error.auth.too_many_attempts")));
+                                                        Translator.tolocale(ERROR_AUTH_TOO_MANY_ATTEMPTS_STRING)));
                 }
 
                 log.info("Login with user: {}", loginRequest.getUsername());
 
                 LoginResponse loginResponse = authenticationService.login(loginRequest);
 
-                ResponseCookie accessCookie = buildCookie("accessToken", loginResponse.getAccessToken(), "/", 15 * 60);
-                ResponseCookie refreshCookie = buildCookie("refreshToken", loginResponse.getRefreshToken(),
-                                "/api/auth/refresh-token", 7 * 24 * 60 * 60);
+                ResponseCookie accessCookie = buildCookie(ACCESSTOKEN, loginResponse.getAccessToken(), "/", 15 * 60);
+                ResponseCookie refreshCookie = buildCookie(REFRESHTOKEN, loginResponse.getRefreshToken(),
+                                API_AUTH_REFRESH_TOKEN_STRING, 7 * 24 * 60 * 60);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                                 .body(ApiResponse.success(HttpStatus.OK.value(),
-                                                Translator.tolocale("success.auth.login"),
+                                                Translator.tolocale(SUCCESS_AUTH_LOGIN_STRING),
                                                 loginResponse.getUserResponse()));
         }
 
@@ -77,7 +103,7 @@ public class AuthController {
 
                 return ResponseEntity.status(HttpStatus.CREATED)
                                 .body(ApiResponse.success(HttpStatus.CREATED.value(),
-                                                Translator.tolocale("success.auth.registered"), newUser));
+                                                Translator.tolocale(SUCCESS_AUTH_REGISTERED_STRING), newUser));
         }
 
         @Operation(summary = "Verify otp", description = "API endpoint for verify otp")
@@ -87,7 +113,7 @@ public class AuthController {
                 authenticationService.verifyUser(request);
                 return ResponseEntity
                                 .ok(ApiResponse.success(HttpStatus.OK.value(),
-                                                Translator.tolocale("success.auth.activated"), null));
+                                                Translator.tolocale(SUCCESS_AUTH_ACTIVATED_STRING), null));
         }
 
         @Operation(summary = "Resend otp", description = "API endpoint for resend otp")
@@ -97,27 +123,27 @@ public class AuthController {
                 authenticationService.resendOtp(email);
                 return ResponseEntity
                                 .ok(ApiResponse.success(HttpStatus.OK.value(),
-                                                Translator.tolocale("success.auth.otp_resent"), null));
+                                                Translator.tolocale(SUCCESS_AUTH_OTP_RESENT_STRING), null));
         }
 
         @Operation(summary = "Refresh token", description = "API endpoint for refresh token")
         @PostMapping("/refresh-token")
         public ResponseEntity<ApiResponse<String>> refreshToken(
-                        @CookieValue(name = "refreshToken", required = false) String refreshToken) {
+                        @CookieValue(name = REFRESHTOKEN, required = false) String refreshToken) {
 
                 log.info("Refresh token with user");
                 TokenResponse newTokenResponse = authenticationService.refreshToken(refreshToken);
 
-                ResponseCookie newAccessCookie = buildCookie("accessToken", newTokenResponse.getAccessToken(), "/",
+                ResponseCookie newAccessCookie = buildCookie(ACCESSTOKEN, newTokenResponse.getAccessToken(), "/",
                                 15 * 60);
-                ResponseCookie newrefreshCookie = buildCookie("refreshToken", newTokenResponse.getRefreshToken(),
-                                "/api/auth", 7 * 24 * 60 * 60);
+                ResponseCookie newrefreshCookie = buildCookie(REFRESHTOKEN, newTokenResponse.getRefreshToken(),
+                                AUTH_PATH, 7 * 24 * 60 * 60);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, newAccessCookie.toString())
                                 .header(HttpHeaders.SET_COOKIE, newrefreshCookie.toString())
                                 .body(ApiResponse.success(HttpStatus.OK.value(),
-                                                Translator.tolocale("success.auth.token_refreshed"),
+                                                Translator.tolocale(SUCCESS_AUTH_TOKEN_REFRESHED_STRING),
                                                 newTokenResponse.getAccessToken()));
         }
 
@@ -128,7 +154,7 @@ public class AuthController {
                 authenticationService.initiateForgotPassword(request.getEmail());
                 return ResponseEntity
                                 .ok(ApiResponse.success(HttpStatus.OK.value(),
-                                                Translator.tolocale("success.auth.code_sent"), null));
+                                                Translator.tolocale(SUCCESS_AUTH_CODE_SENT_STRING), null));
         }
 
         @Operation(summary = "Reset password", description = "API endpoint for reset password")
@@ -138,7 +164,7 @@ public class AuthController {
                 authenticationService.verifyPasswordReset(request.getEmail(), request.getOtp(),
                                 request.getNewPassword());
                 return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                                Translator.tolocale("success.auth.pwd_reset"), null));
+                                Translator.tolocale(SUCCESS_AUTH_PWD_RESET_STRING), null));
         }
 
         @Operation(summary = "Resend forgot password", description = "API endpoint for resend forgot password")
@@ -147,7 +173,7 @@ public class AuthController {
                 authenticationService.resendForgotPasswordOtp(email);
                 return ResponseEntity
                                 .ok(ApiResponse.success(HttpStatus.OK.value(),
-                                                Translator.tolocale("success.auth.code_resent"), null));
+                                                Translator.tolocale(SUCCESS_AUTH_CODE_RESENT_STRING), null));
         }
 
         @Operation(summary = "Logout", description = "API endpoint for logout")
@@ -157,13 +183,13 @@ public class AuthController {
                 log.info("User logout {}", userEntityPrincipal.getUsername());
                 clearTokens(request);
 
-                ResponseCookie deleteAccess = buildCookie("accessToken", "", "/", 0);
-                ResponseCookie deleteRefresh = buildCookie("refreshToken", "", "/api/auth", 0);
+                ResponseCookie deleteAccess = buildCookie(ACCESSTOKEN, "", "/", 0);
+                ResponseCookie deleteRefresh = buildCookie(REFRESHTOKEN, "", AUTH_PATH, 0);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
                                 .header(HttpHeaders.SET_COOKIE, deleteRefresh.toString())
-                                .body(ApiResponse.success(200, Translator.tolocale("success.auth.logout"), null));
+                                .body(ApiResponse.success(200, Translator.tolocale(SUCCESS_AUTH_LOGOUT_STRING), null));
         }
 
         @Operation(summary = "Logout all devices", description = "API endpoint to invalidate all refresh tokens globally")
@@ -177,42 +203,51 @@ public class AuthController {
 
                 clearTokens(request);
 
-                ResponseCookie deleteAccess = buildCookie("accessToken", "", "/", 0);
-                ResponseCookie deleteRefresh = buildCookie("refreshToken", "", "/api/auth", 0);
+                ResponseCookie deleteAccess = buildCookie(ACCESSTOKEN, "", "/", 0);
+                ResponseCookie deleteRefresh = buildCookie(REFRESHTOKEN, "", AUTH_PATH, 0);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
                                 .header(HttpHeaders.SET_COOKIE, deleteRefresh.toString())
-                                .body(ApiResponse.success(200, Translator.tolocale("success.auth.logout"), null));
+                                .body(ApiResponse.success(200, Translator.tolocale(SUCCESS_AUTH_LOGOUT_STRING), null));
         }
 
         private void clearTokens(HttpServletRequest request) {
-                String accesstoken = null;
-                String refreshtoken = null;
-                if (request.getCookies() != null) {
-                        for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-                                if ("accessToken".equals(cookie.getName())) {
-                                        accesstoken = cookie.getValue();
-                                }
-                                if ("refreshToken".equals(cookie.getName())) {
-                                        refreshtoken = cookie.getValue();
-                                }
-                        }
-                }
+                String accesstoken = getCookieValue(request, ACCESSTOKEN);
+                String refreshtoken = getCookieValue(request, REFRESHTOKEN);
+
                 if (accesstoken == null || accesstoken.isEmpty()) {
-                        String authHeader = request.getHeader("Authorization");
-                        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                                accesstoken = authHeader.substring(7);
-                        }
+                        accesstoken = getBearerToken(request);
                 }
 
-                if (accesstoken != null && !accesstoken.trim().isEmpty() && !accesstoken.equals("null")
-                                && !accesstoken.equals("undefined")) {
-                        authenticationService.logout(accesstoken, TokenType.ACCESS_TOKEN);
+                logoutIfValid(accesstoken, TokenType.ACCESS_TOKEN);
+                logoutIfValid(refreshtoken, TokenType.REFRESH_TOKEN);
+        }
+
+        private String getCookieValue(HttpServletRequest request, String cookieName) {
+                if (request.getCookies() == null) {
+                        return null;
                 }
-                if (refreshtoken != null && !refreshtoken.trim().isEmpty() && !refreshtoken.equals("null")
-                                && !refreshtoken.equals("undefined")) {
-                        authenticationService.logout(refreshtoken, TokenType.REFRESH_TOKEN);
+                for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                        if (cookieName.equals(cookie.getName())) {
+                                return cookie.getValue();
+                        }
+                }
+                return null;
+        }
+
+        private String getBearerToken(HttpServletRequest request) {
+                String authHeader = request.getHeader(AUTHORIZATION_STRING);
+                if (authHeader != null && authHeader.startsWith(BEARER_STRING)) {
+                        return authHeader.substring(7);
+                }
+                return null;
+        }
+
+        private void logoutIfValid(String token, TokenType tokenType) {
+                if (token != null && !token.trim().isEmpty() && !token.equals(NULL_STRING)
+                                && !token.equals(UNDEFINED_STRING)) {
+                        authenticationService.logout(token, tokenType);
                 }
         }
 
@@ -222,7 +257,7 @@ public class AuthController {
                                 .secure(true)
                                 .path(path)
                                 .maxAge(maxAge)
-                                .sameSite("Strict")
+                                .sameSite(STRICT_STRING)
                                 .build();
         }
 }

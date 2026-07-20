@@ -25,7 +25,11 @@ import com.web.backend.config.LocalResolverConfig.Translator;
 public class ChatController {
 
     private final MessageService messageService;
+
     private final WebSocketErrorHandler webSocketErrorHandler;
+
+    private static final String ERROR_CHAT_SYS_MSG_FAIL_STRING = "error.chat.sys_msg_fail";
+    private static final String ERROR_SYS_BUSY_STRING = "error.sys.busy";
 
     @MessageMapping("/chat/sendMessageSystem")
     @PreAuthorize("hasAuthority('ADMIN_SEND-MESSAGE')")
@@ -41,7 +45,7 @@ public class ChatController {
         } catch (Exception e) {
             log.error("Error sending system message: {}", e.getMessage());
             webSocketErrorHandler.handleChatError(currentUsername, request,
-                    Translator.tolocale("error.chat.sys_msg_fail"));
+                    Translator.tolocale(ERROR_CHAT_SYS_MSG_FAIL_STRING));
         }
     }
 
@@ -61,7 +65,7 @@ public class ChatController {
             webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
         } catch (Exception e) {
             log.error("System error sending private message: ", e);
-            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale("error.sys.busy"));
+            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale(ERROR_SYS_BUSY_STRING));
         }
     }
 
@@ -82,12 +86,13 @@ public class ChatController {
             webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
         } catch (Exception e) {
             log.error("System error processing reaction: ", e);
-            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale("error.sys.busy"));
+            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale(ERROR_SYS_BUSY_STRING));
         }
     }
 
     @MessageMapping("/chat/editMessage")
-    public void editMessage(@Payload @Valid com.web.backend.controller.request.EditMessageRequest request, Authentication authentication) {
+    public void editMessage(@Payload @Valid com.web.backend.controller.request.EditMessageRequest request,
+            Authentication authentication) {
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String senderUsername = userPrincipal.getUsername();
         try {
@@ -98,12 +103,13 @@ public class ChatController {
             webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
         } catch (Exception e) {
             log.error("System error editing message: ", e);
-            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale("error.sys.busy"));
+            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale(ERROR_SYS_BUSY_STRING));
         }
     }
 
     @MessageMapping("/chat/revokeMessage")
-    public void revokeMessage(@Payload @Valid com.web.backend.controller.request.RevokeMessageRequest request, Authentication authentication) {
+    public void revokeMessage(@Payload @Valid com.web.backend.controller.request.RevokeMessageRequest request,
+            Authentication authentication) {
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String senderUsername = userPrincipal.getUsername();
         try {
@@ -114,7 +120,7 @@ public class ChatController {
             webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
         } catch (Exception e) {
             log.error("System error revoking message: ", e);
-            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale("error.sys.busy"));
+            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale(ERROR_SYS_BUSY_STRING));
         }
     }
 

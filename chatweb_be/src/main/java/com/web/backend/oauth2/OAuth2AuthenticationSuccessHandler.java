@@ -27,6 +27,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         @Value("${app.oauth2.redirect-uri}")
         private String redirectUri;
 
+        private static final String API_AUTH_STRING = "/api/auth";
+
+        private static final String STRICT_STRING = "Strict";
+
+        private static final String REFRESHTOKEN_STRING = "refreshToken";
+        private static final String ACCESSTOKEN_STRING = "accessToken";
+
         @Override
         public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                         Authentication authentication) throws IOException, ServletException {
@@ -41,20 +48,20 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 String refreshToken = jwtService.generateRefreshToken(user.getUsername(), authorities,
                                 user.getTokenVersion());
 
-                ResponseCookie accessCookie = ResponseCookie.from("accessToken", accessToken)
+                ResponseCookie accessCookie = ResponseCookie.from(ACCESSTOKEN_STRING, accessToken)
                                 .httpOnly(true)
                                 .secure(true)
                                 .path("/")
                                 .maxAge(15 * 60)
-                                .sameSite("Strict")
+                                .sameSite(STRICT_STRING)
                                 .build();
 
-                ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+                ResponseCookie refreshCookie = ResponseCookie.from(REFRESHTOKEN_STRING, refreshToken)
                                 .httpOnly(true)
                                 .secure(true)
-                                .path("/api/auth")
+                                .path(API_AUTH_STRING)
                                 .maxAge(7 * 24 * 60 * 60)
-                                .sameSite("Strict")
+                                .sameSite(STRICT_STRING)
                                 .build();
 
                 response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());

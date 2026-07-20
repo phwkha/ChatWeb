@@ -52,6 +52,25 @@ public class SecurityConfig {
 
     private final PasswordEncoder passwordEncoder;
 
+    private static final String ACTUATOR_STRING = "/actuator/**";
+    private static final String API_AUTH_LOGOUT_ALL_DEVICES_STRING = "/api/auth/logout-all-devices";
+    private static final String API_AUTH_LOGOUT_STRING = "/api/auth/logout";
+    private static final String API_AUTH_STRING = "/api/auth/**";
+    private static final String DELETE_STRING = "DELETE";
+    private static final String FAVICON_ICO_STRING = "/favicon.ico";
+    private static final String GET_STRING = "GET";
+    private static final String LOGIN_OAUTH2_STRING = "/login/oauth2/**";
+    private static final String OAUTH2_STRING = "/oauth2/**";
+    private static final String OPTIONS_STRING = "OPTIONS";
+    private static final String POST_STRING = "POST";
+    private static final String PUT_STRING = "PUT";
+    private static final String SET_COOKIE_STRING = "Set-Cookie";
+    private static final String SWAGGER_UI_STRING = "/swagger-ui/**";
+    private static final String SWAGGER_UI_SWAGGER_INITIALIZER_JS_STRING = "/swagger-ui*/*swagger-initializer.js";
+    private static final String V3_STRING = "/v3/**";
+    private static final String WEBJARS_STRING = "/webjars/**";
+    private static final String WS_STRING = "/ws/**";
+
     @Bean
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
@@ -60,11 +79,11 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        .requestMatchers("/api/auth/logout").authenticated()
-                        .requestMatchers("/api/auth/logout-all-devices").authenticated()
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(WS_STRING).permitAll()
+                        .requestMatchers(OAUTH2_STRING, LOGIN_OAUTH2_STRING).permitAll()
+                        .requestMatchers(API_AUTH_LOGOUT_STRING).authenticated()
+                        .requestMatchers(API_AUTH_LOGOUT_ALL_DEVICES_STRING).authenticated()
+                        .requestMatchers(API_AUTH_STRING).permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
@@ -96,18 +115,19 @@ public class SecurityConfig {
     public WebSecurityCustomizer ignoreResources() {
         return webSecurity -> webSecurity
                 .ignoring()
-                .requestMatchers("/actuator/**", "/v3/**", "/webjars/**", "/swagger-ui/**", "/favicon.ico",
-                        "/swagger-ui*/*swagger-initializer.js");
+                .requestMatchers(ACTUATOR_STRING, V3_STRING, WEBJARS_STRING, SWAGGER_UI_STRING, FAVICON_ICO_STRING,
+                        SWAGGER_UI_SWAGGER_INITIALIZER_JS_STRING);
     }
 
     @Bean
     public CorsConfigurationSource addConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration
+                .setAllowedMethods(Arrays.asList(GET_STRING, POST_STRING, PUT_STRING, DELETE_STRING, OPTIONS_STRING));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-        configuration.setExposedHeaders(Arrays.asList("Set-Cookie"));
+        configuration.setExposedHeaders(Arrays.asList(SET_COOKIE_STRING));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

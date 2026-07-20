@@ -27,229 +27,258 @@ import com.web.backend.config.LocalResolverConfig.Translator;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+        private final UserService userService;
 
-    @Operation(summary = "Get current user", description = "API endpoint for get current user")
-    @GetMapping("/me")
-    public ResponseEntity<ApiResponse<UserResponse>> getMe(Authentication authentication) {
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("Get current user: {}", userEntityPrincipal.getUsername());
-        return ResponseEntity
-                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.get_info"),
-                        userService.getMe(userEntityPrincipal.getUsername())));
-    }
+        private static final String SUCCESS_USER_OTP_SENT_TO_NEW_EMAIL_STRING = "success.user.otp_sent_to_new_email";
+        private static final String SUCCESS_USER_GET_INFO_STRING = "success.user.get_info";
+        private static final String SUCCESS_USER_UPDATE_PROFILE_STRING = "success.user.update_profile";
+        private static final String SUCCESS_USER_UPDATE_AVATAR_STRING = "success.user.update_avatar";
+        private static final String SUCCESS_USER_CHANGE_PWD_STRING = "success.user.change_pwd";
+        private static final String SUCCESS_USER_DEL_ACCOUNT_STRING = "success.user.del_account";
+        private static final String SUCCESS_USER_ADD_ADDRESS_STRING = "success.user.add_address";
+        private static final String SUCCESS_USER_UPDATE_ADDRESS_STRING = "success.user.update_address";
+        private static final String SUCCESS_USER_DEL_ADDRESS_STRING = "success.user.del_address";
+        private static final String SUCCESS_USER_GET_ADDRESSES_STRING = "success.user.get_addresses";
+        private static final String SUCCESS_USER_GET_ADDRESS_STRING = "success.user.get_address";
+        private static final String SUCCESS_USER_UPDATE_EMAIL_STRING = "success.user.update_email";
+        private static final String SUCCESS_USER_OTP_RESENT_TO_NEW_EMAIL_STRING = "success.user.otp_resent_to_new_email";
+        private static final String SUCCESS_USER_OTP_PHONE_SENT_STRING = "success.user.otp_phone_sent";
+        private static final String SUCCESS_USER_PHONE_UPDATED_STRING = "success.user.phone_updated";
+        private static final String SUCCESS_USER_OTP_PHONE_RESENT_STRING = "success.user.otp_phone_resent";
 
-    @Operation(summary = "Get profile user", description = "API endpoint for get profile user")
-    @GetMapping("/profile")
-    public ResponseEntity<ApiResponse<UserDetailResponse>> getProfileUser(Authentication authentication) {
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("Get profile user: {}", userEntityPrincipal.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                Translator.tolocale("success.user.get_info"),
-                userService.getProfileUser(userEntityPrincipal.getUsername())));
-    }
+        @Operation(summary = "Get current user", description = "API endpoint for get current user")
+        @GetMapping("/me")
+        public ResponseEntity<ApiResponse<UserResponse>> getMe(Authentication authentication) {
+                UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+                log.info("Get current user: {}", userEntityPrincipal.getUsername());
+                return ResponseEntity
+                                .ok(ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_USER_GET_INFO_STRING),
+                                                userService.getMe(userEntityPrincipal.getUsername())));
+        }
 
-    @Operation(summary = "Update user", description = "API endpoint for update user")
-    @PutMapping("/profile")
-    public ResponseEntity<ApiResponse<UserDetailResponse>> updateUser(
-            @RequestBody @Valid UpdateUserRequest updateUserRequest,
-            Authentication authentication) {
+        @Operation(summary = "Get profile user", description = "API endpoint for get profile user")
+        @GetMapping("/profile")
+        public ResponseEntity<ApiResponse<UserDetailResponse>> getProfileUser(Authentication authentication) {
+                UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+                log.info("Get profile user: {}", userEntityPrincipal.getUsername());
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_USER_GET_INFO_STRING),
+                                userService.getProfileUser(userEntityPrincipal.getUsername())));
+        }
 
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        String username = userEntityPrincipal.getUsername();
+        @Operation(summary = "Update user", description = "API endpoint for update user")
+        @PutMapping("/profile")
+        public ResponseEntity<ApiResponse<UserDetailResponse>> updateUser(
+                        @RequestBody @Valid UpdateUserRequest updateUserRequest,
+                        Authentication authentication) {
 
-        log.info("Updating profile for user: {}", username);
+                UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+                String username = userEntityPrincipal.getUsername();
 
-        UserDetailResponse updatedUser = userService.updateUser(username, updateUserRequest);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                Translator.tolocale("success.user.update_profile"), updatedUser));
-    }
+                log.info("Updating profile for user: {}", username);
 
-    @Operation(summary = "Update avatar", description = "API endpoint for update avatar")
-    @PatchMapping("/avatar")
-    public ResponseEntity<ApiResponse<String>> updateAvatar(
-            @RequestParam("file") MultipartFile avatarFile,
-            Authentication authentication) {
+                UserDetailResponse updatedUser = userService.updateUser(username, updateUserRequest);
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_USER_UPDATE_PROFILE_STRING), updatedUser));
+        }
 
-        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
+        @Operation(summary = "Update avatar", description = "API endpoint for update avatar")
+        @PatchMapping("/avatar")
+        public ResponseEntity<ApiResponse<String>> updateAvatar(
+                        @RequestParam("file") MultipartFile avatarFile,
+                        Authentication authentication) {
 
-        String urlAvatar = userService.updateAvatar(userEntity.getUsername(), avatarFile);
+                UserEntity userEntity = (UserEntity) authentication.getPrincipal();
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                Translator.tolocale("success.user.update_avatar"), urlAvatar));
-    }
+                String urlAvatar = userService.updateAvatar(userEntity.getUsername(), avatarFile);
 
-    @Operation(summary = "Change password", description = "API endpoint for change password")
-    @PostMapping("/change-password")
-    public ResponseEntity<ApiResponse<String>> changePassword(
-            @RequestBody @Valid ChangePasswordRequest request,
-            Authentication authentication) {
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_USER_UPDATE_AVATAR_STRING), urlAvatar));
+        }
 
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("User {} changed password successfully", userEntityPrincipal.getUsername());
-        userService.changePassword(userEntityPrincipal.getUsername(), request.getCurrentPassword(),
-                request.getNewPassword());
+        @Operation(summary = "Change password", description = "API endpoint for change password")
+        @PostMapping("/change-password")
+        public ResponseEntity<ApiResponse<String>> changePassword(
+                        @RequestBody @Valid ChangePasswordRequest request,
+                        Authentication authentication) {
 
-        return ResponseEntity
-                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.change_pwd"), null));
-    }
+                UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+                log.info("User {} changed password successfully", userEntityPrincipal.getUsername());
+                userService.changePassword(userEntityPrincipal.getUsername(), request.getCurrentPassword(),
+                                request.getNewPassword());
 
-    @Operation(summary = "Delete user", description = "API endpoint for delete user")
-    @DeleteMapping("/me")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(Authentication authentication) {
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+                return ResponseEntity
+                                .ok(ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_USER_CHANGE_PWD_STRING), null));
+        }
 
-        String username = userEntityPrincipal.getUsername();
+        @Operation(summary = "Delete user", description = "API endpoint for delete user")
+        @DeleteMapping("/me")
+        public ResponseEntity<ApiResponse<Void>> deleteUser(Authentication authentication) {
+                UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
 
-        log.warn("User {} is deleting their account", username);
-        userService.deleteUser(username);
+                String username = userEntityPrincipal.getUsername();
 
-        return ResponseEntity
-                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.del_account"), null));
-    }
+                log.warn("User {} is deleting their account", username);
+                userService.deleteUser(username);
 
-    @Operation(summary = "Add address", description = "API endpoint for add address")
-    @PostMapping("/address")
-    public ResponseEntity<ApiResponse<UserDetailResponse>> addAddress(
-            Authentication authentication,
-            @RequestBody @Valid AddressRequest addressRequest) {
+                return ResponseEntity
+                                .ok(ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_USER_DEL_ACCOUNT_STRING), null));
+        }
 
-        UserEntity currentUser = (UserEntity) authentication.getPrincipal();
-        log.info("Adding address for user: {}", currentUser.getUsername());
-        UserDetailResponse result = userService.addAddress(currentUser.getUsername(), addressRequest);
+        @Operation(summary = "Add address", description = "API endpoint for add address")
+        @PostMapping("/address")
+        public ResponseEntity<ApiResponse<UserDetailResponse>> addAddress(
+                        Authentication authentication,
+                        @RequestBody @Valid AddressRequest addressRequest) {
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(HttpStatus.CREATED.value(), Translator.tolocale("success.user.add_address"),
-                        result));
-    }
+                UserEntity currentUser = (UserEntity) authentication.getPrincipal();
+                log.info("Adding address for user: {}", currentUser.getUsername());
+                UserDetailResponse result = userService.addAddress(currentUser.getUsername(), addressRequest);
 
-    @Operation(summary = "Update address", description = "API endpoint for update address")
-    @PutMapping("/address/{addressId}")
-    public ResponseEntity<ApiResponse<UserDetailResponse>> updateAddress(
-            Authentication authentication,
-            @PathVariable Long addressId,
-            @RequestBody @Valid AddressRequest addressRequest) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success(HttpStatus.CREATED.value(),
+                                                Translator.tolocale(SUCCESS_USER_ADD_ADDRESS_STRING),
+                                                result));
+        }
 
-        UserEntity currentUser = (UserEntity) authentication.getPrincipal();
-        log.info("Updating address {} for user {}", addressId, currentUser.getUsername());
-        UserDetailResponse result = userService.updateAddress(currentUser.getUsername(), addressId, addressRequest);
+        @Operation(summary = "Update address", description = "API endpoint for update address")
+        @PutMapping("/address/{addressId}")
+        public ResponseEntity<ApiResponse<UserDetailResponse>> updateAddress(
+                        Authentication authentication,
+                        @PathVariable Long addressId,
+                        @RequestBody @Valid AddressRequest addressRequest) {
 
-        return ResponseEntity.ok(
-                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_address"), result));
-    }
+                UserEntity currentUser = (UserEntity) authentication.getPrincipal();
+                log.info("Updating address {} for user {}", addressId, currentUser.getUsername());
+                UserDetailResponse result = userService.updateAddress(currentUser.getUsername(), addressId,
+                                addressRequest);
 
-    @Operation(summary = "Delete address", description = "API endpoint for delete address")
-    @DeleteMapping("/address/{addressId}")
-    public ResponseEntity<ApiResponse<UserDetailResponse>> deleteAddress(
-            Authentication authentication,
-            @PathVariable Long addressId) {
+                return ResponseEntity.ok(
+                                ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_USER_UPDATE_ADDRESS_STRING), result));
+        }
 
-        UserEntity currentUser = (UserEntity) authentication.getPrincipal();
-        log.info("Deleting address {} for user {}", addressId, currentUser.getUsername());
-        UserDetailResponse result = userService.deleteAddress(currentUser.getUsername(), addressId);
+        @Operation(summary = "Delete address", description = "API endpoint for delete address")
+        @DeleteMapping("/address/{addressId}")
+        public ResponseEntity<ApiResponse<UserDetailResponse>> deleteAddress(
+                        Authentication authentication,
+                        @PathVariable Long addressId) {
 
-        return ResponseEntity.ok(
-                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.del_address"), result));
-    }
+                UserEntity currentUser = (UserEntity) authentication.getPrincipal();
+                log.info("Deleting address {} for user {}", addressId, currentUser.getUsername());
+                UserDetailResponse result = userService.deleteAddress(currentUser.getUsername(), addressId);
 
-    @Operation(summary = "Get all addresses", description = "API endpoint for get all addresses")
-    @GetMapping("/addresses")
-    public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddresses(Authentication authentication) {
-        UserEntity currentUser = (UserEntity) authentication.getPrincipal();
-        log.info("Get all address for user: {}", currentUser.getUsername());
-        List<AddressResponse> addresses = userService.getAllAddresses(currentUser.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                Translator.tolocale("success.user.get_addresses"), addresses));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_USER_DEL_ADDRESS_STRING), result));
+        }
 
-    @Operation(summary = "Get address detail", description = "API endpoint for get address detail")
-    @GetMapping("/address/{addressId}")
-    public ResponseEntity<ApiResponse<AddressResponse>> getAddressDetail(
-            Authentication authentication,
-            @PathVariable Long addressId) {
-        UserEntity currentUser = (UserEntity) authentication.getPrincipal();
-        log.info("Get address for user: {}", currentUser.getUsername());
-        AddressResponse address = userService.getAddressById(currentUser.getUsername(), addressId);
-        return ResponseEntity.ok(
-                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.get_address"), address));
-    }
+        @Operation(summary = "Get all addresses", description = "API endpoint for get all addresses")
+        @GetMapping("/addresses")
+        public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddresses(Authentication authentication) {
+                UserEntity currentUser = (UserEntity) authentication.getPrincipal();
+                log.info("Get all address for user: {}", currentUser.getUsername());
+                List<AddressResponse> addresses = userService.getAllAddresses(currentUser.getUsername());
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_USER_GET_ADDRESSES_STRING), addresses));
+        }
 
-    @Operation(summary = "Initiate email change", description = "API endpoint for initiate email change")
-    @PostMapping("/initiate-email-change")
-    public ResponseEntity<ApiResponse<Void>> initiateEmailChange(
-            Authentication authentication,
-            @RequestBody @Valid InitiateEmailChangeRequest request) {
+        @Operation(summary = "Get address detail", description = "API endpoint for get address detail")
+        @GetMapping("/address/{addressId}")
+        public ResponseEntity<ApiResponse<AddressResponse>> getAddressDetail(
+                        Authentication authentication,
+                        @PathVariable Long addressId) {
+                UserEntity currentUser = (UserEntity) authentication.getPrincipal();
+                log.info("Get address for user: {}", currentUser.getUsername());
+                AddressResponse address = userService.getAddressById(currentUser.getUsername(), addressId);
+                return ResponseEntity.ok(
+                                ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_USER_GET_ADDRESS_STRING), address));
+        }
 
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-        log.info("Email change initiated for user: {}", user.getUsername());
-        userService.initiateEmailChange(user.getUsername(), request.getNewEmail(), request.getCurrentPassword());
+        @Operation(summary = "Initiate email change", description = "API endpoint for initiate email change")
+        @PostMapping("/initiate-email-change")
+        public ResponseEntity<ApiResponse<Void>> initiateEmailChange(
+                        Authentication authentication,
+                        @RequestBody @Valid InitiateEmailChangeRequest request) {
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                Translator.tolocale("success.user.otp_sent_to_new_email", request.getNewEmail()), null));
-    }
+                UserEntity user = (UserEntity) authentication.getPrincipal();
+                log.info("Email change initiated for user: {}", user.getUsername());
+                userService.initiateEmailChange(user.getUsername(), request.getNewEmail(),
+                                request.getCurrentPassword());
 
-    @Operation(summary = "Verify email change", description = "API endpoint for verify email change")
-    @PostMapping("/verify-email-change")
-    public ResponseEntity<ApiResponse<Void>> verifyEmailChange(
-            Authentication authentication,
-            @RequestBody @Valid VerifyOtpRequest request) {
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_USER_OTP_SENT_TO_NEW_EMAIL_STRING, request.getNewEmail()),
+                                null));
+        }
 
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-        log.info("Email changed successfully for user: {}", user.getUsername());
-        userService.verifyEmailChange(user.getUsername(), request.getOtp());
+        @Operation(summary = "Verify email change", description = "API endpoint for verify email change")
+        @PostMapping("/verify-email-change")
+        public ResponseEntity<ApiResponse<Void>> verifyEmailChange(
+                        Authentication authentication,
+                        @RequestBody @Valid VerifyOtpRequest request) {
 
-        return ResponseEntity
-                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.user.update_email"), null));
-    }
+                UserEntity user = (UserEntity) authentication.getPrincipal();
+                log.info("Email changed successfully for user: {}", user.getUsername());
+                userService.verifyEmailChange(user.getUsername(), request.getOtp());
 
-    @Operation(summary = "Resend email verification", description = "API endpoint for resend email verification")
-    @PostMapping("/resend-email-verification")
-    public ResponseEntity<ApiResponse<Void>> resendEmailVerification(Authentication authentication) {
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-        log.info("Resent Email Change OTP for user {}", user.getUsername());
-        userService.resendEmailChangeOtp(user.getUsername());
+                return ResponseEntity
+                                .ok(ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_USER_UPDATE_EMAIL_STRING), null));
+        }
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                Translator.tolocale("success.user.otp_resent_to_new_email"), null));
-    }
+        @Operation(summary = "Resend email verification", description = "API endpoint for resend email verification")
+        @PostMapping("/resend-email-verification")
+        public ResponseEntity<ApiResponse<Void>> resendEmailVerification(Authentication authentication) {
+                UserEntity user = (UserEntity) authentication.getPrincipal();
+                log.info("Resent Email Change OTP for user {}", user.getUsername());
+                userService.resendEmailChangeOtp(user.getUsername());
 
-    @Operation(summary = "Initiate phone change", description = "API endpoint for initiate phone change")
-    @PostMapping("/initiate-phone-change")
-    public ResponseEntity<ApiResponse<Void>> initiatePhoneChange(
-            Authentication authentication,
-            @RequestBody @Valid InitiatePhoneChangeRequest request) {
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_USER_OTP_RESENT_TO_NEW_EMAIL_STRING), null));
+        }
 
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-        log.info("Phone change initiated for user: {}", user.getUsername());
-        userService.initiatePhoneChange(user.getUsername(), request.getNewPhone(), request.getCurrentPassword());
+        @Operation(summary = "Initiate phone change", description = "API endpoint for initiate phone change")
+        @PostMapping("/initiate-phone-change")
+        public ResponseEntity<ApiResponse<Void>> initiatePhoneChange(
+                        Authentication authentication,
+                        @RequestBody @Valid InitiatePhoneChangeRequest request) {
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                Translator.tolocale("success.user.otp_phone_sent"), null));
-    }
+                UserEntity user = (UserEntity) authentication.getPrincipal();
+                log.info("Phone change initiated for user: {}", user.getUsername());
+                userService.initiatePhoneChange(user.getUsername(), request.getNewPhone(),
+                                request.getCurrentPassword());
 
-    @Operation(summary = "Verify phone change", description = "API endpoint for verify phone change")
-    @PostMapping("/verify-phone-change")
-    public ResponseEntity<ApiResponse<Void>> verifyPhoneChange(
-            Authentication authentication,
-            @RequestBody @Valid VerifyOtpRequest request) {
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_USER_OTP_PHONE_SENT_STRING), null));
+        }
 
-        UserEntity user = (UserEntity) authentication.getPrincipal();
-        log.info("Phone changed successfully for user: {}", user.getUsername());
-        userService.verifyPhoneChange(user.getUsername(), request.getOtp());
+        @Operation(summary = "Verify phone change", description = "API endpoint for verify phone change")
+        @PostMapping("/verify-phone-change")
+        public ResponseEntity<ApiResponse<Void>> verifyPhoneChange(
+                        Authentication authentication,
+                        @RequestBody @Valid VerifyOtpRequest request) {
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                Translator.tolocale("success.user.phone_updated"), null));
-    }
+                UserEntity user = (UserEntity) authentication.getPrincipal();
+                log.info("Phone changed successfully for user: {}", user.getUsername());
+                userService.verifyPhoneChange(user.getUsername(), request.getOtp());
 
-    @Operation(summary = "Resend phone verification", description = "API endpoint for resend phone verification")
-    @PostMapping("/resend-phone-change-verification")
-    public ResponseEntity<ApiResponse<Void>> resendPhoneVerification(Authentication authentication) {
-        UserEntity user = (UserEntity) authentication.getPrincipal();
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_USER_PHONE_UPDATED_STRING), null));
+        }
 
-        userService.resendPhoneChangeOtp(user.getUsername());
-        log.info("Resent Phone Change OTP for user: {}", user.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                Translator.tolocale("success.user.otp_phone_resent"), null));
-    }
+        @Operation(summary = "Resend phone verification", description = "API endpoint for resend phone verification")
+        @PostMapping("/resend-phone-change-verification")
+        public ResponseEntity<ApiResponse<Void>> resendPhoneVerification(Authentication authentication) {
+                UserEntity user = (UserEntity) authentication.getPrincipal();
+
+                userService.resendPhoneChangeOtp(user.getUsername());
+                log.info("Resent Phone Change OTP for user: {}", user.getUsername());
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_USER_OTP_PHONE_RESENT_STRING), null));
+        }
 
 }

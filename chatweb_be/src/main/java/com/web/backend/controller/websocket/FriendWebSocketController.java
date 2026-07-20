@@ -24,7 +24,10 @@ import java.util.Objects;
 public class FriendWebSocketController {
 
     private final FriendService friendService;
+
     private final WebSocketErrorHandler webSocketErrorHandler;
+
+    private static final String ERROR_SYS_BUSY_STRING = "error.sys.busy";
 
     @MessageMapping("/friend/request")
     public void handleFriendRequest(@Payload @NonNull String targetUsername, @NonNull Authentication auth) {
@@ -33,12 +36,13 @@ public class FriendWebSocketController {
         try {
             friendService.sendFriendRequest(username, targetUsername);
 
-        } catch (AccessForbiddenException | ResourceNotFoundException | ResourceConflictException | InvalidDataException e) {
+        } catch (AccessForbiddenException | ResourceNotFoundException | ResourceConflictException
+                | InvalidDataException e) {
             log.warn("Business error handling friend request: {}", e.getMessage());
             webSocketErrorHandler.handleChatError(username, targetUsername, e.getMessage());
         } catch (Exception e) {
             log.error("System error handling friend request: ", e);
-            webSocketErrorHandler.handleChatError(username, targetUsername, Translator.tolocale("error.sys.busy"));
+            webSocketErrorHandler.handleChatError(username, targetUsername, Translator.tolocale(ERROR_SYS_BUSY_STRING));
         }
     }
 
@@ -49,14 +53,15 @@ public class FriendWebSocketController {
         try {
             friendService.acceptFriendRequest(username, requesterUsername);
 
-        } catch (AccessForbiddenException | ResourceNotFoundException | ResourceConflictException | InvalidDataException e) {
+        } catch (AccessForbiddenException | ResourceNotFoundException | ResourceConflictException
+                | InvalidDataException e) {
             log.warn("Business error accepting friend request: {}", e.getMessage());
             webSocketErrorHandler.handleChatError(username, requesterUsername, e.getMessage());
         } catch (Exception e) {
             log.error("System error accepting friend request: ", e);
-            webSocketErrorHandler.handleChatError(username, requesterUsername, Translator.tolocale("error.sys.busy"));
+            webSocketErrorHandler.handleChatError(username, requesterUsername,
+                    Translator.tolocale(ERROR_SYS_BUSY_STRING));
         }
     }
-
 
 }

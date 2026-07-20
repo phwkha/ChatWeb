@@ -86,6 +86,25 @@ public class MessageServiceImpl implements MessageService {
 
     private static final long REDIS_TTL_MINUTES = 5;
 
+    private static final String CONVERSATIONID_STRING = "conversationId";
+
+    private static final String ID_STRING = "id";
+    private static final String TIMESTAMP_STRING = "timestamp";
+
+    private static final String CHAT_RECENT_STRING = "chat:recent:";
+    private static final String UNREAD_COUNTS_STRING = "unread_counts:";
+
+    private static final String REACTIONS_STRING = "reactions.";
+
+    private static final String ERROR_MSG_RECIPIENT_NOT_FOUND_STRING = "error.msg.recipient_not_found";
+    private static final String ERROR_MSG_SEND_DELETED_STRING = "error.msg.send_deleted";
+    private static final String ERROR_MSG_SEND_LOCKED_STRING = "error.msg.send_locked";
+    private static final String ERROR_MSG_NOT_FRIENDS_STRING = "error.msg.not_friends";
+    private static final String ERROR_MSG_SYSTEM_OVERLOAD_STRING = "error.msg.system_overload";
+    private static final String ERROR_MSG_NOT_FOUND_STRING = "error.msg.not_found";
+    private static final String ERROR_MSG_EDIT_FORBIDDEN_STRING = "error.msg.edit_forbidden";
+    private static final String ERROR_MSG_DELETE_FORBIDDEN_STRING = "error.msg.delete_forbidden";
+
     private String generateConversationId(String user1, String user2) {
         return (user1.compareTo(user2) < 0) ? user1 + "_" + user2 : user2 + "_" + user1;
     }
@@ -94,18 +113,19 @@ public class MessageServiceImpl implements MessageService {
     public void sendPrivateMessage(String sender, ChatMessageRequest request) {
 
         UserEntity recipientEntity = userRepository.findByUsername(request.getRecipient())
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.msg.recipient_not_found")));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_RECIPIENT_NOT_FOUND_STRING)));
 
         if (recipientEntity.getUserStatus() == UserStatus.INACTIVE) {
-            throw new AccessForbiddenException(Translator.tolocale("error.msg.send_deleted"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_SEND_DELETED_STRING));
         }
         if (recipientEntity.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException(Translator.tolocale("error.msg.send_locked"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_SEND_LOCKED_STRING));
         }
 
         if (!friendService.isFriend(Objects.requireNonNull(sender),
                 Objects.requireNonNull(request.getRecipient()))) {
-            throw new AccessForbiddenException(Translator.tolocale("error.msg.not_friends"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING));
         }
 
         ChatMessage chatMessage = messageMapper.toEntity(request);
@@ -128,7 +148,7 @@ public class MessageServiceImpl implements MessageService {
             if (ex != null) {
                 log.error("Critical Error: Cannot push message to Kafka. Topic: {}", chatTopic, ex);
                 webSocketErrorHandler.handleChatError(sender, request,
-                        Translator.tolocale("error.msg.system_overload"));
+                        Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
             } else {
                 log.debug("Message: Kafka push successful offset: {}", result.getRecordMetadata().offset());
             }
@@ -140,12 +160,12 @@ public class MessageServiceImpl implements MessageService {
         log.info("Pushed message from {} to DB save queue", chatMessage.getSender());
 
         try {
-            String redisKey = "chat:recent:" + convId;
+            String redisKey = CHAT_RECENT_STRING + convId;
             redisTemplate.opsForList().rightPush(redisKey, chatMessage);
             redisTemplate.opsForList().trim(redisKey, -50, -1);
             redisTemplate.expire(redisKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
 
-            String key = "unread_counts:" + chatMessage.getRecipient();
+            String key = UNREAD_COUNTS_STRING + chatMessage.getRecipient();
             redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMessage.getSender()), 1);
         } catch (Exception e) {
             log.warn("Redis is encountering issues, skipping temporary cache save: {}", e.getMessage());
@@ -167,7 +187,7 @@ public class MessageServiceImpl implements MessageService {
             if (ex != null) {
                 log.error("Critical Error: Cannot push system message to Kafka. Topic: {}", chatTopic, ex);
                 webSocketErrorHandler.handleChatError(currentUsername, request,
-                        Translator.tolocale("error.msg.system_overload"));
+                        Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
             } else {
                 log.debug("System message: Kafka push successful offset: {}", result.getRecordMetadata().offset());
             }
@@ -180,14 +200,15 @@ public class MessageServiceImpl implements MessageService {
 
         if (!friendService.isFriend(Objects.requireNonNull(senderUsername),
                 Objects.requireNonNull(request.getRecipient()))) {
-            throw new AccessForbiddenException(Translator.tolocale("error.msg.not_friends"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING));
         }
 
         String convId = generateConversationId(senderUsername, request.getRecipient());
-        Query query = new Query(Criteria.where("id").is(request.getMessageId()).and("conversationId").is(convId));
+        Query query = new Query(
+                Criteria.where(ID_STRING).is(request.getMessageId()).and(CONVERSATIONID_STRING).is(convId));
         Update update = new Update();
 
-        String reactionField = "reactions." + senderUsername;
+        String reactionField = REACTIONS_STRING + senderUsername;
         if (request.getReactionType() != null) {
             update.set(reactionField, request.getReactionType());
         } else {
@@ -195,7 +216,7 @@ public class MessageServiceImpl implements MessageService {
         }
         mongoTemplate.updateFirst(query, update, ChatMessage.class);
 
-        String redisKey = "chat:recent:" + convId;
+        String redisKey = CHAT_RECENT_STRING + convId;
         redisTemplate.delete(redisKey);
 
         ChatMessage reactionMsg = new ChatMessage();
@@ -222,7 +243,7 @@ public class MessageServiceImpl implements MessageService {
 
         String conversationId = generateConversationId(user1, user2);
 
-        Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "timestamp"));
+        Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, TIMESTAMP_STRING));
         List<ChatMessage> messages;
 
         if (cursorStr == null || cursorStr.isEmpty()) {
@@ -235,7 +256,7 @@ public class MessageServiceImpl implements MessageService {
         List<ChatMessage> finalMessages = new ArrayList<>(messages);
 
         if (cursorStr == null || cursorStr.isEmpty()) {
-            String redisKey = "chat:recent:" + conversationId;
+            String redisKey = CHAT_RECENT_STRING + conversationId;
             List<Object> redisObjects = redisTemplate.opsForList().range(redisKey, 0, -1);
 
             if (redisObjects != null && !redisObjects.isEmpty()) {
@@ -263,57 +284,59 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public ChatMessageResponse getMessageById(String messageId, String currentUsername) {
         ChatMessage message = messageRepository.findById(Objects.requireNonNull(messageId))
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.msg.not_found")));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
+
         if (!message.getConversationId().contains(currentUsername)) {
-            throw new AccessForbiddenException(Translator.tolocale("error.msg.recipient_not_found"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_RECIPIENT_NOT_FOUND_STRING));
         }
-        
+
         return messageMapper.toResponse(message);
     }
 
     @Override
     public void editMessage(String senderUsername, com.web.backend.controller.request.EditMessageRequest request) {
         ChatMessage message = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.msg.not_found")));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
+
         if (!message.getSender().equals(senderUsername)) {
-            throw new AccessForbiddenException(Translator.tolocale("error.msg.edit_forbidden"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_EDIT_FORBIDDEN_STRING));
         }
-        
+
         message.setContent(request.getNewContent());
         message.setEdited(true);
-        
+
         kafkaTemplate.send(Objects.requireNonNull(chatTopic), message).whenComplete((result, ex) -> {
-            if (ex != null) log.error("Failed to push edit to Kafka", ex);
+            if (ex != null)
+                log.error("Failed to push edit to Kafka", ex);
         });
     }
 
     @Override
     public void revokeMessage(String senderUsername, com.web.backend.controller.request.RevokeMessageRequest request) {
         ChatMessage message = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.msg.not_found")));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
+
         if (!message.getSender().equals(senderUsername)) {
-            throw new AccessForbiddenException(Translator.tolocale("error.msg.delete_forbidden"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_DELETE_FORBIDDEN_STRING));
         }
-        
+
         message.setContent("");
         message.setFileUrl(null);
         message.setFileName(null);
         message.setFileSize(null);
         message.setReactions(null);
         message.setDeleted(true);
-        
+
         kafkaTemplate.send(Objects.requireNonNull(chatTopic), message).whenComplete((result, ex) -> {
-            if (ex != null) log.error("Failed to push revoke to Kafka", ex);
+            if (ex != null)
+                log.error("Failed to push revoke to Kafka", ex);
         });
     }
 
     @Override
     public CursorResponse<MessageSystemResponse> findSystemMessageWithCursor(String cursorStr, int size) {
 
-        Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "timestamp"));
+        Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, TIMESTAMP_STRING));
         List<SystemMessage> messages;
 
         if (cursorStr == null || cursorStr.isEmpty()) {
@@ -346,7 +369,7 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public UnreadCountsResponse getUnreadMessageCounts(String recipientUsername) {
 
-        String key = "unread_counts:" + recipientUsername;
+        String key = UNREAD_COUNTS_STRING + recipientUsername;
 
         Map<Object, Object> redisCounts = redisTemplate.opsForHash().entries(key);
 
@@ -387,7 +410,7 @@ public class MessageServiceImpl implements MessageService {
             messages.forEach(msg -> msg.setStatus(MessageStatus.READ));
             messageRepository.saveAll(messages);
         }
-        String key = "unread_counts:" + recipientUsername;
+        String key = UNREAD_COUNTS_STRING + recipientUsername;
         redisTemplate.opsForHash().delete(key, senderUsername);
         ChatMessage statusMsg = new ChatMessage();
         statusMsg.setMessageType(MessageType.STATUS);

@@ -16,6 +16,10 @@ import java.util.Map;
 @Component
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
+    private static final String JWT_TOKEN_COOKIE_STRING = "jwt_token_cookie";
+
+    private static final String ACCESSTOKEN_STRING = "accessToken";
+
     @Override
     public boolean beforeHandshake(@NonNull ServerHttpRequest request, @NonNull ServerHttpResponse response,
             @NonNull WebSocketHandler wsHandler, @NonNull Map<String, Object> attributes) throws Exception {
@@ -25,8 +29,8 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
             if (servletRequest.getCookies() != null) {
                 for (Cookie cookie : servletRequest.getCookies()) {
-                    if ("accessToken".equals(cookie.getName())) {
-                        attributes.put("jwt_token_cookie", cookie.getValue());
+                    if (ACCESSTOKEN_STRING.equals(cookie.getName())) {
+                        attributes.put(JWT_TOKEN_COOKIE_STRING, cookie.getValue());
                         return true;
                     }
                 }

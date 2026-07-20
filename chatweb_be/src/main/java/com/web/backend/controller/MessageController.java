@@ -25,59 +25,72 @@ import com.web.backend.config.LocalResolverConfig.Translator;
 @Slf4j(topic = "MESSAGE-CONTROLLER")
 public class MessageController {
 
-    private final MessageService messageService;
+        private final MessageService messageService;
 
-    @Operation(summary = "Get private message", description = "API endpoint for get private message")
-    @GetMapping("/private")
-    public ResponseEntity<ApiResponse<CursorResponse<ChatMessageResponse>>> getPrivateMessage(
-            @RequestParam String user1,
-            @RequestParam String user2,
-            @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int size
-    ) {
-        log.info("Fetching private messages between {} and {}", user1, user2);
+        private static final String SUCCESS_MSG_GET_PRIVATE_STRING = "success.msg.get_private";
+        private static final String SUCCESS_MSG_GET_UNREAD_STRING = "success.msg.get_unread";
+        private static final String SUCCESS_MSG_MARK_READ_STRING = "success.msg.mark_read";
+        private static final String SUCCESS_MSG_GET_MESSAGE_STRING = "success.msg.get_message";
 
-        CursorResponse<ChatMessageResponse> response = messageService.findPrivateMessageWithCursor(user1, user2, cursor, size);
+        @Operation(summary = "Get private message", description = "API endpoint for get private message")
+        @GetMapping("/private")
+        public ResponseEntity<ApiResponse<CursorResponse<ChatMessageResponse>>> getPrivateMessage(
+                        @RequestParam String user1,
+                        @RequestParam String user2,
+                        @RequestParam(required = false) String cursor,
+                        @RequestParam(defaultValue = "20") int size) {
+                log.info("Fetching private messages between {} and {}", user1, user2);
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.msg.get_private"), response));
-    }
+                CursorResponse<ChatMessageResponse> response = messageService.findPrivateMessageWithCursor(user1, user2,
+                                cursor,
+                                size);
 
-    @Operation(summary = "Get unread counts", description = "API endpoint for get unread counts")
-    @GetMapping("/unread-counts")
-    public ResponseEntity<ApiResponse<UnreadCountsResponse>> getUnreadCounts(Authentication auth) {
-        UserEntity user = (UserEntity) auth.getPrincipal();
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_MSG_GET_PRIVATE_STRING), response));
+        }
 
-        log.info("Fetching unread counts for user: {}", user.getUsername());
+        @Operation(summary = "Get unread counts", description = "API endpoint for get unread counts")
+        @GetMapping("/unread-counts")
+        public ResponseEntity<ApiResponse<UnreadCountsResponse>> getUnreadCounts(Authentication auth) {
+                UserEntity user = (UserEntity) auth.getPrincipal();
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.msg.get_unread"),messageService.getUnreadMessageCounts(user.getUsername())));
-    }
+                log.info("Fetching unread counts for user: {}", user.getUsername());
 
-    @Operation(summary = "Mark as read", description = "API endpoint for mark as read")
-    @PostMapping("/mark-as-read")
-    public ResponseEntity<ApiResponse<Void>> markAsRead(
-            Authentication auth,
-            @RequestBody @Valid MarkReadRequest request) {
+                return ResponseEntity
+                                .ok(ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_MSG_GET_UNREAD_STRING),
+                                                messageService.getUnreadMessageCounts(user.getUsername())));
+        }
 
-        UserEntity user = (UserEntity) auth.getPrincipal();
+        @Operation(summary = "Mark as read", description = "API endpoint for mark as read")
+        @PostMapping("/mark-as-read")
+        public ResponseEntity<ApiResponse<Void>> markAsRead(
+                        Authentication auth,
+                        @RequestBody @Valid MarkReadRequest request) {
 
-        log.info("User {} marking messages from {} as read", user.getUsername(), request.getSender());
+                UserEntity user = (UserEntity) auth.getPrincipal();
 
-        messageService.markMessagesAsRead(user.getUsername(), request.getSender());
+                log.info("User {} marking messages from {} as read", user.getUsername(), request.getSender());
 
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.msg.mark_read"), null));
-    }
+                messageService.markMessagesAsRead(user.getUsername(), request.getSender());
 
-    @Operation(summary = "Get message by ID", description = "API endpoint to fetch a specific message by its ID")
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ChatMessageResponse>> getMessageById(
-            @PathVariable String id,
-            Authentication auth) {
-        
-        UserEntity user = (UserEntity) auth.getPrincipal();
-        log.info("Fetching message ID {} for user: {}", id, user.getUsername());
-        
-        ChatMessageResponse response = messageService.getMessageById(id, user.getUsername());
-        
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.msg.get_message"), response));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_MSG_MARK_READ_STRING), null));
+        }
+
+        @Operation(summary = "Get message by ID", description = "API endpoint to fetch a specific message by its ID")
+        @GetMapping("/{id}")
+        public ResponseEntity<ApiResponse<ChatMessageResponse>> getMessageById(
+                        @PathVariable String id,
+                        Authentication auth) {
+
+                UserEntity user = (UserEntity) auth.getPrincipal();
+                log.info("Fetching message ID {} for user: {}", id, user.getUsername());
+
+                ChatMessageResponse response = messageService.getMessageById(id, user.getUsername());
+
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_MSG_GET_MESSAGE_STRING), response));
+        }
 }

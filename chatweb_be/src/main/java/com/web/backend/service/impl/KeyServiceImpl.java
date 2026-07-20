@@ -20,12 +20,19 @@ public class KeyServiceImpl implements KeyService {
 
     private final UserRepository userRepository;
 
+    private static final String USER_DETAILS_STRING = "user_details";
+    private static final String USERNAME_STRING = "#username";
+
+    private static final String ERROR_USER_NOT_FOUND_WITH_STRING = "error.user.not_found_with";
+    private static final String ERROR_KEY_LOCKED_INACTIVE_STRING = "error.key.locked_inactive";
+
     @Override
     @Transactional
     public void saveRsaKey(String username, String encryptedKey) {
 
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         userEntity.setEncryptedRsaPrivateKey(encryptedKey);
 
@@ -37,10 +44,11 @@ public class KeyServiceImpl implements KeyService {
     public String getRsaKey(String username) {
 
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         if (userEntity.getUserStatus() != UserStatus.ACTIVE) {
-            throw new AccessForbiddenException(Translator.tolocale("error.key.locked_inactive"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_KEY_LOCKED_INACTIVE_STRING));
         }
 
         String key = userEntity.getEncryptedRsaPrivateKey();
@@ -55,16 +63,18 @@ public class KeyServiceImpl implements KeyService {
     @Override
     public String getPublicKey(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
         log.info("Get public key");
         return userEntity.getPublicKey();
     }
 
     @Override
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public void savePublicKey(String username, String publicKey) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
         userEntity.setPublicKey(publicKey);
         userRepository.save(userEntity);
         log.info("Saved public key for user");

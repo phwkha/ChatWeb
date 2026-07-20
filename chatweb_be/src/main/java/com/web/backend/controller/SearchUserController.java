@@ -25,6 +25,9 @@ public class SearchUserController {
 
     private final SearchUserService searchUserService;
 
+    private static final String SUCCESS_SEARCH_USERS_STRING = "success.search.users";
+    private static final String SUCCESS_SEARCH_ADVANCE_STRING = "success.search.advance";
+
     @Operation(summary = "Search users by keyword", description = "Search users by username, email, first name or last name")
     @GetMapping("/users")
     public ResponseEntity<ApiResponse<PageResponse<UserSummaryResponse>>> searchUsers(
@@ -39,7 +42,7 @@ public class SearchUserController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                Translator.tolocale("success.search.users"),
+                Translator.tolocale(SUCCESS_SEARCH_USERS_STRING),
                 result));
     }
 
@@ -54,7 +57,7 @@ public class SearchUserController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                Translator.tolocale("success.search.advance"),
+                Translator.tolocale(SUCCESS_SEARCH_ADVANCE_STRING),
                 searchUserService.advanceSearchWithSpecifications(pageable, user, address)));
     }
 }

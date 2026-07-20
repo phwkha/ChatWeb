@@ -31,6 +31,12 @@ public class RoleController {
 
     private final RoleService roleService;
 
+    private static final String SUCCESS_ROLE_GET_LIST_STRING = "success.role.get_list";
+    private static final String SUCCESS_ROLE_GET_PERMISSIONS_STRING = "success.role.get_permissions";
+    private static final String SUCCESS_ROLE_CREATE_STRING = "success.role.create";
+    private static final String SUCCESS_ROLE_UPDATE_STRING = "success.role.update";
+    private static final String SUCCESS_ROLE_DELETE_STRING = "success.role.delete";
+
     @Operation(summary = "Get all roles", description = "API endpoint for get all roles")
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_VIEW_ALL')")
@@ -39,7 +45,7 @@ public class RoleController {
         log.info("Get all roles: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                Translator.tolocale("success.role.get_list"),
+                Translator.tolocale(SUCCESS_ROLE_GET_LIST_STRING),
                 roleService.getAllRoles()));
     }
 
@@ -51,7 +57,7 @@ public class RoleController {
         log.info("Get all permission: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                Translator.tolocale("success.role.get_permissions"),
+                Translator.tolocale(SUCCESS_ROLE_GET_PERMISSIONS_STRING),
                 roleService.getAllPermissions()));
     }
 
@@ -64,7 +70,7 @@ public class RoleController {
         log.info("Create role: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
                 HttpStatus.CREATED.value(),
-                Translator.tolocale("success.role.create"),
+                Translator.tolocale(SUCCESS_ROLE_CREATE_STRING),
                 roleService.createRole(request)));
     }
 
@@ -77,7 +83,7 @@ public class RoleController {
         log.info("Update role: {}", userEntityPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                Translator.tolocale("success.role.update"),
+                Translator.tolocale(SUCCESS_ROLE_UPDATE_STRING),
                 roleService.updateRole(id, request)));
     }
 
@@ -90,7 +96,7 @@ public class RoleController {
         roleService.deleteRole(id);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.NO_CONTENT.value(),
-                Translator.tolocale("success.role.delete"),
+                Translator.tolocale(SUCCESS_ROLE_DELETE_STRING),
                 null));
     }
 }

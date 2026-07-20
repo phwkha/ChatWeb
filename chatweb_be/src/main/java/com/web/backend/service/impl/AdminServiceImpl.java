@@ -64,6 +64,28 @@ public class AdminServiceImpl implements AdminService {
     private final StorageService storageService;
 
     private final RedisTemplate<String, Object> redisTemplate;
+
+    private static final String ASC_STRING = "asc";
+    private static final String ROLEID_CANNOT_BE_NULL_STRING = "RoleId cannot be null";
+
+    private static final String ID_STRING = "id";
+
+    private static final String USER_DETAILS_STRING = "user_details";
+    private static final String USERNAME_STRING = "#username";
+    private static final String AVATARS_STRING = "avatars";
+
+    private static final String ERROR_USER_NOT_FOUND_WITH_STRING = "error.user.not_found_with";
+    private static final String ERROR_ADMIN_USERNAME_EXISTS_STRING = "error.admin.username_exists";
+    private static final String ERROR_ROLE_NOT_FOUND_WITH_STRING = "error.role.not_found_with";
+    private static final String ERROR_USER_TARGET_NOT_FOUND_WITH_STRING = "error.user.target_not_found_with";
+    private static final String ERROR_ADMIN_EMAIL_EXISTS_STRING = "error.admin.email_exists";
+    private static final String ERROR_ROLE_NOT_FOUND_STRING = "error.role.not_found";
+    private static final String ERROR_ADMIN_ADDRESS_NOT_OWNED_STRING = "error.admin.address_not_owned";
+    private static final String ERROR_USER_ADDRESS_NOT_FOUND_STRING = "error.user.address_not_found";
+
+    private static final String SYS_ACCOUNT_STRING = "sys.account";
+    private static final String SYS_DELETED_STRING = "sys.deleted";
+
     private static final String ONLINE_USERS_KEY = "online_users";
 
     @Override
@@ -120,7 +142,7 @@ public class AdminServiceImpl implements AdminService {
                 Pattern pattern = Pattern.compile("(\\w+?)(:)(.*)");
                 Matcher matcher = pattern.matcher(sortBy);
                 if (matcher.find()) {
-                    if (matcher.group(3).equalsIgnoreCase("asc")) {
+                    if (matcher.group(3).equalsIgnoreCase(ASC_STRING)) {
                         orders.add(new Sort.Order(Sort.Direction.ASC, Objects.requireNonNull(matcher.group(1))));
                     } else {
                         orders.add(new Sort.Order(Sort.Direction.DESC, Objects.requireNonNull(matcher.group(1))));
@@ -130,7 +152,7 @@ public class AdminServiceImpl implements AdminService {
         }
 
         if (orders.isEmpty()) {
-            orders.add(new Sort.Order(Sort.Direction.DESC, "id"));
+            orders.add(new Sort.Order(Sort.Direction.DESC, ID_STRING));
         }
         Pageable pageable = PageRequest.of(pageNo, pageSize,
                 Sort.by(orders));
@@ -158,10 +180,10 @@ public class AdminServiceImpl implements AdminService {
     public UserDetailResponse getUserByUsername(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         if (userEntity.getUserStatus() == UserStatus.INACTIVE) {
-            throw new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username));
+            throw new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username));
         }
         log.info("Get user");
         return userMapper.toUserDetailResponse(userEntity);
@@ -172,11 +194,12 @@ public class AdminServiceImpl implements AdminService {
     public UserResponse adminCreateUser(AdminCreateUserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new ResourceConflictException(
-                    Translator.tolocale("error.admin.username_exists", request.getUsername()));
+                    Translator.tolocale(ERROR_ADMIN_USERNAME_EXISTS_STRING, request.getUsername()));
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ResourceConflictException(Translator.tolocale("error.admin.email_exists") + request.getEmail());
+            throw new ResourceConflictException(
+                    Translator.tolocale(ERROR_ADMIN_EMAIL_EXISTS_STRING) + request.getEmail());
         }
 
         UserEntity user = userMapper.toEntity(request);
@@ -187,10 +210,11 @@ public class AdminServiceImpl implements AdminService {
             user.setUserStatus(UserStatus.ACTIVE);
         }
 
-        Long roleId = Objects.requireNonNull(request.getRoleId(), "RoleId cannot be null");
+        Long roleId = Objects.requireNonNull(request.getRoleId(), ROLEID_CANNOT_BE_NULL_STRING);
         RoleEntity role = roleRepository.findById(roleId)
                 .orElseThrow(
-                        () -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found_with", roleId)));
+                        () -> new ResourceNotFoundException(
+                                Translator.tolocale(ERROR_ROLE_NOT_FOUND_WITH_STRING, roleId)));
 
         user.setRole(role);
         UserEntity savedUser = userRepository.save(user);
@@ -201,11 +225,11 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public UserResponse lockUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         userEntity.setUserStatus(UserStatus.LOCKED);
         userEntity.setOnline(false);
@@ -218,11 +242,11 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public UserResponse unlockUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         if (userEntity.getUserStatus() == UserStatus.LOCKED) {
             userEntity.setUserStatus(UserStatus.ACTIVE);
@@ -239,32 +263,32 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public void deleteAvatar(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         String urlAvatar = userEntity.getAvatar();
 
         userEntity.setAvatar(null);
 
-        storageService.delete(urlAvatar, "avatars");
+        storageService.delete(urlAvatar, AVATARS_STRING);
 
         log.info("delete avatar for user {}", username);
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public UserResponse adminUpdateUser(String username, AdminUpdateUserRequest request) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         if (request.getEmail() != null && !request.getEmail().equals(userEntity.getEmail())) {
             if (userRepository.existsByEmail(request.getEmail())) {
-                throw new ResourceConflictException(Translator.tolocale("error.admin.email_exists"));
+                throw new ResourceConflictException(Translator.tolocale(ERROR_ADMIN_EMAIL_EXISTS_STRING));
             }
         }
 
@@ -272,7 +296,7 @@ public class AdminServiceImpl implements AdminService {
         if (request.getRoleId() != null) {
             Long roleId = Objects.requireNonNull(request.getRoleId());
             RoleEntity newRole = roleRepository.findById(roleId)
-                    .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found")));
+                    .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_ROLE_NOT_FOUND_STRING)));
             userEntity.setRole(newRole);
         }
 
@@ -283,11 +307,11 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#targetUsername")
+    @CacheEvict(value = USER_DETAILS_STRING, key = "#targetUsername")
     public void adminDeleteUser(String targetUsername, String requesterUsername) {
         UserEntity userEntity = userRepository.findByUsername(targetUsername)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", targetUsername)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, targetUsername)));
         boolean hasChatHistory = messageRepository.existsBySenderOrRecipient(targetUsername);
 
         if (hasChatHistory) {
@@ -295,8 +319,8 @@ public class AdminServiceImpl implements AdminService {
             userEntity.setOnline(false);
             userEntity.setEmail(null);
             userEntity.setPhone(null);
-            userEntity.setFirstName(Translator.tolocale("sys.account"));
-            userEntity.setLastName(Translator.tolocale("sys.deleted"));
+            userEntity.setFirstName(Translator.tolocale(SYS_ACCOUNT_STRING));
+            userEntity.setLastName(Translator.tolocale(SYS_DELETED_STRING));
             userEntity.setAvatar(null);
             userRepository.save(userEntity);
             log.info("Soft deleted user: {} (user has message history) by {}", targetUsername, requesterUsername);
@@ -313,7 +337,7 @@ public class AdminServiceImpl implements AdminService {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(
                         () -> new ResourceNotFoundException(
-                                Translator.tolocale("error.user.target_not_found_with", targetUsername)));
+                                Translator.tolocale(ERROR_USER_TARGET_NOT_FOUND_WITH_STRING, targetUsername)));
 
         log.info("Get all address for user by admin");
         return user.getAddresses().stream()
@@ -327,13 +351,13 @@ public class AdminServiceImpl implements AdminService {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(
                         () -> new ResourceNotFoundException(
-                                Translator.tolocale("error.user.target_not_found_with", targetUsername)));
+                                Translator.tolocale(ERROR_USER_TARGET_NOT_FOUND_WITH_STRING, targetUsername)));
 
         AddressEntity address = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
                 .orElseThrow(() -> new AccessForbiddenException(
-                        Translator.tolocale("error.admin.address_not_owned")));
+                        Translator.tolocale(ERROR_ADMIN_ADDRESS_NOT_OWNED_STRING)));
 
         log.info("Get address with id for user");
         return userMapper.toAddressResponse(address);
@@ -341,18 +365,18 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public UserDetailResponse adminUpdateAddress(String targetUsername, Long addressId, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(
                         () -> new ResourceNotFoundException(
-                                Translator.tolocale("error.user.target_not_found_with", targetUsername)));
+                                Translator.tolocale(ERROR_USER_TARGET_NOT_FOUND_WITH_STRING, targetUsername)));
 
         AddressEntity addressToUpdate = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.admin.address_not_owned")));
+                        Translator.tolocale(ERROR_ADMIN_ADDRESS_NOT_OWNED_STRING)));
 
         userMapper.updateAddressFromRequest(request, addressToUpdate);
 
@@ -363,17 +387,18 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public void adminDeleteAddress(String targetUsername, Long addressId) {
         UserEntity user = userRepository.findByUsername(targetUsername)
                 .orElseThrow(
                         () -> new ResourceNotFoundException(
-                                Translator.tolocale("error.user.target_not_found_with", targetUsername)));
+                                Translator.tolocale(ERROR_USER_TARGET_NOT_FOUND_WITH_STRING, targetUsername)));
 
         AddressEntity addressToDelete = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.address_not_found")));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_ADDRESS_NOT_FOUND_STRING)));
 
         user.removeAddress(addressToDelete);
 

@@ -33,9 +33,24 @@ import com.web.backend.config.LocalResolverConfig.Translator;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+
     private final UserServiceDetail userServiceDetail;
+
     private final RedisTemplate<String, Object> redisTemplate;
+
     private final HandlerExceptionResolver exceptionResolver;
+
+    private static final String AUTHORIZATION_STRING = "Authorization";
+    private static final String BEARER_STRING = "Bearer ";
+    private static final String UTF_8_STRING = "UTF-8";
+
+    private static final String APPLICATION_JSON_STRING = "application/json";
+
+    private static final String ACCESSTOKEN_STRING = "accessToken";
+
+    private static final String ERROR_WS_BLACKLISTED_STRING = "error.ws.blacklisted";
+
+    private static final String BLACK_LIST_PREFIX_STRING = "blacklist:";
 
     public JwtAuthenticationFilter(
             JwtService jwtService,
@@ -56,15 +71,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                String key = "blacklist:" + jwt;
+                String key = BLACK_LIST_PREFIX_STRING + jwt;
                 if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
+                    response.setContentType(APPLICATION_JSON_STRING);
+                    response.setCharacterEncoding(UTF_8_STRING);
 
                     ApiResponse<?> apiResponse = ApiResponse.error(
                             HttpStatus.UNAUTHORIZED.value(),
-                            Translator.tolocale("error.ws.blacklisted"));
+                            Translator.tolocale(ERROR_WS_BLACKLISTED_STRING));
 
                     ObjectMapper objectMapper = new ObjectMapper();
                     response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
@@ -122,14 +137,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private String getTokenFromRequest(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
-                if ("accessToken".equals(cookie.getName())) {
+                if (ACCESSTOKEN_STRING.equals(cookie.getName())) {
                     return cookie.getValue();
                 }
             }
         }
 
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        String authHeader = request.getHeader(AUTHORIZATION_STRING);
+        if (authHeader != null && authHeader.startsWith(BEARER_STRING)) {
             return authHeader.substring(7);
         }
 

@@ -14,9 +14,11 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 @Slf4j(topic = "KAFKA-DISPATCHER-LISTENER")
 public class KafkaDispatcherListener {
-    
+
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    
+
+    private static final String TOPIC_MUST_NOT_BE_NULL_STRING = "Topic must not be null";
+
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
     public void handleKafkaDispatch(KafkaDispatchEvent event) {
@@ -24,7 +26,7 @@ public class KafkaDispatcherListener {
             return;
         }
         try {
-            kafkaTemplate.send(Objects.requireNonNull(event.topic(), "Topic must not be null"), event.payload());
+            kafkaTemplate.send(Objects.requireNonNull(event.topic(), TOPIC_MUST_NOT_BE_NULL_STRING), event.payload());
             log.info("Dispatched Kafka message to topic: {}", event.topic());
         } catch (Exception e) {
             log.error("Error dispatching Kafka message: {}", e.getMessage(), e);

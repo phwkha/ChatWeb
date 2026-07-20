@@ -55,21 +55,48 @@ public class UserServiceImpl implements UserService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
+    private final CuckooFilterService cuckooFilterService;
+
     @Value("${spring.mail.expiration-minutes}")
     private int expirationMinutes;
 
-    private final CuckooFilterService cuckooFilterService;
-
     private static final String EMAIL_FILTER_KEY = "filter:emails";
+    private static final String USER_DETAILS_STRING = "user_details";
+    private static final String USERNAME_STRING = "#username";
+    private static final String AVATARS_STRING = "avatars";
+    private static final String OTP_STRING = "otp:";
+    private static final String COOLDOWN_RESEND_STRING = "cooldown:resend:";
+
+    private static final String ERROR_USER_NOT_FOUND_WITH_STRING = "error.user.not_found_with";
+    private static final String ERROR_AUTH_INVALID_OTP_ATTEMPTS_STRING = "error.auth.invalid_otp_attempts";
+    private static final String ERROR_USER_NOT_FOUND_STRING = "error.user.not_found";
+    private static final String ERROR_USER_SOCIAL_ACCOUNT_NOT_ALLOWED_STRING = "error.user.social_account_not_allowed";
+    private static final String ERROR_USER_PW_INCORRECT_STRING = "error.user.pw_incorrect";
+    private static final String ERROR_USER_EMAIL_EXISTS_STRING = "error.user.email_exists";
+    private static final String ERROR_USER_ADDRESS_NOT_OWNED_STRING = "error.user.address_not_owned";
+    private static final String ERROR_USER_ADDRESS_NOT_FOUND_STRING = "error.user.address_not_found";
+    private static final String ERROR_USER_CURRENT_PW_INCORRECT_STRING = "error.user.current_pw_incorrect";
+    private static final String ERROR_USER_NEW_PW_SAME_STRING = "error.user.new_pw_same";
+    private static final String ERROR_USER_INVALID_NEW_EMAIL_STRING = "error.user.invalid_new_email";
+    private static final String ERROR_USER_INVALID_NEW_PHONE_STRING = "error.user.invalid_new_phone";
+    private static final String ERROR_USER_REQ_NOT_FOUND_STRING = "error.user.req_not_found";
+    private static final String ERROR_USER_MISSING_NEW_EMAIL_STRING = "error.user.missing_new_email";
+    private static final String ERROR_AUTH_OTP_EXPIRED_OR_REQ_MISSING_STRING = "error.auth.otp_expired_or_req_missing";
+    private static final String ERROR_AUTH_OTP_CANCELED_5_TIMES_STRING = "error.auth.otp_canceled_5_times";
+    private static final String ERROR_AUTH_WAIT_60S_STRING = "error.auth.wait_60s";
+    private static final String ERROR_AUTH_REQ_EXPIRED_STRING = "error.auth.req_expired";
+
+    private static final String SYS_ACCOUNT_STRING = "sys.account";
+    private static final String SYS_DELETED_STRING = "sys.deleted";
 
     @Override
     public UserResponse getMe(String username) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         if (user.getUserStatus() != UserStatus.ACTIVE) {
-            throw new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username));
+            throw new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username));
         }
 
         log.info("Get current user");
@@ -80,10 +107,10 @@ public class UserServiceImpl implements UserService {
     public UserDetailResponse getProfileUser(String username) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         if (user.getUserStatus() != UserStatus.ACTIVE) {
-            throw new ResourceNotFoundException(Translator.tolocale("error.user.not_found_with", username));
+            throw new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username));
         }
 
         log.info("Get profile user");
@@ -92,11 +119,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public UserDetailResponse updateUser(String username, UpdateUserRequest request) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         userMapper.updateUserFromRequest(request, userEntity);
 
@@ -106,16 +133,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public String updateAvatar(String username, MultipartFile avatarFile) {
         UserEntity userEntity = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
         String oldAvatar = userEntity.getAvatar();
         String newUrl = storageService.uploadAvatar(avatarFile);
 
         if (oldAvatar != null) {
             try {
-                storageService.delete(oldAvatar, "avatars");
+                storageService.delete(oldAvatar, AVATARS_STRING);
             } catch (Exception e) {
                 log.warn("Failed to delete old image, but continuing update");
             }
@@ -130,7 +157,7 @@ public class UserServiceImpl implements UserService {
         SecureRandom secureRandom = new SecureRandom();
         String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
 
-        String redisKey = "otp:" + type.name() + ":" + user.getUsername();
+        String redisKey = OTP_STRING + type.name() + ":" + user.getUsername();
 
         String redisValue = otp + (extraData != null ? ":" + extraData : "");
 
@@ -143,18 +170,18 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void initiateEmailChange(String username, String newEmail, String currentPassword) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
 
         if (user.getAuthProvider() != AuthProvider.LOCAL) {
-            throw new AccessForbiddenException(Translator.tolocale("error.user.social_account_not_allowed"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_USER_SOCIAL_ACCOUNT_NOT_ALLOWED_STRING));
         }
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new InvalidPasswordException(Translator.tolocale("error.user.pw_incorrect"));
+            throw new InvalidPasswordException(Translator.tolocale(ERROR_USER_PW_INCORRECT_STRING));
         }
 
         if (userRepository.existsByEmail(newEmail)) {
-            throw new ResourceConflictException(Translator.tolocale("error.user.email_exists"));
+            throw new ResourceConflictException(Translator.tolocale(ERROR_USER_EMAIL_EXISTS_STRING));
         }
 
         generateAndSenResponseToken(user, OtpType.EMAIL_CHANGE, newEmail, newEmail);
@@ -166,14 +193,14 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void initiatePhoneChange(String username, String newPhone, String currentPassword) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
 
         if (user.getAuthProvider() != AuthProvider.LOCAL) {
-            throw new AccessForbiddenException(Translator.tolocale("error.user.social_account_not_allowed"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_USER_SOCIAL_ACCOUNT_NOT_ALLOWED_STRING));
         }
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new InvalidPasswordException(Translator.tolocale("error.user.pw_incorrect"));
+            throw new InvalidPasswordException(Translator.tolocale(ERROR_USER_PW_INCORRECT_STRING));
         }
 
         generateAndSenResponseToken(user, OtpType.PHONE_CHANGE, newPhone, user.getEmail());
@@ -186,7 +213,7 @@ public class UserServiceImpl implements UserService {
     public UserDetailResponse addAddress(String username, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
         ;
         AddressEntity newAddress = userMapper.toAddressEntity(request);
 
@@ -199,17 +226,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public UserDetailResponse updateAddress(String username, Long addressId, AddressRequest request) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         AddressEntity addressToUpdate = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
                 .orElseThrow(
-                        () -> new ResourceNotFoundException(Translator.tolocale("error.user.address_not_owned")));
+                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_ADDRESS_NOT_OWNED_STRING)));
 
         userMapper.updateAddressFromRequest(request, addressToUpdate);
 
@@ -220,16 +247,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public UserDetailResponse deleteAddress(String username, Long addressId) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         AddressEntity addressToDelete = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.address_not_found")));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_ADDRESS_NOT_FOUND_STRING)));
 
         user.removeAddress(addressToDelete);
 
@@ -243,7 +271,7 @@ public class UserServiceImpl implements UserService {
     public List<AddressResponse> getAllAddresses(String username) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         log.info("Get all address for user");
         return user.getAddresses().stream()
@@ -256,24 +284,24 @@ public class UserServiceImpl implements UserService {
     public AddressResponse getAddressById(String username, Long addressId) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         AddressEntity address = user.getAddresses().stream()
                 .filter(a -> a.getId().equals(addressId))
                 .findFirst()
                 .orElseThrow(
-                        () -> new AccessForbiddenException(Translator.tolocale("error.user.address_not_owned")));
+                        () -> new AccessForbiddenException(Translator.tolocale(ERROR_USER_ADDRESS_NOT_OWNED_STRING)));
         log.info("Get address for user");
         return userMapper.toAddressResponse(address);
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public void deleteUser(String username) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
         boolean hasChatHistory = messageRepository.existsBySenderOrRecipient(username);
 
         if (hasChatHistory) {
@@ -281,8 +309,8 @@ public class UserServiceImpl implements UserService {
             userEntity.setOnline(false);
             userEntity.setEmail(null);
             userEntity.setPhone(null);
-            userEntity.setFirstName(Translator.tolocale("sys.account"));
-            userEntity.setLastName(Translator.tolocale("sys.deleted"));
+            userEntity.setFirstName(Translator.tolocale(SYS_ACCOUNT_STRING));
+            userEntity.setLastName(Translator.tolocale(SYS_DELETED_STRING));
             userEntity.setAvatar(null);
             userRepository.save(userEntity);
             log.info("Soft deleted user: {} (user has message history)", username);
@@ -294,22 +322,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     public void changePassword(String username, String currentPassword, String newPassword) {
         UserEntity userEntity = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        Translator.tolocale("error.user.not_found_with", username)));
+                        Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
         if (userEntity.getAuthProvider() != AuthProvider.LOCAL) {
-            throw new AccessForbiddenException(Translator.tolocale("error.user.social_account_not_allowed"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_USER_SOCIAL_ACCOUNT_NOT_ALLOWED_STRING));
         }
 
         if (!passwordEncoder.matches(currentPassword, userEntity.getPassword())) {
-            throw new InvalidPasswordException(Translator.tolocale("error.user.current_pw_incorrect"));
+            throw new InvalidPasswordException(Translator.tolocale(ERROR_USER_CURRENT_PW_INCORRECT_STRING));
         }
 
         if (passwordEncoder.matches(newPassword, userEntity.getPassword())) {
-            throw new PasswordMismatchException(Translator.tolocale("error.user.new_pw_same"));
+            throw new PasswordMismatchException(Translator.tolocale(ERROR_USER_NEW_PW_SAME_STRING));
         }
 
         userEntity.setPassword(passwordEncoder.encode(newPassword));
@@ -326,7 +354,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @CacheEvict(value = "user_details", key = "#username")
+    @CacheEvict(value = USER_DETAILS_STRING, key = USERNAME_STRING)
     @Async
     public void setUserOnlineStatus(String username, boolean isOnline) {
         userRepository.updateOnlineStatus(username, isOnline);
@@ -337,13 +365,13 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void verifyEmailChange(String username, String otp) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
 
         String oldEmail = user.getEmail();
         String newEmail = validateRedisOtp(username, OtpType.EMAIL_CHANGE, otp);
 
         if (newEmail == null || newEmail.isEmpty()) {
-            throw new InvalidDataException(Translator.tolocale("error.user.invalid_new_email"));
+            throw new InvalidDataException(Translator.tolocale(ERROR_USER_INVALID_NEW_EMAIL_STRING));
         }
 
         user.setEmail(newEmail);
@@ -358,12 +386,12 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void verifyPhoneChange(String username, String otp) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
 
         String newPhone = validateRedisOtp(username, OtpType.PHONE_CHANGE, otp);
 
         if (newPhone == null || newPhone.isEmpty()) {
-            throw new InvalidDataException(Translator.tolocale("error.user.invalid_new_phone"));
+            throw new InvalidDataException(Translator.tolocale(ERROR_USER_INVALID_NEW_PHONE_STRING));
         }
 
         user.setPhone(newPhone);
@@ -375,18 +403,18 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void resendEmailChangeOtp(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
 
-        String redisKey = "otp:" + OtpType.EMAIL_CHANGE.name() + ":" + user.getUsername();
+        String redisKey = OTP_STRING + OtpType.EMAIL_CHANGE.name() + ":" + user.getUsername();
         String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
         if (oldValue == null)
-            throw new ResourceNotFoundException(Translator.tolocale("error.user.req_not_found"));
+            throw new ResourceNotFoundException(Translator.tolocale(ERROR_USER_REQ_NOT_FOUND_STRING));
 
         String[] parts = oldValue.split(":");
         String newEmail = parts.length > 1 ? parts[1] : null;
 
         if (newEmail == null)
-            throw new InvalidDataException(Translator.tolocale("error.user.missing_new_email"));
+            throw new InvalidDataException(Translator.tolocale(ERROR_USER_MISSING_NEW_EMAIL_STRING));
 
         resendRedisOtp(username, OtpType.EMAIL_CHANGE, newEmail);
     }
@@ -395,20 +423,20 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void resendPhoneChangeOtp(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
 
         resendRedisOtp(username, OtpType.PHONE_CHANGE, user.getEmail());
     }
 
     private String validateRedisOtp(String identifier, OtpType type, String inputOtp) {
-        String redisKey = "otp:" + type.name() + ":" + identifier;
+        String redisKey = OTP_STRING + type.name() + ":" + identifier;
 
         String attemptKey = redisKey + ":attempts";
 
         String value = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (value == null) {
-            throw new InvalidOtpException(Translator.tolocale("error.auth.otp_expired_or_req_missing"));
+            throw new InvalidOtpException(Translator.tolocale(ERROR_AUTH_OTP_EXPIRED_OR_REQ_MISSING_STRING));
         }
 
         String[] parts = value.split(":");
@@ -422,10 +450,10 @@ public class UserServiceImpl implements UserService {
             if (attempts != null && attempts >= 5) {
                 redisTemplate.delete(redisKey);
                 redisTemplate.delete(attemptKey);
-                throw new InvalidOtpException(Translator.tolocale("error.auth.otp_canceled_5_times"));
+                throw new InvalidOtpException(Translator.tolocale(ERROR_AUTH_OTP_CANCELED_5_TIMES_STRING));
             }
 
-            throw new InvalidOtpException(Translator.tolocale("error.auth.invalid_otp_attempts", attempts));
+            throw new InvalidOtpException(Translator.tolocale(ERROR_AUTH_INVALID_OTP_ATTEMPTS_STRING, attempts));
         }
 
         redisTemplate.delete(redisKey);
@@ -434,18 +462,18 @@ public class UserServiceImpl implements UserService {
     }
 
     private void resendRedisOtp(String identifier, OtpType type, String emailToSend) {
-        String redisKey = "otp:" + type.name() + ":" + identifier;
+        String redisKey = OTP_STRING + type.name() + ":" + identifier;
 
-        String cooldownKey = "cooldown:resend:" + identifier;
+        String cooldownKey = COOLDOWN_RESEND_STRING + identifier;
 
         if (Boolean.TRUE.equals(redisTemplate.hasKey(cooldownKey))) {
-            throw new ResourceConflictException(Translator.tolocale("error.auth.wait_60s"));
+            throw new ResourceConflictException(Translator.tolocale(ERROR_AUTH_WAIT_60S_STRING));
         }
 
         String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (oldValue == null) {
-            throw new ResourceNotFoundException(Translator.tolocale("error.auth.req_expired"));
+            throw new ResourceNotFoundException(Translator.tolocale(ERROR_AUTH_REQ_EXPIRED_STRING));
         }
 
         String[] parts = oldValue.split(":");

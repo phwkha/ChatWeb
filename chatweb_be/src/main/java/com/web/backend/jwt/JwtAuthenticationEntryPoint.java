@@ -14,14 +14,21 @@ import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
+    private static final String ERROR_STRING = "error";
+    private static final String ERROR_AUTH_SESSION_EXPIRED_STRING = "error.auth.session_expired";
+
+    private static final String APPLICATION_JSON_STRING = "application/json";
+
     @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
+    public void commence(HttpServletRequest request, HttpServletResponse response,
+            AuthenticationException authException) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
+        response.setContentType(APPLICATION_JSON_STRING);
         ApiResponse<?> apiResponse = ApiResponse.builder()
                 .code(HttpStatus.UNAUTHORIZED.value())
-                .status("error")
-                .message(Translator.tolocale("error.auth.session_expired"))
+                .status(ERROR_STRING)
+                .message(Translator.tolocale(ERROR_AUTH_SESSION_EXPIRED_STRING))
                 .build();
 
         ObjectMapper objectMapper = new ObjectMapper();

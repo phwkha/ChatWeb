@@ -18,6 +18,9 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    private static final String EMAIL_OTP_BODY_STRING = "email.otp.body";
+    private static final String EMAIL_OTP_SUBJECT_STRING = "email.otp.subject";
+
     public void sendTextEmail(String to, String subject, String content) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -38,8 +41,8 @@ public class EmailService {
     public void sendOtpEmail(String to, String name, String otp) {
         log.info("Sending OTP via Gmail to: {}", to);
 
-        String subject = Translator.tolocale("email.otp.subject");
-        String content = Translator.tolocale("email.otp.body", name, otp);
+        String subject = Translator.tolocale(EMAIL_OTP_SUBJECT_STRING);
+        String content = Translator.tolocale(EMAIL_OTP_BODY_STRING, name, otp);
 
         sendTextEmail(to, subject, content);
     }

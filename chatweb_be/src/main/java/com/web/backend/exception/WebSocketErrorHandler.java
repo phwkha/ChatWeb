@@ -17,12 +17,19 @@ public class WebSocketErrorHandler {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
 
+    private static final String QUEUE_ERRORS_STRING = "/queue/errors";
+
+    private static final String UNKNOWS_STRING = "unknows";
+
+    private static final String ERROR_WS_INVALID_DATA_STRING = "error.ws.invalid_data";
+    private static final String ERROR_SYS_BAD_FORMAT_STRING = "error.sys.bad_format";
+
     public void handleChatError(String username, Object request, String message) {
-        String targetUser = (username == null || username.trim().isEmpty()) ? "unknows" : username;
+        String targetUser = (username == null || username.trim().isEmpty()) ? UNKNOWS_STRING : username;
 
         simpMessagingTemplate.convertAndSendToUser(
                 targetUser,
-                "/queue/errors",
+                QUEUE_ERRORS_STRING,
                 SocketResponse.error(message, request));
     }
 
@@ -31,9 +38,9 @@ public class WebSocketErrorHandler {
             org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException ex,
             Authentication authentication) {
 
-        String username = (authentication != null) ? authentication.getName() : "unknows";
+        String username = (authentication != null) ? authentication.getName() : UNKNOWS_STRING;
 
-        String errorMessage = Translator.tolocale("error.ws.invalid_data");
+        String errorMessage = Translator.tolocale(ERROR_WS_INVALID_DATA_STRING);
 
         BindingResult bindingResult = ex.getBindingResult();
         if (bindingResult != null) {
@@ -51,9 +58,9 @@ public class WebSocketErrorHandler {
             MessageConversionException ex,
             Authentication authentication) {
 
-        String username = (authentication != null) ? authentication.getName() : "unknows";
+        String username = (authentication != null) ? authentication.getName() : UNKNOWS_STRING;
 
-        String errorMessage = Translator.tolocale("error.sys.bad_format");
+        String errorMessage = Translator.tolocale(ERROR_SYS_BAD_FORMAT_STRING);
 
         this.handleChatError(username, null, errorMessage);
     }

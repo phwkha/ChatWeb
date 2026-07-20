@@ -76,13 +76,50 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
+    private final CuckooFilterService cuckooFilterService;
+
     @Value("${spring.mail.expiration-minutes}")
     private int expirationMinutes;
 
-    private final CuckooFilterService cuckooFilterService;
-
     private static final String EMAIL_FILTER_KEY = "filter:emails";
     private static final String USERNAME_FILTER_KEY = "filter:usernames";
+
+    private static final String LOGGED_OUT_STRING = "logged_out";
+    private static final String ROTATED_STRING = "rotated";
+
+    private static final String USER_STRING = "USER";
+
+    private static final String REGISTER_STRING = "register:";
+    private static final String BLACKLIST_STRING = "blacklist:";
+    private static final String USER_DETAILS_STRING = "user_details";
+    private static final String COOLDOWN_RESEND_STRING = "cooldown:resend:";
+
+    private static final String ERROR_AUTH_INVALID_OTP_ATTEMPTS_STRING = "error.auth.invalid_otp_attempts";
+    private static final String ERROR_AUTH_EMAIL_USED_STRING = "error.auth.email_used";
+    private static final String ERROR_AUTH_USERNAME_EXISTS_STRING = "error.auth.username_exists";
+    private static final String ERROR_AUTH_ROLE_USER_MISSING_STRING = "error.auth.role_user_missing";
+    private static final String ERROR_AUTH_ACCOUNT_LOCKED_STRING = "error.auth.account_locked";
+    private static final String ERROR_AUTH_INVALID_CREDENTIALS_STRING = "error.auth.invalid_credentials";
+    private static final String ERROR_USER_NOT_FOUND_STRING = "error.user.not_found";
+    private static final String ERROR_AUTH_MISSING_REFRESH_STRING = "error.auth.missing_refresh";
+    private static final String ERROR_AUTH_REFRESH_REVOKED_STRING = "error.auth.refresh_revoked";
+    private static final String ERROR_AUTH_REFRESH_EXPIRED_STRING = "error.auth.refresh_expired";
+    private static final String ERROR_AUTH_LOCKED_OR_NOT_FOUND_STRING = "error.auth.locked_or_not_found";
+    private static final String ERROR_AUTH_EMAIL_NOT_FOUND_STRING = "error.auth.email_not_found";
+    private static final String ERROR_AUTH_LOCKED_NOT_FOUND_STRING = "error.auth.locked_not_found";
+    private static final String ERROR_AUTH_OTP_EXPIRED_OR_EMAIL_MISSING_STRING = "error.auth.otp_expired_or_email_missing";
+    private static final String ERROR_AUTH_INVALID_OTP_STRING = "error.auth.invalid_otp";
+    private static final String ERROR_AUTH_REGISTERED_BY_OTHER_STRING = "error.auth.registered_by_other";
+    private static final String ERROR_ROLE_NOT_FOUND_STRING = "error.role.not_found";
+    private static final String ERROR_ROLE_DEFAULT_NOT_FOUND_STRING = "error.role.default_not_found";
+    private static final String ERROR_AUTH_WAIT_60S_STRING = "error.auth.wait_60s";
+    private static final String ERROR_AUTH_ALREADY_ACTIVE_STRING = "error.auth.already_active";
+    private static final String ERROR_AUTH_ACCOUNT_LOCKED_DELETED_STRING = "error.auth.account_locked_deleted";
+    private static final String ERROR_AUTH_REG_EXPIRED_STRING = "error.auth.reg_expired";
+    private static final String ERROR_USER_EMAIL_USER_NOT_FOUND_STRING = "error.user.email_user_not_found";
+    private static final String ERROR_AUTH_OTP_EXPIRED_OR_REQ_MISSING_STRING = "error.auth.otp_expired_or_req_missing";
+    private static final String ERROR_AUTH_OTP_CANCELED_5_TIMES_STRING = "error.auth.otp_canceled_5_times";
+    private static final String ERROR_AUTH_REQ_EXPIRED_STRING = "error.auth.req_expired";
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -91,21 +128,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         boolean mightExistEmail = cuckooFilterService.exists(EMAIL_FILTER_KEY, createUserRequest.getEmail());
         if (mightExistEmail) {
             if (userRepository.existsByEmail(createUserRequest.getEmail())) {
-                throw new ResourceConflictException(Translator.tolocale("error.auth.email_used"));
+                throw new ResourceConflictException(Translator.tolocale(ERROR_AUTH_EMAIL_USED_STRING));
             }
         }
 
         boolean mightExistUsername = cuckooFilterService.exists(USERNAME_FILTER_KEY, createUserRequest.getUsername());
         if (mightExistUsername) {
             if (userRepository.existsByUsername(createUserRequest.getUsername())) {
-                throw new ResourceConflictException(Translator.tolocale("error.auth.username_exists"));
+                throw new ResourceConflictException(Translator.tolocale(ERROR_AUTH_USERNAME_EXISTS_STRING));
             }
         }
 
         SecureRandom secureRandom = new SecureRandom();
         String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
-        RoleEntity defaultRole = roleRepository.findByName("USER")
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.auth.role_user_missing")));
+        RoleEntity defaultRole = roleRepository.findByName(USER_STRING)
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_AUTH_ROLE_USER_MISSING_STRING)));
 
         RegisterData data = RegisterData.builder()
                 .username(createUserRequest.getUsername())
@@ -115,7 +153,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .otp(otp)
                 .build();
 
-        String redisKey = "register:" + createUserRequest.getEmail();
+        String redisKey = REGISTER_STRING + createUserRequest.getEmail();
         redisTemplate.opsForValue().set(redisKey, Objects.requireNonNull(data), 5, TimeUnit.MINUTES);
 
         emailKafkaProducer.sendOtpEmailTask(createUserRequest.getEmail(), createUserRequest.getUsername(), otp);
@@ -144,9 +182,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             tokenVersion = userPrincipal.getTokenVersion();
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (LockedException e) {
-            throw new AccessForbiddenException(Translator.tolocale("error.auth.account_locked"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_ACCOUNT_LOCKED_STRING));
         } catch (AuthenticationException e) {
-            throw new AuthenticationFailedException(Translator.tolocale("error.auth.invalid_credentials"));
+            throw new AuthenticationFailedException(Translator.tolocale(ERROR_AUTH_INVALID_CREDENTIALS_STRING));
         }
 
         String accessToken = jwtService.generateAccessToken(
@@ -175,8 +213,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         long remainingTime = jwtService.getRemainingTime(token, tokenType);
 
         if (remainingTime > 0) {
-            String key = "blacklist:" + token;
-            redisTemplate.opsForValue().set(key, "logged_out", remainingTime, TimeUnit.MILLISECONDS);
+            String key = BLACKLIST_STRING + token;
+            redisTemplate.opsForValue().set(key, LOGGED_OUT_STRING, remainingTime, TimeUnit.MILLISECONDS);
         }
         log.info("Token added to blacklist with TTL: {} ms", remainingTime);
     }
@@ -185,13 +223,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     public void logoutAllDevices(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
 
         Integer currentVersion = user.getTokenVersion() == null ? 0 : user.getTokenVersion();
         user.setTokenVersion(currentVersion + 1);
         userRepository.save(user);
 
-        Cache userCache = cacheManager.getCache("user_details");
+        Cache userCache = cacheManager.getCache(USER_DETAILS_STRING);
         if (userCache != null) {
             userCache.evict(Objects.requireNonNull(username));
         }
@@ -201,21 +239,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public TokenResponse refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isEmpty()) {
-            throw new InvalidDataException(Translator.tolocale("error.auth.missing_refresh"));
+            throw new InvalidDataException(Translator.tolocale(ERROR_AUTH_MISSING_REFRESH_STRING));
         }
         String username = jwtService.extractUsername(refreshToken, TokenType.REFRESH_TOKEN);
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
 
-        String blacklistKey = "blacklist:" + refreshToken;
+        String blacklistKey = BLACKLIST_STRING + refreshToken;
         if (Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey))) {
             user.setTokenVersion(user.getTokenVersion() == null ? 0 : user.getTokenVersion() + 1);
             userRepository.save(user);
-            Cache userCache = cacheManager.getCache("user_details");
+            Cache userCache = cacheManager.getCache(USER_DETAILS_STRING);
             if (userCache != null && user.getUsername() != null) {
                 userCache.evict(Objects.requireNonNull(user.getUsername()));
             }
-            throw new AccessForbiddenException(Translator.tolocale("error.auth.refresh_revoked"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_REFRESH_REVOKED_STRING));
         }
 
         Integer tokenVersionInJwt = jwtService.extractClaim(refreshToken, TokenType.REFRESH_TOKEN,
@@ -223,13 +261,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         Integer currentVersion = user.getTokenVersion() == null ? 0 : user.getTokenVersion();
 
         if (tokenVersionInJwt == null || !tokenVersionInJwt.equals(currentVersion)) {
-            throw new AccessForbiddenException(Translator.tolocale("error.auth.refresh_expired"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_REFRESH_EXPIRED_STRING));
         }
 
         List<String> authorities = new ArrayList<>();
         user.getAuthorities().forEach(authority -> authorities.add(authority.getAuthority()));
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException(Translator.tolocale("error.auth.locked_or_not_found"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_LOCKED_OR_NOT_FOUND_STRING));
         }
 
         String newAccessToken = jwtService.generateAccessToken(user.getUsername(), authorities, currentVersion);
@@ -237,7 +275,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         long remainingTime = jwtService.getRemainingTime(refreshToken, TokenType.REFRESH_TOKEN);
         if (remainingTime > 0) {
-            redisTemplate.opsForValue().set(blacklistKey, "rotated", remainingTime, TimeUnit.MILLISECONDS);
+            redisTemplate.opsForValue().set(blacklistKey, ROTATED_STRING, remainingTime, TimeUnit.MILLISECONDS);
         }
 
         log.info("Refresh token with user: {}", username);
@@ -248,10 +286,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     public void initiateForgotPassword(String email) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.auth.email_not_found")));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_AUTH_EMAIL_NOT_FOUND_STRING)));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException(Translator.tolocale("error.auth.locked_not_found"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_LOCKED_NOT_FOUND_STRING));
         }
 
         generateAndSenResponseToken(user, OtpType.PASSWORD_RESET, null, user.getEmail());
@@ -276,20 +315,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @Transactional
     public void verifyUser(VerifyOtpRequest request) {
-        String redisKey = "register:" + request.getEmail();
+        String redisKey = REGISTER_STRING + request.getEmail();
 
         RegisterData data = (RegisterData) redisTemplate.opsForValue().get(redisKey);
 
         if (data == null) {
-            throw new ResourceNotFoundException(Translator.tolocale("error.auth.otp_expired_or_email_missing"));
+            throw new ResourceNotFoundException(Translator.tolocale(ERROR_AUTH_OTP_EXPIRED_OR_EMAIL_MISSING_STRING));
         }
 
         if (!data.getOtp().equals(request.getOtp())) {
-            throw new InvalidOtpException(Translator.tolocale("error.auth.invalid_otp"));
+            throw new InvalidOtpException(Translator.tolocale(ERROR_AUTH_INVALID_OTP_STRING));
         }
 
         if (userRepository.existsByUsername(data.getUsername()) || userRepository.existsByEmail(data.getEmail())) {
-            throw new ResourceConflictException(Translator.tolocale("error.auth.registered_by_other"));
+            throw new ResourceConflictException(Translator.tolocale(ERROR_AUTH_REGISTERED_BY_OTHER_STRING));
         }
 
         UserEntity newUser = new UserEntity();
@@ -304,11 +343,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         RoleEntity role;
         if (roleId != null) {
             role = roleRepository.findById(roleId)
-                    .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found")));
+                    .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_ROLE_NOT_FOUND_STRING)));
         } else {
-            role = roleRepository.findByName("USER")
+            role = roleRepository.findByName(USER_STRING)
                     .orElseThrow(
-                            () -> new ResourceNotFoundException(Translator.tolocale("error.role.default_not_found")));
+                            () -> new ResourceNotFoundException(
+                                    Translator.tolocale(ERROR_ROLE_DEFAULT_NOT_FOUND_STRING)));
         }
         newUser.setRole(role);
 
@@ -325,12 +365,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @Transactional
     public void resendOtp(String email) {
-        String redisKey = "register:" + email;
+        String redisKey = REGISTER_STRING + email;
 
-        String cooldownKey = "cooldown:resend:" + email;
+        String cooldownKey = COOLDOWN_RESEND_STRING + email;
 
         if (Boolean.TRUE.equals(redisTemplate.hasKey(cooldownKey))) {
-            throw new ResourceConflictException(Translator.tolocale("error.auth.wait_60s"));
+            throw new ResourceConflictException(Translator.tolocale(ERROR_AUTH_WAIT_60S_STRING));
         }
 
         RegisterData data = (RegisterData) redisTemplate.opsForValue().get(redisKey);
@@ -352,24 +392,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (userOpt.isPresent()) {
             UserEntity user = userOpt.get();
             if (user.getUserStatus() == UserStatus.ACTIVE) {
-                throw new ResourceConflictException(Translator.tolocale("error.auth.already_active"));
+                throw new ResourceConflictException(Translator.tolocale(ERROR_AUTH_ALREADY_ACTIVE_STRING));
             }
             if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-                throw new ResourceConflictException(Translator.tolocale("error.auth.account_locked_deleted"));
+                throw new ResourceConflictException(Translator.tolocale(ERROR_AUTH_ACCOUNT_LOCKED_DELETED_STRING));
             }
         }
 
-        throw new ResourceNotFoundException(Translator.tolocale("error.auth.reg_expired"));
+        throw new ResourceNotFoundException(Translator.tolocale(ERROR_AUTH_REG_EXPIRED_STRING));
     }
 
     @Override
     @Transactional
     public void verifyPasswordReset(String email, String otp, String newPassword) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.user.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException(Translator.tolocale("error.auth.locked_not_found"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_LOCKED_NOT_FOUND_STRING));
         }
 
         validateRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, otp);
@@ -378,7 +418,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        Cache userCache = cacheManager.getCache("user_details");
+        Cache userCache = cacheManager.getCache(USER_DETAILS_STRING);
         if (userCache != null && user.getUsername() != null) {
             userCache.evict(Objects.requireNonNull(user.getUsername()));
         }
@@ -390,10 +430,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void resendForgotPasswordOtp(String email) {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(
-                        () -> new ResourceNotFoundException(Translator.tolocale("error.user.email_user_not_found")));
+                        () -> new ResourceNotFoundException(
+                                Translator.tolocale(ERROR_USER_EMAIL_USER_NOT_FOUND_STRING)));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException(Translator.tolocale("error.auth.locked_not_found"));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_LOCKED_NOT_FOUND_STRING));
         }
 
         resendRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, email);
@@ -407,7 +448,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String value = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (value == null) {
-            throw new InvalidOtpException(Translator.tolocale("error.auth.otp_expired_or_req_missing"));
+            throw new InvalidOtpException(Translator.tolocale(ERROR_AUTH_OTP_EXPIRED_OR_REQ_MISSING_STRING));
         }
 
         String[] parts = value.split(":");
@@ -421,10 +462,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             if (attempts != null && attempts >= 5) {
                 redisTemplate.delete(redisKey);
                 redisTemplate.delete(attemptKey);
-                throw new InvalidOtpException(Translator.tolocale("error.auth.otp_canceled_5_times"));
+                throw new InvalidOtpException(Translator.tolocale(ERROR_AUTH_OTP_CANCELED_5_TIMES_STRING));
             }
 
-            throw new InvalidOtpException(Translator.tolocale("error.auth.invalid_otp_attempts", attempts));
+            throw new InvalidOtpException(Translator.tolocale(ERROR_AUTH_INVALID_OTP_ATTEMPTS_STRING, attempts));
         }
 
         redisTemplate.delete(redisKey);
@@ -435,16 +476,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private void resendRedisOtp(String identifier, OtpType type, String emailToSend) {
         String redisKey = "otp:" + type.name() + ":" + identifier;
 
-        String cooldownKey = "cooldown:resend:" + identifier;
+        String cooldownKey = COOLDOWN_RESEND_STRING + identifier;
 
         if (Boolean.TRUE.equals(redisTemplate.hasKey(cooldownKey))) {
-            throw new ResourceConflictException(Translator.tolocale("error.auth.wait_60s"));
+            throw new ResourceConflictException(Translator.tolocale(ERROR_AUTH_WAIT_60S_STRING));
         }
 
         String oldValue = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (oldValue == null) {
-            throw new ResourceNotFoundException(Translator.tolocale("error.auth.req_expired"));
+            throw new ResourceNotFoundException(Translator.tolocale(ERROR_AUTH_REQ_EXPIRED_STRING));
         }
 
         String[] parts = oldValue.split(":");

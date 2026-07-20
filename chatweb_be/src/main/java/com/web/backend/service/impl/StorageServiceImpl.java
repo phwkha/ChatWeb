@@ -32,52 +32,70 @@ public class StorageServiceImpl implements StorageService {
     @Value("${app.upload.max-size-image}")
     private Long maxImageSize;
 
+    private static final String FOLDER_STRING = "folder";
+    private static final String IMAGES_STRING = "images";
+    private static final String PUBLIC_ID_STRING = "public_id";
+    private static final String RESOURCE_TYPE_STRING = "resource_type";
+    private static final String SECURE_URL_STRING = "secure_url";
+    private static final String VIDEOS_STRING = "videos";
+
+    private static final String IMAGE_STRING = "image";
+    private static final String RAW_STRING = "raw";
+
+    private static final String AVATARS_STRING = "avatars";
+
+    private static final String ERROR_STORAGE_INVALID_FORMAT_STRING = "error.storage.invalid_format";
+    private static final String ERROR_STORAGE_FILE_TOO_LARGE_STRING = "error.storage.file_too_large";
+    private static final String ERROR_STORAGE_UPLOAD_FAILED_STRING = "error.storage.upload_failed";
+    private static final String ERROR_STORAGE_EMPTY_FILE_STRING = "error.storage.empty_file";
+
     @Override
     public String uploadAvatar(MultipartFile avatar) {
-        return uploadFile(avatar, "avatars", maxAvatarSize, "image");
+        return uploadFile(avatar, AVATARS_STRING, maxAvatarSize, IMAGE_STRING);
     }
 
     @Override
     public String upLoadImage(MultipartFile image) {
-        return uploadFile(image, "images", maxImageSize, "raw");
+        return uploadFile(image, IMAGES_STRING, maxImageSize, RAW_STRING);
     }
 
     @Override
     public String uploadVideo(MultipartFile video) {
-        return uploadFile(video, "videos", maxVideoSize, "raw");
+        return uploadFile(video, VIDEOS_STRING, maxVideoSize, RAW_STRING);
     }
 
     private String uploadFile(MultipartFile file, String folder, Long maxSize, String resourceType) {
         try {
             if (file.isEmpty()) {
-                throw new InvalidDataException(Translator.tolocale("error.storage.empty_file"));
+                throw new InvalidDataException(Translator.tolocale(ERROR_STORAGE_EMPTY_FILE_STRING));
             }
 
-            if (!resourceType.equals("raw")) {
+            if (!resourceType.equals(RAW_STRING)) {
                 String contentType = file.getContentType();
                 if (contentType == null || !contentType.startsWith(resourceType + "/")) {
-                    throw new InvalidDataException(Translator.tolocale("error.storage.invalid_format", resourceType));
+                    throw new InvalidDataException(
+                            Translator.tolocale(ERROR_STORAGE_INVALID_FORMAT_STRING, resourceType));
                 }
             }
 
             if (file.getSize() > maxSize) {
                 long sizeInMb = maxSize / (1024 * 1024);
-                throw new InvalidDataException(Translator.tolocale("error.storage.file_too_large", sizeInMb));
+                throw new InvalidDataException(Translator.tolocale(ERROR_STORAGE_FILE_TOO_LARGE_STRING, sizeInMb));
             }
 
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
-                            "folder", folder,
-                            "public_id", UUID.randomUUID().toString(),
-                            "resource_type", resourceType));
+                            FOLDER_STRING, folder,
+                            PUBLIC_ID_STRING, UUID.randomUUID().toString(),
+                            RESOURCE_TYPE_STRING, resourceType));
 
-            String url = (String) uploadResult.get("secure_url");
+            String url = (String) uploadResult.get(SECURE_URL_STRING);
             log.info("Upload {} success: {}", resourceType, url);
             return url;
 
         } catch (IOException e) {
             log.error("Upload failed: {}", e.getMessage());
-            throw new RuntimeException(Translator.tolocale("error.storage.upload_failed", e.getMessage()));
+            throw new RuntimeException(Translator.tolocale(ERROR_STORAGE_UPLOAD_FAILED_STRING, e.getMessage()));
         }
     }
 
@@ -88,12 +106,12 @@ public class StorageServiceImpl implements StorageService {
             if (url == null || url.isEmpty())
                 return;
 
-            String resourceType = folder.equals("avatars") ? "image" : "raw";
+            String resourceType = folder.equals(AVATARS_STRING) ? IMAGE_STRING : RAW_STRING;
             String publicId = extractPublicId(url, folder);
 
             if (publicId != null) {
                 cloudinary.uploader().destroy(publicId,
-                        ObjectUtils.asMap("resource_type", resourceType));
+                        ObjectUtils.asMap(RESOURCE_TYPE_STRING, resourceType));
                 log.info("Deleted old file: {} (type: {})", publicId, resourceType);
             }
         } catch (IOException e) {

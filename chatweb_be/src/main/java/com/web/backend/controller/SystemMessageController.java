@@ -26,6 +26,8 @@ public class SystemMessageController {
 
     private final MessageService messageService;
 
+    private static final String SUCCESS_SYS_GET_MSG_STRING = "success.sys.get_msg";
+
     @Operation(summary = "Get system messages", description = "API endpoint for get system messages")
     @GetMapping("/message")
     public ResponseEntity<ApiResponse<CursorResponse<MessageSystemResponse>>> getSystemMessages(
@@ -36,6 +38,7 @@ public class SystemMessageController {
         CursorResponse<MessageSystemResponse> response = messageService.findSystemMessageWithCursor(cursor, size);
 
         return ResponseEntity
-                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.sys.get_msg"), response));
+                .ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale(SUCCESS_SYS_GET_MSG_STRING),
+                        response));
     }
 }

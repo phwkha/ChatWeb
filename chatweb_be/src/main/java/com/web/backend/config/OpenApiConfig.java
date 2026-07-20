@@ -19,13 +19,33 @@ import io.swagger.v3.oas.models.responses.ApiResponses;
 import java.util.List;
 
 @Configuration
-@Profile({"dev", "test"})
+@Profile({ "dev", "test" })
 public class OpenApiConfig {
+
+    private static final String APACE_2_0_STRING = "Apace 2.0";
+    private static final String API_DOCUMENT_FOR_BACKEND_STRING = "API Document for backend";
+    private static final String BAD_REQUEST_D_LI_U_KH_NG_H_P_L_STRING = "Bad Request - Dữ liệu không hợp lệ";
+
+    private static final String BEARERAUTH_STRING = "bearerAuth";
+    private static final String BEARER_STRING = "bearer";
+
+    private static final String COM_WEB_BACKEND_CONTROLLER_STRING = "com.web.backend.controller";
+    private static final String FORBIDDEN_KH_NG_C_QUY_N_TRUY_C_P_STRING = "Forbidden - Không có quyền truy cập";
+    private static final String HTTPS_SPRINGDOC_ORG_STRING = "https://springdoc.org";
+    private static final String INTERNAL_SERVER_ERROR_L_I_H_TH_NG_STRING = "Internal Server Error - Lỗi hệ thống";
+    private static final String JWT_STRING = "JWT";
+
+    private static final String STR_400_STRING = "400";
+    private static final String STR_401_STRING = "401";
+    private static final String STR_403_STRING = "403";
+    private static final String STR_500_STRING = "500";
+
+    private static final String UNAUTHORIZED_CH_A_X_C_TH_C_STRING = "Unauthorized - Chưa xác thực";
 
     @Bean
     public GroupedOpenApi groupedOpenApi(@Value("${openapi.service.api-docs}") String apiDocs) {
         return GroupedOpenApi.builder().group(apiDocs)
-                .packagesToScan("com.web.backend.controller")
+                .packagesToScan(COM_WEB_BACKEND_CONTROLLER_STRING)
                 .build();
     }
 
@@ -34,23 +54,24 @@ public class OpenApiConfig {
             @Value("${openapi.service.title}") String title,
             @Value("${openapi.service.version}") String version,
             @Value("${openapi.service.server}") String serverUrl) {
-        final String securitySchemeName = "bearerAuth";
+        final String securitySchemeName = BEARERAUTH_STRING;
         return new OpenAPI()
                 .servers(List.of(new Server().url(serverUrl)))
                 .components(
                         new Components()
                                 .addSecuritySchemes(
-                                     securitySchemeName,
-                                     new SecurityScheme()
-                                             .type(SecurityScheme.Type.HTTP)
-                                             .scheme("bearer")
-                                             .bearerFormat("JWT")))
+                                        securitySchemeName,
+                                        new SecurityScheme()
+                                                .type(SecurityScheme.Type.HTTP)
+                                                .scheme(BEARER_STRING)
+                                                .bearerFormat(JWT_STRING)))
                 .security(List.of(new SecurityRequirement().addList(securitySchemeName)))
                 .info(new Info().title(title)
                         .version(version)
-                        .description("API Document for backend")
-                        .license(new License().name("Apace 2.0").url("https://springdoc.org")));
+                        .description(API_DOCUMENT_FOR_BACKEND_STRING)
+                        .license(new License().name(APACE_2_0_STRING).url(HTTPS_SPRINGDOC_ORG_STRING)));
     }
+
     @Bean
     public OpenApiCustomizer customGlobalOpenApiCustomizer() {
         return openApi -> {
@@ -61,17 +82,21 @@ public class OpenApiConfig {
                         apiResponses = new ApiResponses();
                         operation.setResponses(apiResponses);
                     }
-                    if (!apiResponses.containsKey("400")) {
-                        apiResponses.addApiResponse("400", new ApiResponse().description("Bad Request - Dữ liệu không hợp lệ"));
+                    if (!apiResponses.containsKey(STR_400_STRING)) {
+                        apiResponses.addApiResponse(STR_400_STRING,
+                                new ApiResponse().description(BAD_REQUEST_D_LI_U_KH_NG_H_P_L_STRING));
                     }
-                    if (!apiResponses.containsKey("401")) {
-                        apiResponses.addApiResponse("401", new ApiResponse().description("Unauthorized - Chưa xác thực"));
+                    if (!apiResponses.containsKey(STR_401_STRING)) {
+                        apiResponses.addApiResponse(STR_401_STRING,
+                                new ApiResponse().description(UNAUTHORIZED_CH_A_X_C_TH_C_STRING));
                     }
-                    if (!apiResponses.containsKey("403")) {
-                        apiResponses.addApiResponse("403", new ApiResponse().description("Forbidden - Không có quyền truy cập"));
+                    if (!apiResponses.containsKey(STR_403_STRING)) {
+                        apiResponses.addApiResponse(STR_403_STRING,
+                                new ApiResponse().description(FORBIDDEN_KH_NG_C_QUY_N_TRUY_C_P_STRING));
                     }
-                    if (!apiResponses.containsKey("500")) {
-                        apiResponses.addApiResponse("500", new ApiResponse().description("Internal Server Error - Lỗi hệ thống"));
+                    if (!apiResponses.containsKey(STR_500_STRING)) {
+                        apiResponses.addApiResponse(STR_500_STRING,
+                                new ApiResponse().description(INTERNAL_SERVER_ERROR_L_I_H_TH_NG_STRING));
                     }
                 }));
             }

@@ -19,12 +19,14 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
     @Value("${app.oauth2.redirect-uri}")
     private String redirectUri;
 
+    private static final String ERROR_STRING = "error";
+
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException exception) throws IOException, ServletException {
 
         String targetUrl = UriComponentsBuilder.fromUriString(Objects.requireNonNull(redirectUri))
-                .queryParam("error", exception.getLocalizedMessage())
+                .queryParam(ERROR_STRING, exception.getLocalizedMessage())
                 .build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);

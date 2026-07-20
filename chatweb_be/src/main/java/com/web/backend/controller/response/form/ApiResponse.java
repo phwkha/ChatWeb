@@ -12,6 +12,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
+    private static final String ERROR_STRING = "error";
+    private static final String SUCCESS_STRING = "success";
+
 
     private int code;
     private String status;
@@ -22,7 +25,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> success(int statusCode, String message, T data) {
         return ApiResponse.<T>builder()
                 .code(statusCode)
-                .status("success")
+                .status(SUCCESS_STRING)
                 .message(message)
                 .data(data)
                 .build();
@@ -32,7 +35,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> error(int code, String message) {
         return ApiResponse.<T>builder()
                 .code(code)
-                .status("error")
+                .status(ERROR_STRING)
                 .message(message)
                 .build();
     }
@@ -41,7 +44,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> error(int code, String message, T data) {
         return ApiResponse.<T>builder()
                 .code(code)
-                .status("error")
+                .status(ERROR_STRING)
                 .message(message)
                 .data(data)
                 .build();

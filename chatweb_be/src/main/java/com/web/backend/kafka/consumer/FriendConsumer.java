@@ -18,7 +18,12 @@ import lombok.extern.slf4j.Slf4j;
 public class FriendConsumer {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
+
     private final SimpUserRegistry simpUserRegistry;
+
+    private static final String DESTINATION_MUST_NOT_BE_NULL_STRING = "Destination must not be null";
+
+    private static final String RESPONSE_MUST_NOT_BE_NULL_STRING = "Response must not be null";
 
     @KafkaListener(topics = "friend-notifications", groupId = "friend-websocket-group-${random.uuid}")
     public void listenFriendNotifications(FriendNotificationMessage payload) {
@@ -34,15 +39,15 @@ public class FriendConsumer {
                     && simpUserRegistry.getUser(recipient) != null) {
                 simpMessagingTemplate.convertAndSendToUser(
                         recipient,
-                        Objects.requireNonNull(payload.getDestination(), "Destination must not be null"),
-                        Objects.requireNonNull(payload.getRecipientResponse(), "Response must not be null"));
+                        Objects.requireNonNull(payload.getDestination(), DESTINATION_MUST_NOT_BE_NULL_STRING),
+                        Objects.requireNonNull(payload.getRecipientResponse(), RESPONSE_MUST_NOT_BE_NULL_STRING));
                 log.info("Sent friend notification via WS to recipient: {}", recipient);
             }
             if (sender != null && payload.getSenderResponse() != null && simpUserRegistry.getUser(sender) != null) {
                 simpMessagingTemplate.convertAndSendToUser(
                         sender,
-                        Objects.requireNonNull(payload.getDestination(), "Destination must not be null"),
-                        Objects.requireNonNull(payload.getSenderResponse(), "Response must not be null"));
+                        Objects.requireNonNull(payload.getDestination(), DESTINATION_MUST_NOT_BE_NULL_STRING),
+                        Objects.requireNonNull(payload.getSenderResponse(), RESPONSE_MUST_NOT_BE_NULL_STRING));
                 log.info("Sent friend notification via WS to sender: {}", sender);
             }
         } catch (Exception e) {

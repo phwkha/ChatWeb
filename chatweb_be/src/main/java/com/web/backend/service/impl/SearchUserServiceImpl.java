@@ -37,11 +37,15 @@ public class SearchUserServiceImpl implements SearchUserService {
 
     private final UserMapper userMapper;
 
+    private static final String DESC_STRING = "desc";
+
+    private static final String USERNAME_STRING = "username";
+
     @Override
     @Transactional(readOnly = true)
     public PageResponse<UserSummaryResponse> searchUsers(String keyword, int page, int size, String sortDir) {
-        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "username"));
+        Sort.Direction direction = sortDir.equalsIgnoreCase(DESC_STRING) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, USERNAME_STRING));
 
         Page<UserEntity> pageResult = userRepository.searchUsersByKeyword(keyword, UserStatus.INACTIVE, pageable);
 

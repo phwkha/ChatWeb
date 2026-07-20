@@ -26,6 +26,8 @@ public class EmailController {
 
     private final EmailService emailService;
 
+    private static final String SUCCESS_EMAIL_SENDING_STRING = "success.email.sending";
+
     @Operation(summary = "Send email", description = "API endpoint for send email")
     @PostMapping("/send")
     @PreAuthorize("hasAuthority('SEND_EMAIL')")
@@ -36,8 +38,7 @@ public class EmailController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
-                Translator.tolocale("success.email.sending"),
-                null
-        ));
+                Translator.tolocale(SUCCESS_EMAIL_SENDING_STRING),
+                null));
     }
 }

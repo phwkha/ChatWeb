@@ -32,9 +32,18 @@ import com.web.backend.config.LocalResolverConfig.Translator;
 public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
+
     private final PermissionRepository permissionRepository;
+
     private final UserMapper userMapper;
+
     private final UserRepository userRepository;
+
+    private static final String USER_DETAILS_STRING = "user_details";
+
+    private static final String ERROR_ROLE_EXISTS_STRING = "error.role.exists";
+    private static final String ERROR_ROLE_NOT_FOUND_STRING = "error.role.not_found";
+    private static final String ERROR_ROLE_IN_USE_STRING = "error.role.in_use";
 
     @Override
     public List<RoleResponse> getAllRoles() {
@@ -56,7 +65,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public RoleResponse createRole(RoleRequest request) {
         if (roleRepository.findByName(request.getName()).isPresent()) {
-            throw new ResourceConflictException(Translator.tolocale("error.role.exists", request.getName()));
+            throw new ResourceConflictException(Translator.tolocale(ERROR_ROLE_EXISTS_STRING, request.getName()));
         }
 
         RoleEntity role = new RoleEntity();
@@ -76,10 +85,10 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", allEntries = true)
+    @CacheEvict(value = USER_DETAILS_STRING, allEntries = true)
     public RoleResponse updateRole(@NonNull Long roleId, RoleRequest request) {
         RoleEntity role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_ROLE_NOT_FOUND_STRING)));
 
         role.setName(request.getName());
         role.setDescription(request.getDescription());
@@ -97,13 +106,13 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "user_details", allEntries = true)
+    @CacheEvict(value = USER_DETAILS_STRING, allEntries = true)
     public void deleteRole(@NonNull Long roleId) {
         RoleEntity role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale("error.role.not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_ROLE_NOT_FOUND_STRING)));
 
         if (userRepository.existsByRole(role)) {
-            throw new ResourceConflictException(Translator.tolocale("error.role.in_use"));
+            throw new ResourceConflictException(Translator.tolocale(ERROR_ROLE_IN_USE_STRING));
         }
         roleRepository.delete(Objects.requireNonNull(role));
         log.info("Delete role and cleared all user cache");

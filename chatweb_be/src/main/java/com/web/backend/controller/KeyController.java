@@ -17,7 +17,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 import com.web.backend.config.LocalResolverConfig.Translator;
 
-
 @Tag(name = "Key Controller")
 @RestController
 @RequestMapping("/api/keys")
@@ -25,56 +24,66 @@ import com.web.backend.config.LocalResolverConfig.Translator;
 @Slf4j(topic = "KEY-CONTROLLER")
 public class KeyController {
 
-    private final KeyService keyService;
+        private final KeyService keyService;
 
-    @Operation(summary = "Get rsa key", description = "API endpoint for get rsa key")
-    @GetMapping("/rsa")
-    public ResponseEntity<ApiResponse<RsaKeyResponse>> getRsaKey(Authentication auth) {
-        UserEntity user = (UserEntity) auth.getPrincipal();
+        private static final String SUCCESS_KEY_GET_RSA_STRING = "success.key.get_rsa";
+        private static final String SUCCESS_KEY_SAVE_RSA_STRING = "success.key.save_rsa";
+        private static final String SUCCESS_KEY_GET_PUB_STRING = "success.key.get_pub";
+        private static final String SUCCESS_KEY_SAVE_PUB_STRING = "success.key.save_pub";
 
-        log.info("Fetching RSA key for user: {}", user.getUsername());
+        @Operation(summary = "Get rsa key", description = "API endpoint for get rsa key")
+        @GetMapping("/rsa")
+        public ResponseEntity<ApiResponse<RsaKeyResponse>> getRsaKey(Authentication auth) {
+                UserEntity user = (UserEntity) auth.getPrincipal();
 
-        return ResponseEntity.ok(
-                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.key.get_rsa"),
-                        RsaKeyResponse.builder().privateKey(keyService.getRsaKey(user.getUsername())).build()
-                        )
-        );
-    }
+                log.info("Fetching RSA key for user: {}", user.getUsername());
 
-    @Operation(summary = "Save rsa key", description = "API endpoint for save rsa key")
-    @PostMapping("/rsa")
-    public ResponseEntity<ApiResponse<Void>> saveRsaKey(
-            Authentication auth,
-            @RequestBody @Valid SaveKeyRequest request) {
+                return ResponseEntity.ok(
+                                ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_KEY_GET_RSA_STRING),
+                                                RsaKeyResponse.builder()
+                                                                .privateKey(keyService.getRsaKey(user.getUsername()))
+                                                                .build()));
+        }
 
-        UserEntity user = (UserEntity) auth.getPrincipal();
+        @Operation(summary = "Save rsa key", description = "API endpoint for save rsa key")
+        @PostMapping("/rsa")
+        public ResponseEntity<ApiResponse<Void>> saveRsaKey(
+                        Authentication auth,
+                        @RequestBody @Valid SaveKeyRequest request) {
 
-        log.info("Saving RSA key for user: {}", user.getUsername());
+                UserEntity user = (UserEntity) auth.getPrincipal();
 
-        keyService.saveRsaKey(user.getUsername(), request.getKey());
+                log.info("Saving RSA key for user: {}", user.getUsername());
 
-        return ResponseEntity.ok(
-                ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.key.save_rsa"), null)
-        );
-    }
+                keyService.saveRsaKey(user.getUsername(), request.getKey());
 
-    @Operation(summary = "Get public key", description = "API endpoint for get public key")
-    @GetMapping("/public-key/{username}")
-    public ResponseEntity<ApiResponse<String>> getPublicKey(Authentication authentication, @PathVariable String username) {
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("Get public key: {}", userEntityPrincipal.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
-                Translator.tolocale("success.key.get_pub"),
-                keyService.getPublicKey(username)));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_KEY_SAVE_RSA_STRING), null));
+        }
 
-    @Operation(summary = "Save public key", description = "API endpoint for save public key")
-    @PostMapping("/public-key")
-    public ResponseEntity<ApiResponse<Void>> savePublicKey(Authentication authentication, @RequestBody @Valid SavePublicKeyRequest request) {
-        UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
-        log.info("Saved public key for user: {}", userEntityPrincipal.getUsername());
-        keyService.savePublicKey(userEntityPrincipal.getUsername(), request.getPublicKey());
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), Translator.tolocale("success.key.save_pub"), null));
-    }
+        @Operation(summary = "Get public key", description = "API endpoint for get public key")
+        @GetMapping("/public-key/{username}")
+        public ResponseEntity<ApiResponse<String>> getPublicKey(Authentication authentication,
+                        @PathVariable String username) {
+                UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+                log.info("Get public key: {}", userEntityPrincipal.getUsername());
+                return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_KEY_GET_PUB_STRING),
+                                keyService.getPublicKey(username)));
+        }
+
+        @Operation(summary = "Save public key", description = "API endpoint for save public key")
+        @PostMapping("/public-key")
+        public ResponseEntity<ApiResponse<Void>> savePublicKey(Authentication authentication,
+                        @RequestBody @Valid SavePublicKeyRequest request) {
+                UserEntity userEntityPrincipal = (UserEntity) authentication.getPrincipal();
+                log.info("Saved public key for user: {}", userEntityPrincipal.getUsername());
+                keyService.savePublicKey(userEntityPrincipal.getUsername(), request.getPublicKey());
+                return ResponseEntity
+                                .ok(ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_KEY_SAVE_PUB_STRING), null));
+        }
 
 }

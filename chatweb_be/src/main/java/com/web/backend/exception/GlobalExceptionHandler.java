@@ -42,6 +42,22 @@ import lombok.extern.slf4j.Slf4j;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String STR_20_STRING = "20";
+
+    private static final String ERROR_SYS_MISSING_PARAM_STRING = "error.sys.missing_param";
+    private static final String ERROR_STORAGE_FILE_TOO_LARGE_STRING = "error.storage.file_too_large";
+    private static final String ERROR_SYS_METHOD_STRING = "error.sys.method";
+    private static final String ERROR_SYS_METHOD_NOT_SUPPORTED_STRING = "error.sys.method_not_supported";
+    private static final String ERROR_SYS_PARAM_FORMAT_STRING = "error.sys.param_format";
+    private static final String ERROR_SYS_BAD_FORMAT_STRING = "error.sys.bad_format";
+    private static final String ERROR_SYS_CONFLICT_STRING = "error.sys.conflict";
+    private static final String ERROR_SYS_INVALID_INPUT_STRING = "error.sys.invalid_input";
+
+    private static final String ERROR_SYS_BUSY_STRING = "error.sys.busy";
+
+    private static final String ERROR_AUTH_TOKEN_EXPIRED_STRING = "error.auth.token_expired";
+    private static final String ERROR_AUTH_TOKEN_INVALID_STRING = "error.auth.token_invalid";
+
     @ExceptionHandler(DisabledException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiResponse<Void> handleDisabledException(DisabledException ex) {
@@ -61,8 +77,8 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
         log.error("Http Request Method Not Supported: {}", ex.getMessage());
         return ApiResponse.error(HttpStatus.METHOD_NOT_ALLOWED.value(),
-                Translator.tolocale("error.sys.method") + ex.getMethod()
-                        + Translator.tolocale("error.sys.method_not_supported"));
+                Translator.tolocale(ERROR_SYS_METHOD_STRING) + ex.getMethod()
+                        + Translator.tolocale(ERROR_SYS_METHOD_NOT_SUPPORTED_STRING));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -70,14 +86,14 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
         log.error("Missing Servlet Request Parameter: {}", ex.getMessage());
         return ApiResponse.error(HttpStatus.BAD_REQUEST.value(),
-                Translator.tolocale("error.sys.missing_param", ex.getParameterName()));
+                Translator.tolocale(ERROR_SYS_MISSING_PARAM_STRING, ex.getParameterName()));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
         log.error("Method Argument Type Mismatch: {}", ex.getMessage());
-        String message = String.format(Translator.tolocale("error.sys.param_format"), ex.getName());
+        String message = String.format(Translator.tolocale(ERROR_SYS_PARAM_FORMAT_STRING), ex.getName());
         return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), message);
     }
 
@@ -85,14 +101,14 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         log.warn("Bad JSON: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale("error.sys.bad_format"));
+        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale(ERROR_SYS_BAD_FORMAT_STRING));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiResponse<Void> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
         log.error("DB Constraint: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.CONFLICT.value(), Translator.tolocale("error.sys.conflict"));
+        return ApiResponse.error(HttpStatus.CONFLICT.value(), Translator.tolocale(ERROR_SYS_CONFLICT_STRING));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -174,7 +190,8 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale("error.sys.invalid_input"),
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(),
+                        Translator.tolocale(ERROR_SYS_INVALID_INPUT_STRING),
                         errors));
     }
 
@@ -182,14 +199,14 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ApiResponse<Void> handleExpiredJwtException(ExpiredJwtException ex) {
         log.info("Token Expired: {}", ex.getMessage());
-        return ApiResponse.error(4011, Translator.tolocale("error.auth.token_expired"));
+        return ApiResponse.error(4011, Translator.tolocale(ERROR_AUTH_TOKEN_EXPIRED_STRING));
     }
 
     @ExceptionHandler(JwtException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ApiResponse<Void> handleJwtException(JwtException ex) {
         log.warn("Token Error JWT: {}", ex.getMessage());
-        return ApiResponse.error(4012, Translator.tolocale("error.auth.token_invalid"));
+        return ApiResponse.error(4012, Translator.tolocale(ERROR_AUTH_TOKEN_INVALID_STRING));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
@@ -197,14 +214,14 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleMaxSizeException(MaxUploadSizeExceededException exc) {
         log.warn("File too large: {}", exc.getMessage());
         return ApiResponse.error(HttpStatus.PAYLOAD_TOO_LARGE.value(),
-                Translator.tolocale("error.storage.file_too_large", "20")); // Assuming 20MB limit
+                Translator.tolocale(ERROR_STORAGE_FILE_TOO_LARGE_STRING, STR_20_STRING)); // Assuming 20MB limit
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleConstraintViolationException(ConstraintViolationException ex) {
         log.warn("Invalid param/path variable: {}", ex.getMessage());
-        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale("error.sys.invalid_input"));
+        return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), Translator.tolocale(ERROR_SYS_INVALID_INPUT_STRING));
     }
 
     @ExceptionHandler(Exception.class)
@@ -213,7 +230,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, Translator.tolocale("error.sys.busy")));
+                .body(ApiResponse.error(500, Translator.tolocale(ERROR_SYS_BUSY_STRING)));
     }
 
     // private ApiResponse<ErrorDebugInfo> buildErrorForDev(HttpStatus status,
@@ -226,7 +243,7 @@ public class GlobalExceptionHandler {
 
     // return ApiResponse.<ErrorDebugInfo>builder()
     // .code(status.value())
-    // .status("error")
+    // .status(ERROR_STRING)
     // .message(userMessage)
     // .data(debugInfo)
     // .build();

@@ -24,6 +24,13 @@ public class FriendController {
 
         private final FriendService friendService;
 
+        private static final String SUCCESS_FRIEND_BLOCKED_WITH_STRING = "success.friend.blocked_with";
+        private static final String SUCCESS_FRIEND_GET_INVITES_STRING = "success.friend.get_invites";
+        private static final String SUCCESS_FRIEND_GET_SENT_INVITES_STRING = "success.friend.get_sent_invites";
+        private static final String SUCCESS_FRIEND_GET_FRIENDS_STRING = "success.friend.get_friends";
+
+        private static final String SUCCESS_SYS_OPERATION_STRING = "success.sys.operation";
+
         @Operation(summary = "Get friend requests", description = "API endpoint for get friend requests")
         @GetMapping("/requests")
         public ResponseEntity<ApiResponse<PageResponse<UserSummaryResponse>>> getFriendRequests(
@@ -36,7 +43,7 @@ public class FriendController {
 
                 return ResponseEntity.ok(ApiResponse.success(
                                 HttpStatus.OK.value(),
-                                Translator.tolocale("success.friend.get_invites"),
+                                Translator.tolocale(SUCCESS_FRIEND_GET_INVITES_STRING),
                                 friendService.getPendingRequests(user.getUsername(), page, size, sortDir)));
         }
 
@@ -50,7 +57,7 @@ public class FriendController {
                 UserEntity user = (UserEntity) auth.getPrincipal();
                 return ResponseEntity.ok(ApiResponse.success(
                                 HttpStatus.OK.value(),
-                                Translator.tolocale("success.friend.get_sent_invites"),
+                                Translator.tolocale(SUCCESS_FRIEND_GET_SENT_INVITES_STRING),
                                 friendService.getSentRequests(user.getUsername(), page, size, sortDir)));
         }
 
@@ -66,7 +73,7 @@ public class FriendController {
 
                 return ResponseEntity.ok(ApiResponse.success(
                                 HttpStatus.OK.value(),
-                                Translator.tolocale("success.friend.get_friends"),
+                                Translator.tolocale(SUCCESS_FRIEND_GET_FRIENDS_STRING),
                                 friendService.getFriendsList(user.getUsername(), page, size, sortDir)));
         }
 
@@ -81,7 +88,7 @@ public class FriendController {
 
                 return ResponseEntity.ok(ApiResponse.success(
                                 HttpStatus.OK.value(),
-                                Translator.tolocale("success.sys.operation"),
+                                Translator.tolocale(SUCCESS_SYS_OPERATION_STRING),
                                 null));
         }
 
@@ -93,7 +100,7 @@ public class FriendController {
 
                 return ResponseEntity.ok(ApiResponse.success(
                                 HttpStatus.OK.value(),
-                                Translator.tolocale("success.friend.blocked_with", username),
+                                Translator.tolocale(SUCCESS_FRIEND_BLOCKED_WITH_STRING, username),
                                 null));
         }
 }

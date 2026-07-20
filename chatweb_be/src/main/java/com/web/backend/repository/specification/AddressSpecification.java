@@ -24,12 +24,14 @@ public class AddressSpecification implements Specification<UserEntity> {
 
     private List<SpecSearchCriteria> criteriaList;
 
+    private static final String ADDRESSES_STRING = "addresses";
+
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public Predicate toPredicate(@NonNull final Root<UserEntity> root, @Nullable final CriteriaQuery<?> query,
             @NonNull final CriteriaBuilder builder) {
 
-        Join<UserEntity, AddressEntity> addressJoin = root.join("addresses", JoinType.INNER);
+        Join<UserEntity, AddressEntity> addressJoin = root.join(ADDRESSES_STRING, JoinType.INNER);
 
         Predicate finalPredicate = null;
         for (SpecSearchCriteria criteria : criteriaList) {

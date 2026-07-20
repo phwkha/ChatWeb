@@ -25,6 +25,10 @@ public class ChatConsumer {
 
     private final MessageMapper messageMapper;
 
+    private static final String QUEUE_MESSAGES_STRING = "/queue/messages";
+
+    private static final String TOPIC_PUBLIC_STRING = "/topic/public";
+
     @KafkaListener(topics = "${spring.kafka.topic.chat.messages}", groupId = "chat-websocket-group-${random.uuid}")
     public void listenChatMessages(ChatMessage message) {
         if (message == null) {
@@ -40,7 +44,7 @@ public class ChatConsumer {
             if (recipient != null && simpUserRegistry.getUser(recipient) != null) {
                 simpMessagingTemplate.convertAndSendToUser(
                         recipient,
-                        "/queue/messages",
+                        QUEUE_MESSAGES_STRING,
                         response);
                 log.debug("Sent message via WS to recipient: {}", recipient);
             }
@@ -48,7 +52,7 @@ public class ChatConsumer {
             if (sender != null && simpUserRegistry.getUser(sender) != null) {
                 simpMessagingTemplate.convertAndSendToUser(
                         sender,
-                        "/queue/messages",
+                        QUEUE_MESSAGES_STRING,
                         response);
                 log.debug("Synced message via WS to sender: {}", sender);
             }
@@ -67,7 +71,7 @@ public class ChatConsumer {
         log.info("Kafka received SYSTEM message from: {}", systemMessage.getSender());
 
         try {
-            simpMessagingTemplate.convertAndSend("/topic/public", systemMessage);
+            simpMessagingTemplate.convertAndSend(TOPIC_PUBLIC_STRING, systemMessage);
             log.info("Kafka sent SYSTEM message from: {}", systemMessage.getSender());
         } catch (Exception e) {
             log.error("Failed to send System WebSocket message: {}", e.getMessage());

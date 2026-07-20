@@ -32,12 +32,16 @@ public class JwtServiceImpl implements JwtService {
     @Value("${jwt.secret-key-refresh}")
     private String secretKeyRefresh;
 
+    private static final String ROLE_STRING = "role";
+
+    private static final String ERROR_JWT_INVALID_TYPE_STRING = "error.jwt.invalid_type";
+
     @Override
     public String generateAccessToken(String username, List<String> authorities, Integer tokenVersion) {
         log.info("generate access token for user {} with authorities {}", username, authorities);
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", authorities);
+        claims.put(ROLE_STRING, authorities);
         claims.put("v", tokenVersion);
 
         return generateToken(claims, username);
@@ -48,7 +52,7 @@ public class JwtServiceImpl implements JwtService {
         log.info("generate refresh token for user {} with authorities {}", username, authorities);
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", authorities);
+        claims.put(ROLE_STRING, authorities);
         claims.put("v", tokenVersion);
 
         return generateRefreshToken(claims, username);
@@ -119,7 +123,7 @@ public class JwtServiceImpl implements JwtService {
             case REFRESH_TOKEN -> {
                 return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKeyRefresh));
             }
-            default -> throw new InvalidDataException(Translator.tolocale("error.jwt.invalid_type"));
+            default -> throw new InvalidDataException(Translator.tolocale(ERROR_JWT_INVALID_TYPE_STRING));
         }
     }
 }

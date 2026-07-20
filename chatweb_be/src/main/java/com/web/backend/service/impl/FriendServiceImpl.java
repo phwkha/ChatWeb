@@ -56,20 +56,46 @@ public class FriendServiceImpl implements FriendService {
         @Value("${spring.kafka.topic.friend}")
         private String FRIEND_TOPIC;
 
+        private static final String DESC_STRING = "desc";
+
+        private static final String CREATEAT_STRING = "createAt";
+
+        private static final String QUEUE_NOTIFICATIONS_STRING = "/queue/notifications";
+
+        private static final String SYS_MSG_NEW_FRIEND_INVITE_STRING = "sys.msg.new_friend_invite";
+
+        private static final String ERROR_FRIEND_SELF_ADD_STRING = "error.friend.self_add";
+        private static final String ERROR_FRIEND_SEND_DELETED_STRING = "error.friend.send_deleted";
+        private static final String ERROR_FRIEND_SEND_LOCKED_STRING = "error.friend.send_locked";
+        private static final String ERROR_FRIEND_BLOCKED_CANNOT_SEND_STRING = "error.friend.blocked_cannot_send";
+        private static final String ERROR_FRIEND_INVITE_EXISTS_STRING = "error.friend.invite_exists";
+        private static final String ERROR_FRIEND_ACCEPT_DELETED_STRING = "error.friend.accept_deleted";
+        private static final String ERROR_FRIEND_ACCEPT_LOCKED_STRING = "error.friend.accept_locked";
+        private static final String ERROR_FRIEND_INVITE_NOT_FOUND_STRING = "error.friend.invite_not_found";
+        private static final String ERROR_FRIEND_ALREADY_FRIENDS_STRING = "error.friend.already_friends";
+        private static final String ERROR_FRIEND_RELATION_NOT_FOUND_STRING = "error.friend.relation_not_found";
+        private static final String ERROR_USER_NOT_FOUND_STRING = "error.user.not_found";
+
+        private static final String SUCCESS_FRIEND_INVITE_SENT_STRING = "success.friend.invite_sent";
+        private static final String SUCCESS_FRIEND_ACCEPTED_STRING = "success.friend.accepted";
+        private static final String SUCCESS_FRIEND_UNFRIENDED_STRING = "success.friend.unfriended";
+        private static final String SUCCESS_FRIEND_INVITE_RETRACTED_STRING = "success.friend.invite_retracted";
+        private static final String SUCCESS_FRIEND_INVITE_DECLINED_STRING = "success.friend.invite_declined";
+
         @Override
         @Transactional
         public void sendFriendRequest(String requesterUsername, String addresseeUsername) {
                 if (requesterUsername.equals(addresseeUsername))
-                        throw new InvalidDataException(Translator.tolocale("error.friend.self_add"));
+                        throw new InvalidDataException(Translator.tolocale(ERROR_FRIEND_SELF_ADD_STRING));
 
                 UserEntity requester = getUser(requesterUsername);
                 UserEntity addressee = getUser(addresseeUsername);
 
                 if (addressee.getUserStatus() == UserStatus.INACTIVE) {
-                        throw new AccessForbiddenException(Translator.tolocale("error.friend.send_deleted"));
+                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_SEND_DELETED_STRING));
                 }
                 if (addressee.getUserStatus() == UserStatus.LOCKED) {
-                        throw new AccessForbiddenException(Translator.tolocale("error.friend.send_locked"));
+                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_SEND_LOCKED_STRING));
                 }
 
                 Optional<FriendshipEntity> existingRelation = friendshipRepository.findByUsers(requester, addressee);
@@ -78,10 +104,11 @@ public class FriendServiceImpl implements FriendService {
                         FriendshipEntity f = existingRelation.get();
                         if (f.getStatus() == FriendshipStatus.BLOCKED) {
                                 throw new AccessForbiddenException(
-                                                Translator.tolocale("error.friend.blocked_cannot_send"));
+                                                Translator.tolocale(ERROR_FRIEND_BLOCKED_CANNOT_SEND_STRING));
                         }
                         if (f.getStatus() == FriendshipStatus.ACCEPTED || f.getStatus() == FriendshipStatus.PENDING) {
-                                throw new ResourceConflictException(Translator.tolocale("error.friend.invite_exists"));
+                                throw new ResourceConflictException(
+                                                Translator.tolocale(ERROR_FRIEND_INVITE_EXISTS_STRING));
                         }
                 }
 
@@ -97,7 +124,7 @@ public class FriendServiceImpl implements FriendService {
                                                 : requester.getUsername()))
                                 .build();
                 SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications(
-                                Translator.tolocale("sys.msg.new_friend_invite"),
+                                Translator.tolocale(SYS_MSG_NEW_FRIEND_INVITE_STRING),
                                 data);
 
                 NotificationMessageResponse senderData = NotificationMessageResponse.builder()
@@ -105,11 +132,12 @@ public class FriendServiceImpl implements FriendService {
                                 .relatedUsername(addresseeUsername)
                                 .build();
                 SocketResponse<NotificationMessageResponse> senderResponse = SocketResponse.notifications(
-                                Translator.tolocale("success.friend.invite_sent"),
+                                Translator.tolocale(SUCCESS_FRIEND_INVITE_SENT_STRING),
                                 senderData);
 
                 FriendNotificationMessage payload = new FriendNotificationMessage(
-                                requesterUsername, addresseeUsername, "/queue/notifications", senderResponse, response);
+                                requesterUsername, addresseeUsername, QUEUE_NOTIFICATIONS_STRING, senderResponse,
+                                response);
                 eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
         }
 
@@ -120,18 +148,18 @@ public class FriendServiceImpl implements FriendService {
                 UserEntity requester = getUser(requesterUsername);
 
                 if (requester.getUserStatus() == UserStatus.INACTIVE) {
-                        throw new AccessForbiddenException(Translator.tolocale("error.friend.accept_deleted"));
+                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_ACCEPT_DELETED_STRING));
                 }
                 if (requester.getUserStatus() == UserStatus.LOCKED) {
-                        throw new AccessForbiddenException(Translator.tolocale("error.friend.accept_locked"));
+                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_ACCEPT_LOCKED_STRING));
                 }
 
                 FriendshipEntity friendship = friendshipRepository.findByUsers(acceptor, requester)
                                 .orElseThrow(() -> new ResourceNotFoundException(
-                                                Translator.tolocale("error.friend.invite_not_found")));
+                                                Translator.tolocale(ERROR_FRIEND_INVITE_NOT_FOUND_STRING)));
 
                 if (friendship.getStatus() == FriendshipStatus.ACCEPTED) {
-                        throw new ResourceConflictException(Translator.tolocale("error.friend.already_friends"));
+                        throw new ResourceConflictException(Translator.tolocale(ERROR_FRIEND_ALREADY_FRIENDS_STRING));
                 }
 
                 friendship.setStatus(FriendshipStatus.ACCEPTED);
@@ -146,7 +174,7 @@ public class FriendServiceImpl implements FriendService {
                                                 : acceptor.getUsername()))
                                 .build();
                 SocketResponse<NotificationMessageResponse> response = SocketResponse.notifications(
-                                Translator.tolocale("success.friend.accepted"),
+                                Translator.tolocale(SUCCESS_FRIEND_ACCEPTED_STRING),
                                 data);
 
                 NotificationMessageResponse acceptorData = NotificationMessageResponse.builder()
@@ -154,11 +182,11 @@ public class FriendServiceImpl implements FriendService {
                                 .relatedUsername(requesterUsername)
                                 .build();
                 SocketResponse<NotificationMessageResponse> acceptorResponse = SocketResponse.notifications(
-                                Translator.tolocale("success.friend.accepted"),
+                                Translator.tolocale(SUCCESS_FRIEND_ACCEPTED_STRING),
                                 acceptorData);
 
                 FriendNotificationMessage payload = new FriendNotificationMessage(
-                                acceptorUsername, requesterUsername, "/queue/notifications", acceptorResponse,
+                                acceptorUsername, requesterUsername, QUEUE_NOTIFICATIONS_STRING, acceptorResponse,
                                 response);
                 eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
         }
@@ -170,8 +198,9 @@ public class FriendServiceImpl implements FriendService {
                 UserEntity currentUser = getUser(currentUsername);
 
                 Pageable pageable = PageRequest.of(page, size,
-                                Sort.by((sortDir.equalsIgnoreCase("desc")) ? Sort.Direction.DESC : Sort.Direction.ASC,
-                                                "createAt"));
+                                Sort.by((sortDir.equalsIgnoreCase(DESC_STRING)) ? Sort.Direction.DESC
+                                                : Sort.Direction.ASC,
+                                                CREATEAT_STRING));
 
                 Page<FriendshipEntity> pageResult = friendshipRepository.findByRequesterAndStatus(currentUser,
                                 FriendshipStatus.PENDING, pageable);
@@ -189,8 +218,9 @@ public class FriendServiceImpl implements FriendService {
                         String sortDir) {
                 UserEntity currentUser = getUser(currentUsername);
                 Pageable pageable = PageRequest.of(page, size,
-                                Sort.by((sortDir.equalsIgnoreCase("desc")) ? Sort.Direction.DESC : Sort.Direction.ASC,
-                                                "createAt"));
+                                Sort.by((sortDir.equalsIgnoreCase(DESC_STRING)) ? Sort.Direction.DESC
+                                                : Sort.Direction.ASC,
+                                                CREATEAT_STRING));
 
                 Page<FriendshipEntity> pageResult = friendshipRepository.findByAddresseeAndStatus(currentUser,
                                 FriendshipStatus.PENDING, pageable);
@@ -208,8 +238,9 @@ public class FriendServiceImpl implements FriendService {
                         String sortDir) {
                 UserEntity currentUser = getUser(currentUsername);
                 Pageable pageable = PageRequest.of(page, size,
-                                Sort.by((sortDir.equalsIgnoreCase("desc")) ? Sort.Direction.DESC : Sort.Direction.ASC,
-                                                "createAt"));
+                                Sort.by((sortDir.equalsIgnoreCase(DESC_STRING)) ? Sort.Direction.DESC
+                                                : Sort.Direction.ASC,
+                                                CREATEAT_STRING));
 
                 Page<FriendshipEntity> pageResult = friendshipRepository.findAllAcceptedFriendships(currentUser,
                                 pageable);
@@ -234,7 +265,7 @@ public class FriendServiceImpl implements FriendService {
 
                 FriendshipEntity friendship = friendshipRepository.findByUsers(user1, user2)
                                 .orElseThrow(() -> new ResourceNotFoundException(
-                                                Translator.tolocale("error.friend.relation_not_found")));
+                                                Translator.tolocale(ERROR_FRIEND_RELATION_NOT_FOUND_STRING)));
 
                 boolean isAccepted = friendship.getStatus() == FriendshipStatus.ACCEPTED;
                 boolean isRequester = friendship.getRequester().getUsername().equals(currentUsername);
@@ -251,8 +282,9 @@ public class FriendServiceImpl implements FriendService {
                                         .build();
 
                         FriendNotificationMessage payload = new FriendNotificationMessage(
-                                        currentUsername, targetUsername, "/queue/notifications", null,
-                                        SocketResponse.notifications(Translator.tolocale("success.friend.unfriended"),
+                                        currentUsername, targetUsername, QUEUE_NOTIFICATIONS_STRING, null,
+                                        SocketResponse.notifications(
+                                                        Translator.tolocale(SUCCESS_FRIEND_UNFRIENDED_STRING),
                                                         data));
                         eventPublisher.publishEvent(
                                         new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
@@ -265,9 +297,10 @@ public class FriendServiceImpl implements FriendService {
                                                 .build();
 
                                 FriendNotificationMessage payload = new FriendNotificationMessage(
-                                                currentUsername, targetUsername, "/queue/notifications", null,
+                                                currentUsername, targetUsername, QUEUE_NOTIFICATIONS_STRING, null,
                                                 SocketResponse.notifications(
-                                                                Translator.tolocale("success.friend.invite_retracted"),
+                                                                Translator.tolocale(
+                                                                                SUCCESS_FRIEND_INVITE_RETRACTED_STRING),
                                                                 data));
                                 eventPublisher.publishEvent(
                                                 new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
@@ -279,9 +312,10 @@ public class FriendServiceImpl implements FriendService {
                                                 .build();
 
                                 FriendNotificationMessage payload = new FriendNotificationMessage(
-                                                currentUsername, targetUsername, "/queue/notifications", null,
+                                                currentUsername, targetUsername, QUEUE_NOTIFICATIONS_STRING, null,
                                                 SocketResponse.notifications(
-                                                                Translator.tolocale("success.friend.invite_declined"),
+                                                                Translator.tolocale(
+                                                                                SUCCESS_FRIEND_INVITE_DECLINED_STRING),
                                                                 data));
                                 eventPublisher.publishEvent(
                                                 new KafkaDispatchEvent(Objects.requireNonNull(FRIEND_TOPIC), payload));
@@ -329,7 +363,7 @@ public class FriendServiceImpl implements FriendService {
         private UserEntity getUser(String username) {
                 return userRepository.findByUsername(username)
                                 .orElseThrow(() -> new ResourceNotFoundException(
-                                                Translator.tolocale("error.user.not_found")));
+                                                Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
         }
 
         private <T> PageResponse<T> buildPageResponse(Page<?> pageResult, List<T> content) {
