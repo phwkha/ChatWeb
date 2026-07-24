@@ -19,7 +19,7 @@ management:
         include: '*'
   endpoint:
     prometheus:
-      enabled: true
+      access: unrestricted
   metrics:
     tags:
       application: chatweb-backend
