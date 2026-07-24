@@ -38,3 +38,6 @@ build/
 
 # Bỏ qua toàn bộ thư mục database mongo
 mongo/
+
+# Bỏ qua thư mục sinh ra file logs của hệ thống
+logs/

@@ -1,0 +1,14 @@
+filebeat.inputs:
+- type: filestream
+  id: chatweb-logs
+  enabled: true
+  paths:
+    - /usr/share/filebeat/logs/*.log
+  parsers:
+    - ndjson:
+        keys_under_root: true
+        add_error_key: true
+        message_key: message
+
+output.logstash:
+  hosts: ["logstash:5044"]
