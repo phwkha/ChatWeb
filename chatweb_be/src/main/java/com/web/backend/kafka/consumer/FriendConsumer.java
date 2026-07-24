@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j(topic = "KAFKA-FRIEND-CONSUMER")
+@Slf4j(topic = "FRIEND-KAFKA-CONSUMER")
 public class FriendConsumer {
 
     private final SimpMessagingTemplate simpMessagingTemplate;

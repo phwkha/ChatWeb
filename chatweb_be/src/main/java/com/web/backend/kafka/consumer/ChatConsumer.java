@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j(topic = "KAFKA-CHAT-CONSUMER")
+@Slf4j(topic = "CHAT-KAFKA-CONSUMER")
 public class ChatConsumer {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
