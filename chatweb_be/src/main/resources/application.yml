@@ -17,6 +17,12 @@ management:
     web:
       exposure:
         include: '*'
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: chatweb-backend
 
 logging:
   level:
