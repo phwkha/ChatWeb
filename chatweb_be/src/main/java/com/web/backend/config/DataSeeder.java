@@ -1,5 +1,6 @@
 package com.web.backend.config;
 
+import com.web.backend.common.AuthProvider;
 import com.web.backend.common.UserStatus;
 import com.web.backend.model.PermissionEntity;
 import com.web.backend.model.RoleEntity;
@@ -84,6 +85,7 @@ public class DataSeeder implements CommandLineRunner {
             admin.setPassword(passwordEncoder.encode(ADMIN123_STRING));
             admin.setEmail(ADMIN_EXAMPLE_COM_STRING);
             admin.setUserStatus(UserStatus.ACTIVE);
+            admin.setAuthProvider(AuthProvider.LOCAL);
             admin.setFirstName(SUPER_STRING);
             admin.setLastName(ADMIN_3_STRING);
 
