@@ -285,6 +285,29 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>com.google.cloud.tools</groupId>
+				<artifactId>jib-maven-plugin</artifactId>
+				<version>3.4.1</version>
+				<configuration>
+					<from>
+						<image>eclipse-temurin:21-jre-alpine</image>
+					</from>
+					<to>
+						<image>${env.DOCKER_USERNAME}/chatweb-backend:latest</image>
+						<auth>
+							<username>${env.DOCKER_USERNAME}</username>
+							<password>${env.DOCKER_PASSWORD}</password>
+						</auth>
+					</to>
+					<container>
+						<ports>
+							<port>8080</port>
+						</ports>
+						<creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+					</container>
+				</configuration>
+			</plugin>
 		</plugins>
         <finalName>backend</finalName>
 	</build>

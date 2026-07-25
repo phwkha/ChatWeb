@@ -69,9 +69,11 @@ services:
   # --- SPRING BOOT BACKEND ---
   cw_backend:
     container_name: backend
-    build:
-      context: ./
-      dockerfile: Dockerfile
+    # Thay vì build bằng Dockerfile như cũ, giờ ta dùng luôn Image do Jib tạo ra
+    image: ${DOCKER_USERNAME}/chatweb-backend:latest
+    # build:
+    #   context: ./
+    #   dockerfile: Dockerfile
     ports:
       - "8080:8080"
     environment:
