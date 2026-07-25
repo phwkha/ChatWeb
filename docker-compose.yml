@@ -11,7 +11,7 @@ services:
     volumes:
       - mongo_data:/data/db
       - mongo_config_data:/data/configdb
-      - ./mongo/init:/docker-entrypoint-initdb.d
+      - ./chatweb_be/mongo/init:/docker-entrypoint-initdb.d
     networks:
       - default
 
@@ -26,7 +26,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./initdb.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./chatweb_be/initdb.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - default
 
@@ -72,7 +72,7 @@ services:
     # Thay vì build bằng Dockerfile như cũ, giờ ta dùng luôn Image do Jib tạo ra
     image: ${DOCKER_USERNAME}/chatweb-backend:latest
     # build:
-    #   context: ./
+    #   context: ./chatweb_be
     #   dockerfile: Dockerfile
     ports:
       - "8080:8080"
@@ -115,7 +115,7 @@ services:
 
       SPRING_PROFILES_ACTIVE: dev
     volumes:
-      - ./logs:/app/logs
+      - ./chatweb_be/logs:/app/logs
     networks:
       - default
     depends_on:
@@ -131,8 +131,8 @@ services:
     user: root
     command: filebeat -e -strict.perms=false
     volumes:
-      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-      - ./logs:/usr/share/filebeat/logs:ro
+      - ./chatweb_be/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./chatweb_be/logs:/usr/share/filebeat/logs:ro
     networks:
       - default
     depends_on:
@@ -160,7 +160,7 @@ services:
       - "5000:5000"
       - "5044:5044"
     volumes:
-      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./chatweb_be/logstash/pipeline:/usr/share/logstash/pipeline
     environment:
       - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
@@ -191,7 +191,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./chatweb_be/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     networks:
       - default
@@ -213,6 +213,22 @@ services:
       - default
     depends_on:
       - prometheus
+
+  # --- VITE REACT FRONTEND ---
+  cw_frontend:
+    container_name: frontend
+    build:
+      context: ./chatweb_fe
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+        - VITE_SOCKET_URL=${VITE_SOCKET_URL}
+    ports:
+      - "80:80"
+    networks:
+      - default
+    depends_on:
+      - cw_backend
 
 networks:
   default:
