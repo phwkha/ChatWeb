@@ -67,7 +67,7 @@ public class FriendServiceTest {
         lenient().when(messageSource.getMessage(anyString(), any(), any())).thenReturn("Mocked Error Message");
         new Translator(messageSource);
 
-        ReflectionTestUtils.setField(friendService, "FRIEND_TOPIC", "test-friend-topic");
+        ReflectionTestUtils.setField(friendService, "friendTopic", "test-friend-topic");
 
         userA = new UserEntity();
         userA.setUsername("userA");
