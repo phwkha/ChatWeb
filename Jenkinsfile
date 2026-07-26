@@ -1,9 +1,7 @@
 pipeline {
     agent any
     environment {
-        // Cấu hình SonarQube
         SONAR_SERVER = 'sonar-server'
-        // Biến môi trường cho Jib đóng gói Image
         DOCKER_USERNAME = 'phanhuukha'
     }
 
@@ -19,6 +17,21 @@ pipeline {
                 dir('chatweb_be') {
                     sh 'chmod +x mvnw'
                     sh './mvnw clean compile'
+                }
+            }
+        }
+
+        stage('Unit Test') {
+            steps {
+                dir('chatweb_be') {
+                    // Chạy toàn bộ Unit Test trong project
+                    sh './mvnw test'
+                }
+            }
+            post {
+                always {
+                    // Thu thập báo cáo Test để hiển thị trên giao diện Jenkins
+                    junit 'chatweb_be/target/surefire-reports/*.xml'
                 }
             }
         }
