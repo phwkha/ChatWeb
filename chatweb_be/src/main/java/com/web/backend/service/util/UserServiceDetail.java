@@ -1,5 +1,6 @@
 package com.web.backend.service.util;
 
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.model.UserEntity;
 import com.web.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +12,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @RequiredArgsConstructor

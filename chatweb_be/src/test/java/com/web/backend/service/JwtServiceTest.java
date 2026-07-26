@@ -17,7 +17,7 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.web.backend.common.TokenType;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.service.impl.JwtServiceImpl;
 
 import io.jsonwebtoken.security.SignatureException;
@@ -54,10 +54,12 @@ public class JwtServiceTest {
         String extractedUsername = jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
         assertEquals("testuser", extractedUsername);
 
-        Integer version = jwtService.extractClaim(token, TokenType.ACCESS_TOKEN, claims -> claims.get("v", Integer.class));
+        Integer version = jwtService.extractClaim(token, TokenType.ACCESS_TOKEN,
+                claims -> claims.get("v", Integer.class));
         assertEquals(1, version);
-        
-        List<?> roles = jwtService.extractClaim(token, TokenType.ACCESS_TOKEN, claims -> claims.get("role", List.class));
+
+        List<?> roles = jwtService.extractClaim(token, TokenType.ACCESS_TOKEN,
+                claims -> claims.get("role", List.class));
         assertTrue(roles.contains("ROLE_USER"));
     }
 
@@ -68,8 +70,9 @@ public class JwtServiceTest {
 
         String extractedUsername = jwtService.extractUsername(token, TokenType.REFRESH_TOKEN);
         assertEquals("testadmin", extractedUsername);
-        
-        Integer version = jwtService.extractClaim(token, TokenType.REFRESH_TOKEN, claims -> claims.get("v", Integer.class));
+
+        Integer version = jwtService.extractClaim(token, TokenType.REFRESH_TOKEN,
+                claims -> claims.get("v", Integer.class));
         assertEquals(2, version);
     }
 
@@ -77,7 +80,7 @@ public class JwtServiceTest {
     void testExtractWithWrongKey_ThrowsSignatureException() {
         // Generate with ACCESS key
         String token = jwtService.generateAccessToken("testuser", List.of("ROLE_USER"), 1);
-        
+
         // Try to parse with REFRESH key -> Should throw exception
         assertThrows(SignatureException.class, () -> jwtService.extractUsername(token, TokenType.REFRESH_TOKEN));
     }
@@ -85,9 +88,9 @@ public class JwtServiceTest {
     @Test
     void testGetRemainingTime() {
         String token = jwtService.generateAccessToken("testuser", List.of("ROLE_USER"), 1);
-        
+
         long remaining = jwtService.getRemainingTime(token, TokenType.ACCESS_TOKEN);
-        
+
         // 15 minutes = 15 * 60 * 1000 = 900,000 ms
         // Remaining time should be very close to 900,000 ms
         assertTrue(remaining > 890000 && remaining <= 900000, "Remaining time should be around 15 minutes");

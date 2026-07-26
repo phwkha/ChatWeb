@@ -1,5 +1,6 @@
 package com.web.backend.controller.websocket;
 
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.ChatMessageRequest;
 import com.web.backend.controller.request.MessageSystemRequest;
 import com.web.backend.controller.request.ReactionRequest;
@@ -17,7 +18,6 @@ import com.web.backend.exception.WebSocketErrorHandler;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Controller
 @RequiredArgsConstructor

@@ -1,7 +1,7 @@
 package com.web.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.SaveKeyRequest;
 import com.web.backend.controller.request.SavePublicKeyRequest;
 import com.web.backend.jwt.JwtAuthenticationFilter;
@@ -90,7 +90,7 @@ public class KeyControllerTest {
         when(keyService.getRsaKey("testuser")).thenReturn("mockPrivateKey");
 
         mockMvc.perform(get("/api/keys/rsa")
-                        .principal(mockAuth))
+                .principal(mockAuth))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.privateKey").value("mockPrivateKey"));
@@ -102,9 +102,9 @@ public class KeyControllerTest {
         request.setKey("newPrivateKey");
 
         mockMvc.perform(post("/api/keys/rsa")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 
@@ -116,7 +116,7 @@ public class KeyControllerTest {
         when(keyService.getPublicKey("otheruser")).thenReturn("mockPublicKey");
 
         mockMvc.perform(get("/api/keys/public-key/otheruser")
-                        .principal(mockAuth))
+                .principal(mockAuth))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").value("mockPublicKey"));
@@ -128,9 +128,9 @@ public class KeyControllerTest {
         request.setPublicKey("newPublicKey");
 
         mockMvc.perform(post("/api/keys/public-key")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 

@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import com.web.backend.jwt.JwtHandshakeInterceptor;
 import com.web.backend.common.TokenType;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.JwtService;
 import com.web.backend.service.util.UserServiceDetail;
@@ -27,7 +28,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Configuration
 @EnableWebSocketMessageBroker

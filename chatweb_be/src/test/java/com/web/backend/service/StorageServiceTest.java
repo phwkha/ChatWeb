@@ -19,16 +19,19 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.service.impl.StorageServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
 public class StorageServiceTest {
 
-    @Mock private Cloudinary cloudinary;
-    @Mock private Uploader uploader;
-    @Mock private MultipartFile file;
+    @Mock
+    private Cloudinary cloudinary;
+    @Mock
+    private Uploader uploader;
+    @Mock
+    private MultipartFile file;
 
     @InjectMocks
     private StorageServiceImpl storageService;
@@ -42,7 +45,7 @@ public class StorageServiceTest {
         ReflectionTestUtils.setField(storageService, "maxAvatarSize", 5000000L); // 5MB
         ReflectionTestUtils.setField(storageService, "maxVideoSize", 50000000L); // 50MB
         ReflectionTestUtils.setField(storageService, "maxImageSize", 10000000L); // 10MB
-        
+
         lenient().when(cloudinary.uploader()).thenReturn(uploader);
     }
 
@@ -51,8 +54,8 @@ public class StorageServiceTest {
         when(file.isEmpty()).thenReturn(false);
         when(file.getSize()).thenReturn(1000L);
         when(file.getContentType()).thenReturn("image/jpeg");
-        when(file.getBytes()).thenReturn(new byte[]{1, 2, 3});
-        
+        when(file.getBytes()).thenReturn(new byte[] { 1, 2, 3 });
+
         when(uploader.upload(any(byte[].class), anyMap())).thenReturn(Map.of("secure_url", "http://image.jpg"));
 
         String result = storageService.uploadAvatar(file);
@@ -79,7 +82,7 @@ public class StorageServiceTest {
         when(file.getSize()).thenReturn(6000000L); // 6MB > 5MB max
         assertThrows(InvalidDataException.class, () -> storageService.uploadAvatar(file));
     }
-    
+
     @Test
     void testUploadAvatar_IOException() throws Exception {
         when(file.isEmpty()).thenReturn(false);
@@ -95,7 +98,7 @@ public class StorageServiceTest {
         when(file.isEmpty()).thenReturn(false);
         when(file.getSize()).thenReturn(1000L);
         // raw upload does not check content type
-        when(file.getBytes()).thenReturn(new byte[]{1});
+        when(file.getBytes()).thenReturn(new byte[] { 1 });
         when(uploader.upload(any(byte[].class), anyMap())).thenReturn(Map.of("secure_url", "http://raw-image.jpg"));
 
         String result = storageService.upLoadImage(file);
@@ -106,7 +109,7 @@ public class StorageServiceTest {
     void testUploadVideo_Success() throws Exception {
         when(file.isEmpty()).thenReturn(false);
         when(file.getSize()).thenReturn(1000L);
-        when(file.getBytes()).thenReturn(new byte[]{1});
+        when(file.getBytes()).thenReturn(new byte[] { 1 });
         when(uploader.upload(any(byte[].class), anyMap())).thenReturn(Map.of("secure_url", "http://video.mp4"));
 
         String result = storageService.uploadVideo(file);
@@ -117,16 +120,16 @@ public class StorageServiceTest {
     void testDelete_Success() throws Exception {
         String url = "http://res.cloudinary.com/demo/image/upload/v1234/avatars/sample.jpg";
         when(uploader.destroy(eq("avatars/sample"), anyMap())).thenReturn(Map.of("result", "ok"));
-        
+
         storageService.delete(url, "avatars");
         verify(uploader).destroy(eq("avatars/sample"), anyMap());
     }
-    
+
     @Test
     void testDelete_RawFolder_Success() throws Exception {
         String url = "http://res.cloudinary.com/demo/raw/upload/v1234/images/sample.jpg";
         when(uploader.destroy(eq("images/sample"), anyMap())).thenReturn(Map.of("result", "ok"));
-        
+
         storageService.delete(url, "images");
         verify(uploader).destroy(eq("images/sample"), anyMap());
     }
@@ -149,7 +152,7 @@ public class StorageServiceTest {
     void testDelete_IOException() throws Exception {
         String url = "http://res.cloudinary.com/demo/image/upload/v1234/avatars/sample.jpg";
         when(uploader.destroy(anyString(), anyMap())).thenThrow(new IOException("delete error"));
-        
+
         assertDoesNotThrow(() -> storageService.delete(url, "avatars"));
     }
 }

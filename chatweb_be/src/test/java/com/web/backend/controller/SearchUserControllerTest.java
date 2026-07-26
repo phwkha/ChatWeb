@@ -1,6 +1,6 @@
 package com.web.backend.controller;
 
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.PageResponse;
 import com.web.backend.controller.response.UserDetailResponse;
 import com.web.backend.controller.response.UserSummaryResponse;
@@ -36,80 +36,80 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @WebMvcTest(controllers = SearchUserController.class, excludeAutoConfiguration = {
-        SecurityAutoConfiguration.class,
-        SecurityFilterAutoConfiguration.class,
-        OAuth2ClientAutoConfiguration.class,
-        OAuth2ClientWebSecurityAutoConfiguration.class,
-        OAuth2ResourceServerAutoConfiguration.class
+                SecurityAutoConfiguration.class,
+                SecurityFilterAutoConfiguration.class,
+                OAuth2ClientAutoConfiguration.class,
+                OAuth2ClientWebSecurityAutoConfiguration.class,
+                OAuth2ResourceServerAutoConfiguration.class
 }, excludeFilters = {
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
+                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
 })
 public class SearchUserControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockBean
-    private SearchUserService searchUserService;
+        @MockBean
+        private SearchUserService searchUserService;
 
-    @MockBean
-    private JwtService jwtService;
+        @MockBean
+        private JwtService jwtService;
 
-    @MockBean
-    private UserServiceDetail userServiceDetail;
+        @MockBean
+        private UserServiceDetail userServiceDetail;
 
-    @MockBean
-    private RedisTemplate<String, Object> redisTemplate;
+        @MockBean
+        private RedisTemplate<String, Object> redisTemplate;
 
-    @MockBean
-    private SimpMessagingTemplate simpMessagingTemplate;
+        @MockBean
+        private SimpMessagingTemplate simpMessagingTemplate;
 
-    @BeforeEach
-    void setUp() {
-        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
-        messageSource.setBasename("i18n/messages");
-        messageSource.setDefaultEncoding("UTF-8");
-        new Translator(messageSource);
-    }
+        @BeforeEach
+        void setUp() {
+                ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+                messageSource.setBasename("i18n/messages");
+                messageSource.setDefaultEncoding("UTF-8");
+                new Translator(messageSource);
+        }
 
-    @Test
-    void testSearchUsers_Success() throws Exception {
-        UserSummaryResponse summary = UserSummaryResponse.builder()
-                .username("foundUser")
-                .build();
-        PageResponse<UserSummaryResponse> pageResponse = PageResponse.<UserSummaryResponse>builder()
-                .content(List.of(summary))
-                .build();
+        @Test
+        void testSearchUsers_Success() throws Exception {
+                UserSummaryResponse summary = UserSummaryResponse.builder()
+                                .username("foundUser")
+                                .build();
+                PageResponse<UserSummaryResponse> pageResponse = PageResponse.<UserSummaryResponse>builder()
+                                .content(List.of(summary))
+                                .build();
 
-        when(searchUserService.searchUsers(eq("keyword"), eq(0), eq(10), eq("desc")))
-                .thenReturn(pageResponse);
+                when(searchUserService.searchUsers(eq("keyword"), eq(0), eq(10), eq("desc")))
+                                .thenReturn(pageResponse);
 
-        mockMvc.perform(get("/api/search/users")
-                        .param("keyword", "keyword")
-                        .param("page", "0")
-                        .param("size", "10")
-                        .param("sortDir", "desc"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.content[0].username").value("foundUser"));
-    }
+                mockMvc.perform(get("/api/search/users")
+                                .param("keyword", "keyword")
+                                .param("page", "0")
+                                .param("size", "10")
+                                .param("sortDir", "desc"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200))
+                                .andExpect(jsonPath("$.data.content[0].username").value("foundUser"));
+        }
 
-    @Test
-    void testAdvanceSearch_Success() throws Exception {
-        UserDetailResponse detail = new UserDetailResponse();
-        detail.setUsername("foundUser");
-        PageResponse<UserDetailResponse> pageResponse = PageResponse.<UserDetailResponse>builder()
-                .content(List.of(detail))
-                .build();
+        @Test
+        void testAdvanceSearch_Success() throws Exception {
+                UserDetailResponse detail = new UserDetailResponse();
+                detail.setUsername("foundUser");
+                PageResponse<UserDetailResponse> pageResponse = PageResponse.<UserDetailResponse>builder()
+                                .content(List.of(detail))
+                                .build();
 
-        when(searchUserService.advanceSearchWithSpecifications(any(Pageable.class), any(), any()))
-                .thenReturn(pageResponse);
+                when(searchUserService.advanceSearchWithSpecifications(any(Pageable.class), any(), any()))
+                                .thenReturn(pageResponse);
 
-        mockMvc.perform(get("/api/search/users/filter")
-                        .param("user", "name:test")
-                        .param("address", "city:hanoi"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.content[0].username").value("foundUser"));
-    }
+                mockMvc.perform(get("/api/search/users/filter")
+                                .param("user", "name:test")
+                                .param("address", "city:hanoi"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200))
+                                .andExpect(jsonPath("$.data.content[0].username").value("foundUser"));
+        }
 }

@@ -1,7 +1,7 @@
 package com.web.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.*;
 import com.web.backend.model.UserEntity;
@@ -97,8 +97,8 @@ public class UserControllerTest {
         when(userService.getMe("testuser")).thenReturn(mockResponse);
 
         mockMvc.perform(get("/api/users/me")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.username").value("testuser"));
@@ -113,8 +113,8 @@ public class UserControllerTest {
         when(userService.getProfileUser("testuser")).thenReturn(mockResponse);
 
         mockMvc.perform(get("/api/users/profile")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.username").value("testuser"))
@@ -135,9 +135,9 @@ public class UserControllerTest {
         when(userService.updateUser(eq("testuser"), any(UpdateUserRequest.class))).thenReturn(response);
 
         mockMvc.perform(put("/api/users/profile")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.firstName").value("John"));
     }
@@ -148,12 +148,12 @@ public class UserControllerTest {
         when(userService.updateAvatar(eq("testuser"), any())).thenReturn("https://s3.amazonaws.com/avatar.png");
 
         mockMvc.perform(multipart("/api/users/avatar")
-                        .file(file)
-                        .principal(mockAuth)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
+                .file(file)
+                .principal(mockAuth)
+                .with(request -> {
+                    request.setMethod("PATCH");
+                    return request;
+                }))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value("https://s3.amazonaws.com/avatar.png"));
     }
@@ -165,9 +165,9 @@ public class UserControllerTest {
         request.setNewPassword("newPass123!");
 
         mockMvc.perform(post("/api/users/change-password")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 
@@ -177,7 +177,7 @@ public class UserControllerTest {
     @Test
     void testDeleteUser_Success() throws Exception {
         mockMvc.perform(delete("/api/users/me")
-                        .principal(mockAuth))
+                .principal(mockAuth))
                 .andExpect(status().isOk());
 
         verify(userService).deleteUser("testuser");
@@ -198,9 +198,9 @@ public class UserControllerTest {
         when(userService.addAddress(eq("testuser"), any(AddressRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/users/address")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(201));
     }
@@ -219,9 +219,9 @@ public class UserControllerTest {
         when(userService.updateAddress(eq("testuser"), eq(1L), any(AddressRequest.class))).thenReturn(response);
 
         mockMvc.perform(put("/api/users/address/1")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
     }
 
@@ -232,7 +232,7 @@ public class UserControllerTest {
         when(userService.deleteAddress("testuser", 1L)).thenReturn(response);
 
         mockMvc.perform(delete("/api/users/address/1")
-                        .principal(mockAuth))
+                .principal(mockAuth))
                 .andExpect(status().isOk());
     }
 
@@ -243,7 +243,7 @@ public class UserControllerTest {
         when(userService.getAllAddresses("testuser")).thenReturn(List.of(addr));
 
         mockMvc.perform(get("/api/users/addresses")
-                        .principal(mockAuth))
+                .principal(mockAuth))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].city").value("Hanoi"));
     }
@@ -255,7 +255,7 @@ public class UserControllerTest {
         when(userService.getAddressById("testuser", 1L)).thenReturn(addr);
 
         mockMvc.perform(get("/api/users/address/1")
-                        .principal(mockAuth))
+                .principal(mockAuth))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.city").value("Hanoi"));
     }
@@ -267,9 +267,9 @@ public class UserControllerTest {
         request.setCurrentPassword("pass123!");
 
         mockMvc.perform(post("/api/users/initiate-email-change")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         verify(userService).initiateEmailChange("testuser", "new@gmail.com", "pass123!");
@@ -282,9 +282,9 @@ public class UserControllerTest {
         request.setOtp("123456");
 
         mockMvc.perform(post("/api/users/verify-email-change")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         verify(userService).verifyEmailChange("testuser", "123456");
@@ -293,7 +293,7 @@ public class UserControllerTest {
     @Test
     void testResendEmailVerification_Success() throws Exception {
         mockMvc.perform(post("/api/users/resend-email-verification")
-                        .principal(mockAuth))
+                .principal(mockAuth))
                 .andExpect(status().isOk());
 
         verify(userService).resendEmailChangeOtp("testuser");
@@ -306,9 +306,9 @@ public class UserControllerTest {
         request.setCurrentPassword("pass123!");
 
         mockMvc.perform(post("/api/users/initiate-phone-change")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         verify(userService).initiatePhoneChange("testuser", "0123456789", "pass123!");
@@ -321,9 +321,9 @@ public class UserControllerTest {
         request.setOtp("123456");
 
         mockMvc.perform(post("/api/users/verify-phone-change")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .principal(mockAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         verify(userService).verifyPhoneChange("testuser", "123456");
@@ -332,7 +332,7 @@ public class UserControllerTest {
     @Test
     void testResendPhoneVerification_Success() throws Exception {
         mockMvc.perform(post("/api/users/resend-phone-change-verification")
-                        .principal(mockAuth))
+                .principal(mockAuth))
                 .andExpect(status().isOk());
 
         verify(userService).resendPhoneChangeOtp("testuser");

@@ -10,12 +10,14 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
+
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.exception.WebSocketErrorHandler;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.exception.custom.ResourceConflictException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
-import com.web.backend.config.LocalResolverConfig.Translator;
+
 import java.util.Objects;
 
 @Controller

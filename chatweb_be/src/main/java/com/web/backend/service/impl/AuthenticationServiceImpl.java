@@ -26,7 +26,7 @@ import com.web.backend.common.AuthProvider;
 import com.web.backend.common.OtpType;
 import com.web.backend.common.TokenType;
 import com.web.backend.common.UserStatus;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.CreateUserRequest;
 import com.web.backend.controller.request.LoginRequest;
 import com.web.backend.controller.request.VerifyOtpRequest;

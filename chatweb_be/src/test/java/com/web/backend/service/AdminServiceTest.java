@@ -23,7 +23,7 @@ import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.web.backend.common.UserStatus;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.AddressRequest;
 import com.web.backend.controller.request.AdminCreateUserRequest;
 import com.web.backend.controller.request.AdminUpdateUserRequest;
@@ -47,14 +47,22 @@ import com.web.backend.service.impl.AdminServiceImpl;
 @ExtendWith(MockitoExtension.class)
 public class AdminServiceTest {
 
-    @Mock private UserRepository userRepository;
-    @Mock private MessageRepository messageRepository;
-    @Mock private PasswordEncoder passwordEncoder;
-    @Mock private UserMapper userMapper;
-    @Mock private RoleRepository roleRepository;
-    @Mock private StorageService storageService;
-    @Mock private RedisTemplate<String, Object> redisTemplate;
-    @Mock private ZSetOperations<String, Object> zSetOperations;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private MessageRepository messageRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @Mock
+    private UserMapper userMapper;
+    @Mock
+    private RoleRepository roleRepository;
+    @Mock
+    private StorageService storageService;
+    @Mock
+    private RedisTemplate<String, Object> redisTemplate;
+    @Mock
+    private ZSetOperations<String, Object> zSetOperations;
 
     @InjectMocks
     private AdminServiceImpl adminService;
@@ -90,7 +98,8 @@ public class AdminServiceTest {
         when(zSetOperations.size("online_users")).thenReturn(1L);
 
         when(userRepository.findByUsernameIn(anyList())).thenReturn(List.of(activeUser));
-        when(userMapper.toUserSummaryResponse(activeUser)).thenReturn(org.mockito.Mockito.mock(UserSummaryResponse.class));
+        when(userMapper.toUserSummaryResponse(activeUser))
+                .thenReturn(org.mockito.Mockito.mock(UserSummaryResponse.class));
 
         PageResponse<UserSummaryResponse> res = adminService.getOnlineUsers(0, 10);
         assertEquals(1, res.getTotalElements());
@@ -101,7 +110,8 @@ public class AdminServiceTest {
     void testGetAllUsers_Success() {
         Page<UserEntity> page = new PageImpl<>(List.of(activeUser));
         when(userRepository.findAllByUserStatusNot(eq(UserStatus.INACTIVE), any(Pageable.class))).thenReturn(page);
-        when(userMapper.toUserSummaryResponse(activeUser)).thenReturn(org.mockito.Mockito.mock(UserSummaryResponse.class));
+        when(userMapper.toUserSummaryResponse(activeUser))
+                .thenReturn(org.mockito.Mockito.mock(UserSummaryResponse.class));
 
         PageResponse<UserSummaryResponse> res = adminService.getAllUsers(0, 10, "id:asc");
         assertEquals(1, res.getTotalElements());
@@ -178,7 +188,7 @@ public class AdminServiceTest {
         adminService.unlockUser("testuser");
         assertEquals(UserStatus.ACTIVE, activeUser.getUserStatus());
     }
-    
+
     @Test
     void testUnlockUser_AlreadyActive() {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(activeUser));
@@ -210,7 +220,7 @@ public class AdminServiceTest {
         adminService.adminUpdateUser("testuser", req);
         verify(userMapper).updateAdminUserFromRequest(req, activeUser);
     }
-    
+
     @Test
     void testAdminUpdateUser_EmailExists() {
         AdminUpdateUserRequest req = new AdminUpdateUserRequest();
@@ -250,7 +260,7 @@ public class AdminServiceTest {
         addr.setId(1L);
         activeUser.addAddress(addr);
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(activeUser));
-        
+
         List<AddressResponse> res = adminService.adminGetAllAddresses("testuser");
         assertEquals(1, res.size());
     }
@@ -265,7 +275,7 @@ public class AdminServiceTest {
 
         assertNotNull(adminService.adminGetAddressById("testuser", 1L));
     }
-    
+
     @Test
     void testAdminGetAddressById_NotOwned() {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(activeUser));
@@ -278,14 +288,14 @@ public class AdminServiceTest {
         addr.setId(1L);
         activeUser.addAddress(addr);
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(activeUser));
-        
+
         AddressRequest req = new AddressRequest();
         adminService.adminUpdateAddress("testuser", 1L, req);
-        
+
         verify(userMapper).updateAddressFromRequest(req, addr);
         verify(userRepository).save(activeUser);
     }
-    
+
     @Test
     void testAdminUpdateAddress_NotOwned() {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(activeUser));
@@ -304,6 +314,7 @@ public class AdminServiceTest {
         assertFalse(activeUser.getAddresses().contains(addr));
         verify(userRepository).save(activeUser);
     }
+
     @Test
     void testGetUserByUsername_NotFound() {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
@@ -331,7 +342,8 @@ public class AdminServiceTest {
     @Test
     void testAdminUpdateUser_NotFound() {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
-        assertThrows(ResourceNotFoundException.class, () -> adminService.adminUpdateUser("testuser", new AdminUpdateUserRequest()));
+        assertThrows(ResourceNotFoundException.class,
+                () -> adminService.adminUpdateUser("testuser", new AdminUpdateUserRequest()));
     }
 
     @Test

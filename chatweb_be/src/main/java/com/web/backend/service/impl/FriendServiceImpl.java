@@ -2,6 +2,7 @@ package com.web.backend.service.impl;
 
 import com.web.backend.common.FriendshipStatus;
 import com.web.backend.common.UserStatus;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.common.NotificationsStatus;
 import com.web.backend.controller.response.NotificationMessageResponse;
 import com.web.backend.controller.response.PageResponse;
@@ -35,7 +36,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @RequiredArgsConstructor

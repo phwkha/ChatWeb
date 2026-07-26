@@ -3,6 +3,7 @@ package com.web.backend.service.impl;
 import com.web.backend.common.AuthProvider;
 import com.web.backend.common.OtpType;
 import com.web.backend.common.UserStatus;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.*;
 import com.web.backend.exception.custom.AccessForbiddenException;
@@ -33,7 +34,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @Slf4j(topic = "USER-SERVICE")

@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.web.backend.common.UserStatus;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.AddressRequest;
 import com.web.backend.controller.request.AdminCreateUserRequest;
 import com.web.backend.controller.request.AdminUpdateUserRequest;

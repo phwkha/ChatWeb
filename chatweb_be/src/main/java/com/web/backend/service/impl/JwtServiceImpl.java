@@ -1,6 +1,7 @@
 package com.web.backend.service.impl;
 
 import com.web.backend.common.TokenType;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.service.JwtService;
 import io.jsonwebtoken.Claims;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.util.*;
 import java.util.function.Function;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @Slf4j(topic = "JWT-SERVICE")

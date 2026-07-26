@@ -1,5 +1,6 @@
 package com.web.backend.exception;
 
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.form.SocketResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
@@ -9,7 +10,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.validation.BindingResult;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @ControllerAdvice
 @RequiredArgsConstructor

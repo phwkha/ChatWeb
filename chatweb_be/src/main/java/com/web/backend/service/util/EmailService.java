@@ -6,7 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-import com.web.backend.config.LocalResolverConfig.Translator;
+
+import com.web.backend.config.localresolverconfig.Translator;
 
 @Slf4j(topic = "EMAIL-SERVICE")
 @Service

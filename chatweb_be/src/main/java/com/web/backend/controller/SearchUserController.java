@@ -1,7 +1,7 @@
 package com.web.backend.controller;
 
-import com.web.backend.config.LocalResolverConfig.Translator;
 import com.web.backend.controller.response.UserSummaryResponse;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.PageResponse;
 import com.web.backend.controller.response.UserDetailResponse;
 import com.web.backend.controller.response.form.ApiResponse;

@@ -23,7 +23,7 @@ import org.springframework.kafka.support.SendResult;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.web.backend.common.UserStatus;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.ChatMessageRequest;
 import com.web.backend.controller.request.EditMessageRequest;
 import com.web.backend.controller.request.RevokeMessageRequest;
@@ -92,7 +92,8 @@ public class MessageServiceTest {
         lenient().when(messageSource.getMessage(anyString(), any(), any())).thenReturn("Mocked Error Message");
         new Translator(messageSource);
 
-        // Inject Kafka topic names using Reflection since @Value is not loaded in Mockito tests
+        // Inject Kafka topic names using Reflection since @Value is not loaded in
+        // Mockito tests
         ReflectionTestUtils.setField(messageService, "chatTopic", "test-chat-topic");
         ReflectionTestUtils.setField(messageService, "systemTopic", "test-system-topic");
 
@@ -104,7 +105,7 @@ public class MessageServiceTest {
     @Test
     void testSendPrivateMessage_RecipientNotFound() {
         when(userRepository.findByUsername("recipient")).thenReturn(Optional.empty());
-        
+
         ChatMessageRequest request = new ChatMessageRequest();
         request.setRecipient("recipient");
 
@@ -115,7 +116,7 @@ public class MessageServiceTest {
     void testSendPrivateMessage_RecipientInactive() {
         recipientUser.setUserStatus(UserStatus.INACTIVE);
         when(userRepository.findByUsername("recipient")).thenReturn(Optional.of(recipientUser));
-        
+
         ChatMessageRequest request = new ChatMessageRequest();
         request.setRecipient("recipient");
 
@@ -126,7 +127,7 @@ public class MessageServiceTest {
     void testSendPrivateMessage_NotFriends() {
         when(userRepository.findByUsername("recipient")).thenReturn(Optional.of(recipientUser));
         when(friendService.isFriend("sender", "recipient")).thenReturn(false);
-        
+
         ChatMessageRequest request = new ChatMessageRequest();
         request.setRecipient("recipient");
 
@@ -137,7 +138,7 @@ public class MessageServiceTest {
     void testSendPrivateMessage_Success() {
         when(userRepository.findByUsername("recipient")).thenReturn(Optional.of(recipientUser));
         when(friendService.isFriend("sender", "recipient")).thenReturn(true);
-        
+
         ChatMessageRequest request = new ChatMessageRequest();
         request.setRecipient("recipient");
         request.setContent("Hello!");
@@ -145,9 +146,10 @@ public class MessageServiceTest {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setMessageType(com.web.backend.common.MessageType.CHAT);
         when(messageMapper.toEntity(request)).thenReturn(chatMessage);
-        
+
         // Mock Kafka future (asynchronous callback)
-        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture
+                .completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
         when(kafkaTemplate.send(anyString(), any())).thenReturn(future);
 
         // Mock Redis operations
@@ -159,10 +161,10 @@ public class MessageServiceTest {
 
         // Assert
         verify(kafkaTemplate).send(eq("test-chat-topic"), eq(chatMessage));
-        
+
         // Verify it was pushed to Redis list for caching
         verify(listOperations).rightPush(anyString(), eq(chatMessage));
-        
+
         // Verify unread count was incremented
         verify(hashOperations).increment(anyString(), eq("sender"), eq(1L));
     }
@@ -177,12 +179,15 @@ public class MessageServiceTest {
         request.setContent("System rebooting in 5 mins");
         request.setSurvivalTime(300L); // 5 minutes
 
-        when(systemMessageRepository.save(any(com.web.backend.model.SystemMessage.class))).thenReturn(new com.web.backend.model.SystemMessage());
-        
-        com.web.backend.controller.response.MessageSystemResponse response = com.web.backend.controller.response.MessageSystemResponse.builder().build();
+        when(systemMessageRepository.save(any(com.web.backend.model.SystemMessage.class)))
+                .thenReturn(new com.web.backend.model.SystemMessage());
+
+        com.web.backend.controller.response.MessageSystemResponse response = com.web.backend.controller.response.MessageSystemResponse
+                .builder().build();
         when(messageMapper.systemMessageToResponse(any())).thenReturn(response);
 
-        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture
+                .completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
         when(kafkaTemplate.send(eq("test-system-topic"), any())).thenReturn(future);
 
         messageService.sendSystemMessage("adminUser", request);
@@ -195,7 +200,7 @@ public class MessageServiceTest {
     void testReactToMessage_NotFriends() {
         com.web.backend.controller.request.ReactionRequest request = new com.web.backend.controller.request.ReactionRequest();
         request.setRecipient("recipient");
-        
+
         when(friendService.isFriend("sender", "recipient")).thenReturn(false);
 
         assertThrows(AccessForbiddenException.class, () -> messageService.reactToMessage("sender", request));
@@ -209,17 +214,18 @@ public class MessageServiceTest {
         request.setReactionType(com.web.backend.common.ReactionType.HEART);
 
         when(friendService.isFriend("sender", "recipient")).thenReturn(true);
-        
-        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
+
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture
+                .completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
         when(kafkaTemplate.send(eq("test-chat-topic"), any())).thenReturn(future);
 
         messageService.reactToMessage("sender", request);
 
         // Verify MongoDB update
-        verify(mongoTemplate).updateFirst(any(org.springframework.data.mongodb.core.query.Query.class), 
-                                          any(org.springframework.data.mongodb.core.query.Update.class), 
-                                          eq(ChatMessage.class));
-                                          
+        verify(mongoTemplate).updateFirst(any(org.springframework.data.mongodb.core.query.Query.class),
+                any(org.springframework.data.mongodb.core.query.Update.class),
+                eq(ChatMessage.class));
+
         // Verify Redis deletion
         verify(redisTemplate).delete(eq("chat:recent:recipient_sender"));
 
@@ -242,7 +248,8 @@ public class MessageServiceTest {
         message.setSender("sender");
 
         when(messageRepository.findById("msg1")).thenReturn(Optional.of(message));
-        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture
+                .completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
         when(kafkaTemplate.send(eq("test-chat-topic"), any(ChatMessage.class))).thenReturn(future);
 
         messageService.editMessage("sender", request);
@@ -277,7 +284,8 @@ public class MessageServiceTest {
         message.setFileUrl("url");
 
         when(messageRepository.findById("msg1")).thenReturn(Optional.of(message));
-        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture
+                .completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
         when(kafkaTemplate.send(eq("test-chat-topic"), any(ChatMessage.class))).thenReturn(future);
 
         messageService.revokeMessage("sender", request);
@@ -370,13 +378,13 @@ public class MessageServiceTest {
         SystemMessage sysMsg1 = new SystemMessage();
         sysMsg1.setTimestamp(Instant.now());
         sysMsg1.setContent("Msg 1");
-        
+
         when(systemMessageRepository.findInitialMessage(any(Pageable.class))).thenReturn(List.of(sysMsg1));
         MessageSystemResponse response = MessageSystemResponse.builder().content("Msg 1").build();
         when(messageMapper.systemMessageToResponse(sysMsg1)).thenReturn(response);
 
         CursorResponse<MessageSystemResponse> result = messageService.findSystemMessageWithCursor(null, 10);
-        
+
         assertFalse(result.isHasMore());
         assertEquals(1, result.getContent().size());
     }
@@ -400,10 +408,12 @@ public class MessageServiceTest {
 
         when(messageMapper.toResponse(any())).thenReturn(ChatMessageResponse.builder().build());
 
-        CursorResponse<ChatMessageResponse> result = messageService.findPrivateMessageWithCursor("user2", "user1", null, 10);
-        
+        CursorResponse<ChatMessageResponse> result = messageService.findPrivateMessageWithCursor("user2", "user1", null,
+                10);
+
         assertEquals(2, result.getContent().size());
     }
+
     @Test
     void testSendPrivateMessage_KafkaException() {
         when(userRepository.findByUsername("recipient")).thenReturn(Optional.of(recipientUser));
@@ -414,7 +424,7 @@ public class MessageServiceTest {
 
         ChatMessage chatMessage = new ChatMessage();
         when(messageMapper.toEntity(request)).thenReturn(chatMessage);
-        
+
         CompletableFuture<SendResult<String, Object>> future = new CompletableFuture<>();
         future.completeExceptionally(new RuntimeException("Kafka error"));
         when(kafkaTemplate.send(anyString(), any())).thenReturn(future);
@@ -429,13 +439,14 @@ public class MessageServiceTest {
         when(friendService.isFriend("sender", "recipient")).thenReturn(true);
         ChatMessageRequest request = new ChatMessageRequest();
         request.setRecipient("recipient");
-        
+
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setMessageType(com.web.backend.common.MessageType.CHAT);
         when(messageMapper.toEntity(request)).thenReturn(chatMessage);
-        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture
+                .completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
         when(kafkaTemplate.send(anyString(), any())).thenReturn(future);
-        
+
         when(redisTemplate.opsForList()).thenThrow(new RuntimeException("Redis down"));
 
         // Should not throw exception to caller, just logs
@@ -448,7 +459,8 @@ public class MessageServiceTest {
         request.setContent("Sys");
 
         when(systemMessageRepository.save(any())).thenReturn(new com.web.backend.model.SystemMessage());
-        when(messageMapper.systemMessageToResponse(any())).thenReturn(com.web.backend.controller.response.MessageSystemResponse.builder().build());
+        when(messageMapper.systemMessageToResponse(any()))
+                .thenReturn(com.web.backend.controller.response.MessageSystemResponse.builder().build());
 
         CompletableFuture<SendResult<String, Object>> future = new CompletableFuture<>();
         future.completeExceptionally(new RuntimeException("Kafka error"));
@@ -466,7 +478,8 @@ public class MessageServiceTest {
         request.setReactionType(null); // Removes reaction
 
         when(friendService.isFriend("sender", "recipient")).thenReturn(true);
-        CompletableFuture<SendResult<String, Object>> future = CompletableFuture.completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture
+                .completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
         when(kafkaTemplate.send(anyString(), any())).thenReturn(future);
 
         messageService.reactToMessage("sender", request);
@@ -480,14 +493,16 @@ public class MessageServiceTest {
         dbMsg.setTimestamp(LocalDateTime.now().minusDays(1));
 
         List<ChatMessage> mockResult = new java.util.ArrayList<>();
-        for (int i=0; i<11; i++) mockResult.add(dbMsg); // 11 elements means hasMore = true
-        
+        for (int i = 0; i < 11; i++)
+            mockResult.add(dbMsg); // 11 elements means hasMore = true
+
         when(messageRepository.findByConversationIdAndTimestampBefore(anyString(), any(), any()))
                 .thenReturn(mockResult);
         when(messageMapper.toResponse(any())).thenReturn(ChatMessageResponse.builder().build());
 
-        CursorResponse<ChatMessageResponse> result = messageService.findPrivateMessageWithCursor("user2", "user1", LocalDateTime.now().toString(), 10);
-        
+        CursorResponse<ChatMessageResponse> result = messageService.findPrivateMessageWithCursor("user2", "user1",
+                LocalDateTime.now().toString(), 10);
+
         assertTrue(result.isHasMore());
         assertEquals(10, result.getContent().size()); // should have removed the 11th
     }

@@ -30,7 +30,7 @@ import org.springframework.cache.CacheManager;
 
 import com.web.backend.common.TokenType;
 import com.web.backend.common.UserStatus;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.CreateUserRequest;
 import com.web.backend.controller.request.LoginRequest;
 import com.web.backend.controller.request.VerifyOtpRequest;
@@ -131,7 +131,7 @@ class AuthenticationServiceTest {
 
         when(jwtService.generateAccessToken(anyString(), any(), anyInt())).thenReturn("mockAccessToken");
         when(jwtService.generateRefreshToken(anyString(), any(), anyInt())).thenReturn("mockRefreshToken");
-        
+
         UserResponse mockUserResponse = UserResponse.builder().username("testuser").build();
         when(userMapper.toUserResponse(mockUser)).thenReturn(mockUserResponse);
 
@@ -143,7 +143,7 @@ class AuthenticationServiceTest {
         assertEquals("mockAccessToken", response.getAccessToken());
         assertEquals("mockRefreshToken", response.getRefreshToken());
         assertEquals("testuser", response.getUserResponse().getUsername());
-        
+
         verify(authenticationManager, times(1)).authenticate(any());
         verify(jwtService, times(1)).generateAccessToken(eq("testuser"), any(), eq(1));
     }
@@ -198,7 +198,7 @@ class AuthenticationServiceTest {
         when(roleRepository.findByName("USER")).thenReturn(Optional.of(role));
 
         when(passwordEncoder.encode("password123")).thenReturn("encoded123");
-        
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         doNothing().when(valueOperations).set(anyString(), any(), anyLong(), any());
         doNothing().when(emailKafkaProducer).sendOtpEmailTask(anyString(), anyString(), anyString());
@@ -211,7 +211,7 @@ class AuthenticationServiceTest {
         assertEquals("newuser", response.getUsername());
         assertEquals("newuser@example.com", response.getEmail());
         assertEquals(UserStatus.UNVERIFIED, response.getUserStatus());
-        
+
         verify(emailKafkaProducer, times(1)).sendOtpEmailTask(eq("newuser@example.com"), eq("newuser"), anyString());
     }
 
@@ -227,7 +227,7 @@ class AuthenticationServiceTest {
 
         // Act & Assert
         assertThrows(ResourceConflictException.class, () -> authenticationService.createUser(request));
-        
+
         // Đảm bảo không có email OTP nào được gửi
         verify(emailKafkaProducer, never()).sendOtpEmailTask(anyString(), anyString(), anyString());
     }
@@ -243,10 +243,10 @@ class AuthenticationServiceTest {
         when(jwtService.extractUsername(oldRefreshToken, TokenType.REFRESH_TOKEN)).thenReturn("testuser");
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(mockUser));
         when(redisTemplate.hasKey("blacklist:" + oldRefreshToken)).thenReturn(false);
-        
+
         // Mock extractClaim for token version
         when(jwtService.extractClaim(eq(oldRefreshToken), eq(TokenType.REFRESH_TOKEN), any())).thenReturn(1);
-        
+
         mockUser.setUserStatus(UserStatus.ACTIVE);
         when(jwtService.generateAccessToken(eq("testuser"), any(), eq(1))).thenReturn("newAccess");
         when(jwtService.generateRefreshToken(eq("testuser"), any(), eq(1))).thenReturn("newRefresh");
@@ -280,7 +280,7 @@ class AuthenticationServiceTest {
 
         // Act & Assert
         assertThrows(AccessForbiddenException.class, () -> authenticationService.refreshToken(badToken));
-        
+
         // Verify account token version incremented and cache evicted
         assertEquals(2, mockUser.getTokenVersion());
         verify(userRepository).save(mockUser);
@@ -294,10 +294,10 @@ class AuthenticationServiceTest {
         when(jwtService.extractUsername(oldRefreshToken, TokenType.REFRESH_TOKEN)).thenReturn("testuser");
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(mockUser));
         when(redisTemplate.hasKey("blacklist:" + oldRefreshToken)).thenReturn(false);
-        
+
         // Mock extractClaim: JWT has version 0, but DB has version 1 (from setUp)
         when(jwtService.extractClaim(eq(oldRefreshToken), eq(TokenType.REFRESH_TOKEN), any())).thenReturn(0);
-        
+
         // Act & Assert
         assertThrows(AccessForbiddenException.class, () -> authenticationService.refreshToken(oldRefreshToken));
     }
@@ -317,7 +317,8 @@ class AuthenticationServiceTest {
         authenticationService.logout(mockToken, TokenType.ACCESS_TOKEN);
 
         // Assert
-        verify(valueOperations).set(eq("blacklist:mockToken"), eq("logged_out"), eq(5000L), eq(java.util.concurrent.TimeUnit.MILLISECONDS));
+        verify(valueOperations).set(eq("blacklist:mockToken"), eq("logged_out"), eq(5000L),
+                eq(java.util.concurrent.TimeUnit.MILLISECONDS));
     }
 
     @Test
@@ -340,7 +341,7 @@ class AuthenticationServiceTest {
         String username = "testuser";
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(mockUser));
         when(cacheManager.getCache("user_details")).thenReturn(userCache);
-        
+
         Integer initialVersion = mockUser.getTokenVersion(); // which is 1 from setUp
 
         // Act
@@ -379,12 +380,12 @@ class AuthenticationServiceTest {
                 .password("encoded")
                 .otp("123456")
                 .build();
-        
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("register:test@example.com")).thenReturn(data);
         when(userRepository.existsByUsername("testuser")).thenReturn(false);
         when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
-        
+
         RoleEntity role = new RoleEntity();
         role.setId(1L);
         role.setName("USER");
@@ -422,10 +423,11 @@ class AuthenticationServiceTest {
         RegisterData data = RegisterData.builder().username("testuser").email("test@example.com").build();
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("register:test@example.com")).thenReturn(data);
-        
+
         authenticationService.resendOtp("test@example.com");
-        
-        verify(valueOperations).set(eq("cooldown:resend:test@example.com"), eq("1"), eq(60L), eq(java.util.concurrent.TimeUnit.SECONDS));
+
+        verify(valueOperations).set(eq("cooldown:resend:test@example.com"), eq("1"), eq(60L),
+                eq(java.util.concurrent.TimeUnit.SECONDS));
         verify(emailKafkaProducer).sendOtpEmailTask(eq("test@example.com"), eq("testuser"), anyString());
     }
 
@@ -434,10 +436,11 @@ class AuthenticationServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         mockUser.setUserStatus(UserStatus.ACTIVE);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        
+
         authenticationService.initiateForgotPassword("test@example.com");
-        
-        verify(valueOperations).set(startsWith("otp:PASSWORD_RESET:testuser"), anyString(), anyLong(), eq(java.util.concurrent.TimeUnit.MINUTES));
+
+        verify(valueOperations).set(startsWith("otp:PASSWORD_RESET:testuser"), anyString(), anyLong(),
+                eq(java.util.concurrent.TimeUnit.MINUTES));
         verify(emailKafkaProducer).sendOtpEmailTask(eq("test@example.com"), eq("testuser"), anyString());
     }
 
@@ -445,13 +448,14 @@ class AuthenticationServiceTest {
     void testVerifyPasswordReset_MaxAttemptsReached() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         mockUser.setUserStatus(UserStatus.ACTIVE);
-        
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("otp:PASSWORD_RESET:testuser")).thenReturn("123456");
         when(valueOperations.increment("otp:PASSWORD_RESET:testuser:attempts")).thenReturn(5L);
-        
-        assertThrows(InvalidOtpException.class, () -> authenticationService.verifyPasswordReset("test@example.com", "wrongotp", "newPass"));
-        
+
+        assertThrows(InvalidOtpException.class,
+                () -> authenticationService.verifyPasswordReset("test@example.com", "wrongotp", "newPass"));
+
         verify(redisTemplate).delete("otp:PASSWORD_RESET:testuser");
     }
 
@@ -459,13 +463,13 @@ class AuthenticationServiceTest {
     void testVerifyPasswordReset_Success() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         mockUser.setUserStatus(UserStatus.ACTIVE);
-        
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("otp:PASSWORD_RESET:testuser")).thenReturn("123456");
         when(passwordEncoder.encode("newPass")).thenReturn("encodedNew");
-        
+
         authenticationService.verifyPasswordReset("test@example.com", "123456", "newPass");
-        
+
         assertEquals("encodedNew", mockUser.getPassword());
         assertEquals(2, mockUser.getTokenVersion());
         verify(userRepository).save(mockUser);
@@ -528,7 +532,8 @@ class AuthenticationServiceTest {
         request.setEmail("test@example.com");
         request.setOtp("123456");
 
-        RegisterData data = RegisterData.builder().username("testuser").email("test@example.com").password("pwd").otp("123456").build();
+        RegisterData data = RegisterData.builder().username("testuser").email("test@example.com").password("pwd")
+                .otp("123456").build();
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("register:test@example.com")).thenReturn(data);
         when(userRepository.existsByUsername("testuser")).thenReturn(false);
@@ -543,10 +548,10 @@ class AuthenticationServiceTest {
         when(redisTemplate.hasKey("cooldown:resend:test@example.com")).thenReturn(false);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("register:test@example.com")).thenReturn(null);
-        
+
         mockUser.setUserStatus(UserStatus.ACTIVE);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         assertThrows(ResourceConflictException.class, () -> authenticationService.resendOtp("test@example.com"));
     }
 
@@ -555,10 +560,10 @@ class AuthenticationServiceTest {
         when(redisTemplate.hasKey("cooldown:resend:test@example.com")).thenReturn(false);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("register:test@example.com")).thenReturn(null);
-        
+
         mockUser.setUserStatus(UserStatus.INACTIVE);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         assertThrows(ResourceConflictException.class, () -> authenticationService.resendOtp("test@example.com"));
     }
 
@@ -568,7 +573,7 @@ class AuthenticationServiceTest {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("register:test@example.com")).thenReturn(null);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
-        
+
         assertThrows(ResourceNotFoundException.class, () -> authenticationService.resendOtp("test@example.com"));
     }
 
@@ -576,53 +581,59 @@ class AuthenticationServiceTest {
     void testInitiateForgotPassword_UserInactive() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         mockUser.setUserStatus(UserStatus.INACTIVE);
-        assertThrows(AccessForbiddenException.class, () -> authenticationService.initiateForgotPassword("test@example.com"));
+        assertThrows(AccessForbiddenException.class,
+                () -> authenticationService.initiateForgotPassword("test@example.com"));
     }
 
     @Test
     void testVerifyPasswordReset_UserInactive() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         mockUser.setUserStatus(UserStatus.INACTIVE);
-        assertThrows(AccessForbiddenException.class, () -> authenticationService.verifyPasswordReset("test@example.com", "123456", "newPass"));
+        assertThrows(AccessForbiddenException.class,
+                () -> authenticationService.verifyPasswordReset("test@example.com", "123456", "newPass"));
     }
-    
+
     @Test
     void testVerifyPasswordReset_OtpExpired() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         mockUser.setUserStatus(UserStatus.ACTIVE);
-        
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("otp:PASSWORD_RESET:testuser")).thenReturn(null);
-        
-        assertThrows(InvalidOtpException.class, () -> authenticationService.verifyPasswordReset("test@example.com", "123456", "newPass"));
+
+        assertThrows(InvalidOtpException.class,
+                () -> authenticationService.verifyPasswordReset("test@example.com", "123456", "newPass"));
     }
 
     @Test
     void testResendForgotPasswordOtp_Success() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         mockUser.setUserStatus(UserStatus.ACTIVE);
-        
+
         when(redisTemplate.hasKey("cooldown:resend:testuser")).thenReturn(false);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("otp:PASSWORD_RESET:testuser")).thenReturn("123456");
-        
+
         authenticationService.resendForgotPasswordOtp("test@example.com");
-        
-        verify(valueOperations).set(eq("cooldown:resend:testuser"), eq("1"), eq(60L), eq(java.util.concurrent.TimeUnit.SECONDS));
+
+        verify(valueOperations).set(eq("cooldown:resend:testuser"), eq("1"), eq(60L),
+                eq(java.util.concurrent.TimeUnit.SECONDS));
         verify(emailKafkaProducer).sendOtpEmailTask(eq("test@example.com"), eq("testuser"), anyString());
     }
 
     @Test
     void testResendForgotPasswordOtp_UserNotFound() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
-        assertThrows(ResourceNotFoundException.class, () -> authenticationService.resendForgotPasswordOtp("test@example.com"));
+        assertThrows(ResourceNotFoundException.class,
+                () -> authenticationService.resendForgotPasswordOtp("test@example.com"));
     }
 
     @Test
     void testResendForgotPasswordOtp_UserInactive() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         mockUser.setUserStatus(UserStatus.INACTIVE);
-        assertThrows(AccessForbiddenException.class, () -> authenticationService.resendForgotPasswordOtp("test@example.com"));
+        assertThrows(AccessForbiddenException.class,
+                () -> authenticationService.resendForgotPasswordOtp("test@example.com"));
     }
 
     @Test
@@ -630,9 +641,10 @@ class AuthenticationServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         mockUser.setUserStatus(UserStatus.ACTIVE);
         when(redisTemplate.hasKey("cooldown:resend:testuser")).thenReturn(true);
-        assertThrows(ResourceConflictException.class, () -> authenticationService.resendForgotPasswordOtp("test@example.com"));
+        assertThrows(ResourceConflictException.class,
+                () -> authenticationService.resendForgotPasswordOtp("test@example.com"));
     }
-    
+
     @Test
     void testResendForgotPasswordOtp_ReqExpired() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
@@ -640,7 +652,8 @@ class AuthenticationServiceTest {
         when(redisTemplate.hasKey("cooldown:resend:testuser")).thenReturn(false);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("otp:PASSWORD_RESET:testuser")).thenReturn(null);
-        
-        assertThrows(ResourceNotFoundException.class, () -> authenticationService.resendForgotPasswordOtp("test@example.com"));
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> authenticationService.resendForgotPasswordOtp("test@example.com"));
     }
 }

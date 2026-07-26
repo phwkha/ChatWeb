@@ -2,6 +2,7 @@ package com.web.backend.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.web.backend.common.TokenType;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.JwtService;
@@ -26,7 +27,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import java.io.IOException;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Component
 @Slf4j(topic = "JWT-AUTHENTICATION-FLITER")

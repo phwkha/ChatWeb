@@ -1,4 +1,4 @@
-package com.web.backend.config.LocalResolverConfig;
+package com.web.backend.config.localresolverconfig;
 
 import java.util.List;
 import java.util.Locale;

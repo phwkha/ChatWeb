@@ -30,7 +30,7 @@ import com.web.backend.common.ContentType;
 import com.web.backend.common.MessageStatus;
 import com.web.backend.common.MessageType;
 import com.web.backend.common.UserStatus;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.ChatMessageRequest;
 import com.web.backend.controller.request.MessageSystemRequest;
 import com.web.backend.controller.request.ReactionRequest;

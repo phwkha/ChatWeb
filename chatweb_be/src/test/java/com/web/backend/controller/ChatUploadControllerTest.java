@@ -1,6 +1,6 @@
 package com.web.backend.controller;
 
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.jwt.JwtAuthenticationFilter;
 import com.web.backend.service.JwtService;
 import com.web.backend.service.StorageService;
@@ -74,7 +74,7 @@ public class ChatUploadControllerTest {
         when(storageService.upLoadImage(any(MultipartFile.class))).thenReturn("image_url");
 
         mockMvc.perform(multipart("/api/chat/image")
-                        .file(file))
+                .file(file))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").value("image_url"));
@@ -87,7 +87,7 @@ public class ChatUploadControllerTest {
         when(storageService.uploadVideo(any(MultipartFile.class))).thenReturn("video_url");
 
         mockMvc.perform(multipart("/api/chat/video")
-                        .file(file))
+                .file(file))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").value("video_url"));

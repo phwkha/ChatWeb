@@ -1,7 +1,7 @@
 package com.web.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.jwt.JwtAuthenticationFilter;
@@ -34,59 +34,60 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = SystemMessageController.class, excludeAutoConfiguration = {
-        SecurityAutoConfiguration.class,
-        SecurityFilterAutoConfiguration.class,
-        OAuth2ClientAutoConfiguration.class,
-        OAuth2ClientWebSecurityAutoConfiguration.class,
-        OAuth2ResourceServerAutoConfiguration.class
+                SecurityAutoConfiguration.class,
+                SecurityFilterAutoConfiguration.class,
+                OAuth2ClientAutoConfiguration.class,
+                OAuth2ClientWebSecurityAutoConfiguration.class,
+                OAuth2ResourceServerAutoConfiguration.class
 }, excludeFilters = {
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
+                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
 })
 public class SystemMessageControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockBean
-    private MessageService messageService;
+        @MockBean
+        private MessageService messageService;
 
-    @MockBean
-    private JwtService jwtService;
+        @MockBean
+        private JwtService jwtService;
 
-    @MockBean
-    private UserServiceDetail userServiceDetail;
+        @MockBean
+        private UserServiceDetail userServiceDetail;
 
-    @MockBean
-    private RedisTemplate<String, Object> redisTemplate;
+        @MockBean
+        private RedisTemplate<String, Object> redisTemplate;
 
-    @MockBean
-    private org.springframework.messaging.simp.SimpMessagingTemplate simpMessagingTemplate;
+        @MockBean
+        private org.springframework.messaging.simp.SimpMessagingTemplate simpMessagingTemplate;
 
-    @BeforeEach
-    void setUp() {
-        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
-        messageSource.setBasename("i18n/messages");
-        messageSource.setDefaultEncoding("UTF-8");
-        new Translator(messageSource);
-    }
+        @BeforeEach
+        void setUp() {
+                ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+                messageSource.setBasename("i18n/messages");
+                messageSource.setDefaultEncoding("UTF-8");
+                new Translator(messageSource);
+        }
 
-    @Test
-    @WithMockUser
-    void testGetSystemMessages_Success() throws Exception {
-        MessageSystemResponse msg = MessageSystemResponse.builder()
-                .sender("system")
-                .content("System update")
-                .build();
-        CursorResponse<MessageSystemResponse> cursorResponse = new CursorResponse<>(List.of(msg), "nextCursor123", true);
+        @Test
+        @WithMockUser
+        void testGetSystemMessages_Success() throws Exception {
+                MessageSystemResponse msg = MessageSystemResponse.builder()
+                                .sender("system")
+                                .content("System update")
+                                .build();
+                CursorResponse<MessageSystemResponse> cursorResponse = new CursorResponse<>(List.of(msg),
+                                "nextCursor123", true);
 
-        when(messageService.findSystemMessageWithCursor(eq("cursor123"), eq(20)))
-                .thenReturn(cursorResponse);
+                when(messageService.findSystemMessageWithCursor(eq("cursor123"), eq(20)))
+                                .thenReturn(cursorResponse);
 
-        mockMvc.perform(get("/api/systems/message")
-                        .param("cursor", "cursor123")
-                        .param("size", "20"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.content[0].sender").value("system"));
-    }
+                mockMvc.perform(get("/api/systems/message")
+                                .param("cursor", "cursor123")
+                                .param("size", "20"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200))
+                                .andExpect(jsonPath("$.data.content[0].sender").value("system"));
+        }
 }

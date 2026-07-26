@@ -1,7 +1,7 @@
 package com.web.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.EmailRequest;
 import com.web.backend.jwt.JwtAuthenticationFilter;
 import com.web.backend.service.JwtService;
@@ -81,8 +81,8 @@ public class EmailControllerTest {
         request.setText("Test Content");
 
         mockMvc.perform(post("/api/email/send")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 

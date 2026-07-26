@@ -1,6 +1,7 @@
 package com.web.backend.service.impl;
 
 import com.web.backend.common.UserStatus;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.model.UserEntity;
@@ -11,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @Slf4j(topic = "KEY-SERVICE")

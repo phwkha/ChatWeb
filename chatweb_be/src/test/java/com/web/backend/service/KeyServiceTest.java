@@ -14,7 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.support.ResourceBundleMessageSource;
 
 import com.web.backend.common.UserStatus;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.model.UserEntity;
@@ -24,7 +24,8 @@ import com.web.backend.service.impl.KeyServiceImpl;
 @ExtendWith(MockitoExtension.class)
 public class KeyServiceTest {
 
-    @Mock private UserRepository userRepository;
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private KeyServiceImpl keyService;
@@ -71,14 +72,14 @@ public class KeyServiceTest {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
         assertThrows(ResourceNotFoundException.class, () -> keyService.getRsaKey("testuser"));
     }
-    
+
     @Test
     void testGetRsaKey_Inactive() {
         activeUser.setUserStatus(UserStatus.LOCKED);
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(activeUser));
         assertThrows(AccessForbiddenException.class, () -> keyService.getRsaKey("testuser"));
     }
-    
+
     @Test
     void testGetRsaKey_NullKey() {
         activeUser.setEncryptedRsaPrivateKey(null);

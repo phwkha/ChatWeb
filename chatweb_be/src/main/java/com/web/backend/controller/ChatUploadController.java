@@ -1,5 +1,6 @@
 package com.web.backend.controller;
 
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.service.StorageService;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Tag(name = "Chat Upload Controller")
 @RestController

@@ -1,6 +1,7 @@
 package com.web.backend.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.form.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,7 +11,6 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {

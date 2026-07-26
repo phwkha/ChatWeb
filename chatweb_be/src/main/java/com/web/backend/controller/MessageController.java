@@ -1,5 +1,6 @@
 package com.web.backend.controller;
 
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.MarkReadRequest;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.form.ApiResponse;
@@ -16,7 +17,6 @@ import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Tag(name = "Message Controller")
 @RestController

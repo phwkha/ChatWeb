@@ -1,6 +1,7 @@
 
 package com.web.backend.controller;
 
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.form.ApiResponse;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.RestController;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Tag(name = "System Message Controller")
 @RestController

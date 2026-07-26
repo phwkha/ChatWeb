@@ -1,5 +1,6 @@
 package com.web.backend.service.impl;
 
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.RoleRequest;
 import com.web.backend.controller.response.PermissionResponse;
 import com.web.backend.controller.response.RoleResponse;
@@ -23,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Service
 @RequiredArgsConstructor

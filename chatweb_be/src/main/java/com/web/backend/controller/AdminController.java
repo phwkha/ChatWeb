@@ -1,5 +1,6 @@
 package com.web.backend.controller;
 
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.AddressRequest;
 import com.web.backend.controller.request.AdminCreateUserRequest;
 import com.web.backend.controller.request.AdminUpdateUserRequest;
@@ -19,7 +20,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Tag(name = "Admin Controller")
 @RestController

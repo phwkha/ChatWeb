@@ -25,7 +25,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 import com.web.backend.common.TokenType;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 
 @Tag(name = "Auth Controller")
 @RestController

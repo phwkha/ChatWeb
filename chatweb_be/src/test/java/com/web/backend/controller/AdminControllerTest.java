@@ -1,7 +1,7 @@
 package com.web.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.web.backend.config.LocalResolverConfig.Translator;
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.AddressRequest;
 import com.web.backend.controller.request.AdminCreateUserRequest;
 import com.web.backend.controller.request.AdminUpdateUserRequest;
@@ -42,241 +42,242 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = AdminController.class, excludeAutoConfiguration = {
-        SecurityAutoConfiguration.class,
-        SecurityFilterAutoConfiguration.class,
-        OAuth2ClientAutoConfiguration.class,
-        OAuth2ClientWebSecurityAutoConfiguration.class,
-        OAuth2ResourceServerAutoConfiguration.class
+                SecurityAutoConfiguration.class,
+                SecurityFilterAutoConfiguration.class,
+                OAuth2ClientAutoConfiguration.class,
+                OAuth2ClientWebSecurityAutoConfiguration.class,
+                OAuth2ResourceServerAutoConfiguration.class
 }, excludeFilters = {
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
+                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
 })
 public class AdminControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Autowired
+        private ObjectMapper objectMapper;
 
-    @MockBean
-    private AdminService adminService;
+        @MockBean
+        private AdminService adminService;
 
-    @MockBean
-    private JwtService jwtService;
+        @MockBean
+        private JwtService jwtService;
 
-    @MockBean
-    private UserServiceDetail userServiceDetail;
+        @MockBean
+        private UserServiceDetail userServiceDetail;
 
-    @MockBean
-    private RedisTemplate<String, Object> redisTemplate;
+        @MockBean
+        private RedisTemplate<String, Object> redisTemplate;
 
-    @MockBean
-    private SimpMessagingTemplate simpMessagingTemplate;
+        @MockBean
+        private SimpMessagingTemplate simpMessagingTemplate;
 
-    private UsernamePasswordAuthenticationToken mockAuth;
-    private UserEntity mockAdmin;
+        private UsernamePasswordAuthenticationToken mockAuth;
+        private UserEntity mockAdmin;
 
-    @BeforeEach
-    void setUp() {
-        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
-        messageSource.setBasename("i18n/messages");
-        messageSource.setDefaultEncoding("UTF-8");
-        new Translator(messageSource);
+        @BeforeEach
+        void setUp() {
+                ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+                messageSource.setBasename("i18n/messages");
+                messageSource.setDefaultEncoding("UTF-8");
+                new Translator(messageSource);
 
-        mockAdmin = new UserEntity();
-        mockAdmin.setUsername("admin");
+                mockAdmin = new UserEntity();
+                mockAdmin.setUsername("admin");
 
-        mockAuth = new UsernamePasswordAuthenticationToken(mockAdmin, null, Collections.emptyList());
-    }
+                mockAuth = new UsernamePasswordAuthenticationToken(mockAdmin, null, Collections.emptyList());
+        }
 
-    @Test
-    void testGetAllUsers_Success() throws Exception {
-        UserSummaryResponse summary = UserSummaryResponse.builder().username("user1").build();
-        PageResponse<UserSummaryResponse> pageResponse = PageResponse.<UserSummaryResponse>builder()
-                .content(List.of(summary))
-                .build();
+        @Test
+        void testGetAllUsers_Success() throws Exception {
+                UserSummaryResponse summary = UserSummaryResponse.builder().username("user1").build();
+                PageResponse<UserSummaryResponse> pageResponse = PageResponse.<UserSummaryResponse>builder()
+                                .content(List.of(summary))
+                                .build();
 
-        when(adminService.getAllUsers(eq(0), eq(10), any())).thenReturn(pageResponse);
+                when(adminService.getAllUsers(eq(0), eq(10), any())).thenReturn(pageResponse);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .principal(mockAuth)
-                        .param("page", "0")
-                        .param("size", "10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.content[0].username").value("user1"));
-    }
+                mockMvc.perform(get("/api/admin/users")
+                                .principal(mockAuth)
+                                .param("page", "0")
+                                .param("size", "10"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200))
+                                .andExpect(jsonPath("$.data.content[0].username").value("user1"));
+        }
 
-    @Test
-    void testGetOnlineUsers_Success() throws Exception {
-        UserSummaryResponse summary = UserSummaryResponse.builder().username("user1").build();
-        PageResponse<UserSummaryResponse> pageResponse = PageResponse.<UserSummaryResponse>builder()
-                .content(List.of(summary))
-                .build();
+        @Test
+        void testGetOnlineUsers_Success() throws Exception {
+                UserSummaryResponse summary = UserSummaryResponse.builder().username("user1").build();
+                PageResponse<UserSummaryResponse> pageResponse = PageResponse.<UserSummaryResponse>builder()
+                                .content(List.of(summary))
+                                .build();
 
-        when(adminService.getOnlineUsers(eq(0), eq(10))).thenReturn(pageResponse);
+                when(adminService.getOnlineUsers(eq(0), eq(10))).thenReturn(pageResponse);
 
-        mockMvc.perform(get("/api/admin/online")
-                        .principal(mockAuth)
-                        .param("page", "0")
-                        .param("size", "10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-    }
+                mockMvc.perform(get("/api/admin/online")
+                                .principal(mockAuth)
+                                .param("page", "0")
+                                .param("size", "10"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200));
+        }
 
-    @Test
-    void testGetUserByUsername_Success() throws Exception {
-        UserDetailResponse detail = new UserDetailResponse();
-        detail.setUsername("user1");
+        @Test
+        void testGetUserByUsername_Success() throws Exception {
+                UserDetailResponse detail = new UserDetailResponse();
+                detail.setUsername("user1");
 
-        when(adminService.getUserByUsername("user1")).thenReturn(detail);
+                when(adminService.getUserByUsername("user1")).thenReturn(detail);
 
-        mockMvc.perform(get("/api/admin/user/user1")
-                        .principal(mockAuth))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.username").value("user1"));
-    }
+                mockMvc.perform(get("/api/admin/user/user1")
+                                .principal(mockAuth))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200))
+                                .andExpect(jsonPath("$.data.username").value("user1"));
+        }
 
-    @Test
-    void testAddUser_Success() throws Exception {
-        AdminCreateUserRequest request = new AdminCreateUserRequest();
-        request.setUsername("newuser");
-        request.setPassword("password123");
-        request.setFirstName("First");
-        request.setEmail("test@gmail.com");
+        @Test
+        void testAddUser_Success() throws Exception {
+                AdminCreateUserRequest request = new AdminCreateUserRequest();
+                request.setUsername("newuser");
+                request.setPassword("password123");
+                request.setFirstName("First");
+                request.setEmail("test@gmail.com");
 
-        UserResponse response = new UserResponse();
-        response.setUsername("newuser");
+                UserResponse response = new UserResponse();
+                response.setUsername("newuser");
 
-        when(adminService.adminCreateUser(any(AdminCreateUserRequest.class))).thenReturn(response);
+                when(adminService.adminCreateUser(any(AdminCreateUserRequest.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/admin/add")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.code").value(201))
-                .andExpect(jsonPath("$.data.username").value("newuser"));
-    }
+                mockMvc.perform(post("/api/admin/add")
+                                .principal(mockAuth)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.code").value(201))
+                                .andExpect(jsonPath("$.data.username").value("newuser"));
+        }
 
-    @Test
-    void testUnlockUser_Success() throws Exception {
-        UserResponse response = new UserResponse();
-        response.setUsername("user1");
+        @Test
+        void testUnlockUser_Success() throws Exception {
+                UserResponse response = new UserResponse();
+                response.setUsername("user1");
 
-        when(adminService.unlockUser("user1")).thenReturn(response);
+                when(adminService.unlockUser("user1")).thenReturn(response);
 
-        mockMvc.perform(post("/api/admin/user1/unlock")
-                        .principal(mockAuth))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-    }
+                mockMvc.perform(post("/api/admin/user1/unlock")
+                                .principal(mockAuth))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200));
+        }
 
-    @Test
-    void testLockUser_Success() throws Exception {
-        UserResponse response = new UserResponse();
-        response.setUsername("user1");
+        @Test
+        void testLockUser_Success() throws Exception {
+                UserResponse response = new UserResponse();
+                response.setUsername("user1");
 
-        when(adminService.lockUser("user1")).thenReturn(response);
+                when(adminService.lockUser("user1")).thenReturn(response);
 
-        mockMvc.perform(post("/api/admin/user1/lock")
-                        .principal(mockAuth))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-    }
+                mockMvc.perform(post("/api/admin/user1/lock")
+                                .principal(mockAuth))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200));
+        }
 
-    @Test
-    void testDeleteAvatar_Success() throws Exception {
-        mockMvc.perform(post("/api/admin/user1/delete-avatar")
-                        .principal(mockAuth))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+        @Test
+        void testDeleteAvatar_Success() throws Exception {
+                mockMvc.perform(post("/api/admin/user1/delete-avatar")
+                                .principal(mockAuth))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200));
 
-        verify(adminService).deleteAvatar("user1");
-    }
+                verify(adminService).deleteAvatar("user1");
+        }
 
-    @Test
-    void testUpdateUser_Success() throws Exception {
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("updated@gmail.com");
+        @Test
+        void testUpdateUser_Success() throws Exception {
+                AdminUpdateUserRequest request = new AdminUpdateUserRequest();
+                request.setEmail("updated@gmail.com");
 
-        UserResponse response = new UserResponse();
-        response.setUsername("user1");
+                UserResponse response = new UserResponse();
+                response.setUsername("user1");
 
-        when(adminService.adminUpdateUser(eq("user1"), any(AdminUpdateUserRequest.class))).thenReturn(response);
+                when(adminService.adminUpdateUser(eq("user1"), any(AdminUpdateUserRequest.class))).thenReturn(response);
 
-        mockMvc.perform(put("/api/admin/user1")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-    }
+                mockMvc.perform(put("/api/admin/user1")
+                                .principal(mockAuth)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200));
+        }
 
-    @Test
-    void testDeleteUser_Success() throws Exception {
-        mockMvc.perform(delete("/api/admin/user1")
-                        .principal(mockAuth))
-                .andExpect(status().isNoContent());
+        @Test
+        void testDeleteUser_Success() throws Exception {
+                mockMvc.perform(delete("/api/admin/user1")
+                                .principal(mockAuth))
+                                .andExpect(status().isNoContent());
 
-        verify(adminService).adminDeleteUser("user1", "admin");
-    }
+                verify(adminService).adminDeleteUser("user1", "admin");
+        }
 
-    @Test
-    void testGetAllAddressesForUser_Success() throws Exception {
-        AddressResponse address = new AddressResponse();
-        address.setId(1L);
+        @Test
+        void testGetAllAddressesForUser_Success() throws Exception {
+                AddressResponse address = new AddressResponse();
+                address.setId(1L);
 
-        when(adminService.adminGetAllAddresses("user1")).thenReturn(List.of(address));
+                when(adminService.adminGetAllAddresses("user1")).thenReturn(List.of(address));
 
-        mockMvc.perform(get("/api/admin/user/user1/addresses")
-                        .principal(mockAuth))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-    }
+                mockMvc.perform(get("/api/admin/user/user1/addresses")
+                                .principal(mockAuth))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200));
+        }
 
-    @Test
-    void testGetAddressByIdForUser_Success() throws Exception {
-        AddressResponse address = new AddressResponse();
-        address.setId(1L);
+        @Test
+        void testGetAddressByIdForUser_Success() throws Exception {
+                AddressResponse address = new AddressResponse();
+                address.setId(1L);
 
-        when(adminService.adminGetAddressById("user1", 1L)).thenReturn(address);
+                when(adminService.adminGetAddressById("user1", 1L)).thenReturn(address);
 
-        mockMvc.perform(get("/api/admin/user/user1/address/1")
-                        .principal(mockAuth))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-    }
+                mockMvc.perform(get("/api/admin/user/user1/address/1")
+                                .principal(mockAuth))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200));
+        }
 
-    @Test
-    void testUpdateAddressForUser_Success() throws Exception {
-        AddressRequest request = new AddressRequest();
-        request.setCity("Hanoi");
-        request.setStreet("Hoan Kiem");
-        request.setCountry("Vietnam");
-        request.setDistrict("Hoan Kiem District");
-        request.setWard("Hang Trong");
+        @Test
+        void testUpdateAddressForUser_Success() throws Exception {
+                AddressRequest request = new AddressRequest();
+                request.setCity("Hanoi");
+                request.setStreet("Hoan Kiem");
+                request.setCountry("Vietnam");
+                request.setDistrict("Hoan Kiem District");
+                request.setWard("Hang Trong");
 
-        UserDetailResponse response = new UserDetailResponse();
-        response.setUsername("user1");
+                UserDetailResponse response = new UserDetailResponse();
+                response.setUsername("user1");
 
-        when(adminService.adminUpdateAddress(eq("user1"), eq(1L), any(AddressRequest.class))).thenReturn(response);
+                when(adminService.adminUpdateAddress(eq("user1"), eq(1L), any(AddressRequest.class)))
+                                .thenReturn(response);
 
-        mockMvc.perform(put("/api/admin/user/user1/address/1")
-                        .principal(mockAuth)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
-    }
+                mockMvc.perform(put("/api/admin/user/user1/address/1")
+                                .principal(mockAuth)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(200));
+        }
 
-    @Test
-    void testDeleteAddressForUser_Success() throws Exception {
-        mockMvc.perform(delete("/api/admin/user/user1/address/1")
-                        .principal(mockAuth))
-                .andExpect(status().isNoContent());
+        @Test
+        void testDeleteAddressForUser_Success() throws Exception {
+                mockMvc.perform(delete("/api/admin/user/user1/address/1")
+                                .principal(mockAuth))
+                                .andExpect(status().isNoContent());
 
-        verify(adminService).adminDeleteAddress("user1", 1L);
-    }
+                verify(adminService).adminDeleteAddress("user1", 1L);
+        }
 }

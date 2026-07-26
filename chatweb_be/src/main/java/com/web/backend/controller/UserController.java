@@ -1,5 +1,6 @@
 package com.web.backend.controller;
 
+import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.*;
 import com.web.backend.controller.response.AddressResponse;
@@ -18,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import com.web.backend.config.LocalResolverConfig.Translator;
 
 @Slf4j(topic = "USER-CONTROLLER")
 @Tag(name = "User Controller")
