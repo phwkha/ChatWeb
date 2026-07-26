@@ -1,7 +1,10 @@
 pipeline {
     agent any
     environment {
-        SONAR_SERVER = 'sonar-server' 
+        // Cấu hình SonarQube
+        SONAR_SERVER = 'sonar-server'
+        // Biến môi trường cho Jib đóng gói Image
+        DOCKER_USERNAME = 'phanhuukha'
     }
 
     stages {
