@@ -24,7 +24,7 @@ pipeline {
             steps {
                 dir('chatweb_be') {
                     withSonarQubeEnv("${SONAR_SERVER}") {
-                        sh './mvnw verify sonar:sonar'
+                        sh './mvnw verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'
                     }
                 }
             }
