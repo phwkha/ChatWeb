@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+    environment {
+        SONAR_SERVER = 'sonar-server' 
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build & Compile Backend') {
+            steps {
+                dir('chatweb_be') {
+                    sh 'chmod +x mvnw'
+                    sh './mvnw clean compile'
+                }
+            }
+        }
+
+        stage('SonarQube Code Analysis') {
+            steps {
+                dir('chatweb_be') {
+                    withSonarQubeEnv("${SONAR_SERVER}") {
+                        sh './mvnw verify sonar:sonar'
+                    }
+                }
+            }
+        }
+        
+        stage('Build Docker Image (Google Jib)') {
+            steps {
+                dir('chatweb_be') {
+                    sh './mvnw compile jib:dockerBuild'
+                }
+            }
+        }
+        
+        stage('Deploy (Optional)') {
+            steps {
+                echo 'Đã đóng gói xong Image! Container có thể được restart để nhận code mới.'
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo '🎉 Pipeline chạy THÀNH CÔNG!'
+        }
+        failure {
+            echo '❌ Pipeline THẤT BẠI. Vui lòng kiểm tra lại log.'
+        }
+    }
+}
