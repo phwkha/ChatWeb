@@ -43,18 +43,18 @@ pipeline {
             }
         }
         
-                    stage('Build & Push to Docker Hub') {
-                steps {
-                    dir('chatweb_be') {
-                        withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', 
-                                                          passwordVariable: 'DOCKER_PASSWORD', 
-                                                          usernameVariable: 'DOCKER_USERNAME')]) {
+        stage('Build & Push to Docker Hub') {
+            steps {
+                dir('chatweb_be') {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', 
+                                                        passwordVariable: 'DOCKER_PASSWORD', 
+                                                        usernameVariable: 'DOCKER_USERNAME')]) {
 
-                            sh './mvnw compile jib:build'
-                        }
+                        sh './mvnw compile jib:build'
                     }
                 }
             }
+        }
         
         stage('Deploy (Optional)') {
             steps {
