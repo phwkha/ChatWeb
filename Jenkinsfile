@@ -2,7 +2,6 @@ pipeline {
     agent any
     environment {
         SONAR_SERVER = 'sonar-server'
-        DOCKER_USERNAME = 'phanhuukha'
     }
 
     stages {
@@ -24,13 +23,11 @@ pipeline {
         stage('Unit Test') {
             steps {
                 dir('chatweb_be') {
-                    // Chạy toàn bộ Unit Test trong project
                     sh './mvnw test'
                 }
             }
             post {
                 always {
-                    // Thu thập báo cáo Test để hiển thị trên giao diện Jenkins
                     junit 'chatweb_be/target/surefire-reports/*.xml'
                 }
             }
@@ -46,13 +43,18 @@ pipeline {
             }
         }
         
-        stage('Build Docker Image (Google Jib)') {
-            steps {
-                dir('chatweb_be') {
-                    sh './mvnw compile jib:dockerBuild'
+                    stage('Build & Push to Docker Hub') {
+                steps {
+                    dir('chatweb_be') {
+                        withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', 
+                                                          passwordVariable: 'DOCKER_PASSWORD', 
+                                                          usernameVariable: 'DOCKER_USERNAME')]) {
+
+                            sh './mvnw compile jib:build'
+                        }
+                    }
                 }
             }
-        }
         
         stage('Deploy (Optional)') {
             steps {
