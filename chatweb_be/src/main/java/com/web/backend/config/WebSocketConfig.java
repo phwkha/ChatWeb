@@ -49,10 +49,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private static final String APP_STRING = "/app";
     private static final String WS_STRING = "/ws";
 
-    private static final String HTTP_LOCALHOST_5174_STRING = "http://localhost:5174";
-    private static final String HTTP_LOCALHOST_8080_STRING = "http://localhost:8080";
-    private static final String HTTP_LOCALHOST_5173_STRING = "http://localhost:5173";
-
     private static final String JWT_TOKEN_COOKIE_STRING = "jwt_token_cookie";
     private static final String BLACKLIST_STRING = "blacklist:";
     private static final String AUTHORIZATION_STRING = "Authorization";
@@ -73,7 +69,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         registry.addEndpoint(WS_STRING)
-                .setAllowedOrigins(HTTP_LOCALHOST_5174_STRING, HTTP_LOCALHOST_8080_STRING, HTTP_LOCALHOST_5173_STRING)
+                .setAllowedOriginPatterns("*")
                 .addInterceptors(jwtHandshakeInterceptor)
                 .withSockJS();
     }
