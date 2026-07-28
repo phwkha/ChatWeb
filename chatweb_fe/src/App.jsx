@@ -1,80 +1,28 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Navbar from './components/common/Navbar';
-import ProtectedRoute from './routes/ProtectedRoute';
-import MainPage from './pages/home/MainPage';
-import Login from './pages/auth/Login';
-import Signup from './pages/auth/Signup';
-import Chat from './pages/chat/Chat';
-import AdminRoute from './routes/AdminRoute';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import UserProfile from './pages/profile/UserProfile';
-import VerifyAccount from './pages/auth/VerifyAccount';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
-import {  authService  } from './services';
-import './index.css';
+import React from 'react'
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<MainPage />} />
-
-          <Route path="/login" element={
-            authService.isAuthenticated() ?
-              <Navigate to="/chat" replace /> :
-              <Login />
-          } />
-
-          <Route path="/signup" element={
-            authService.isAuthenticated() ?
-              <Navigate to="/chat" replace /> :
-              <Signup />
-          } />
-
-          <Route path="/verify-account" element={
-            authService.isAuthenticated() ?
-              <Navigate to="/chat" replace /> :
-              <VerifyAccount />
-          } />
-
-          <Route path="/forgot-password" element={
-            authService.isAuthenticated() ?
-              <Navigate to="/chat" replace /> :
-              <ForgotPassword />
-          } />
-
-          <Route path="/reset-password" element={
-            authService.isAuthenticated() ?
-              <Navigate to="/chat" replace /> :
-              <ResetPassword />
-          } />
-
-          <Route path="/chat" element={
-            <ProtectedRoute>
-              <Chat />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/admin" element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          } />
-
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <UserProfile />
-            </ProtectedRoute>
-          } />
-
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-
+    <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white selection:bg-indigo-500 selection:text-white">
+      <div className="text-center space-y-6 max-w-lg p-8 bg-slate-800/50 rounded-3xl border border-white/5 shadow-2xl backdrop-blur-xl">
+        <div className="flex justify-center">
+          <div className="w-20 h-20 bg-indigo-500 rounded-2xl rotate-12 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <span className="text-4xl -rotate-12">🚀</span>
+          </div>
+        </div>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+          ChatWeb Frontend
+        </h1>
+        <p className="text-slate-400 text-lg">
+          Project đã được dọn dẹp sạch sẽ và sẵn sàng xây dựng các tính năng mới với TailwindCSS v4!
+        </p>
+        <div className="flex gap-4 justify-center pt-4">
+          <button className="px-6 py-3 bg-indigo-500 hover:bg-indigo-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-500/25 active:scale-95 cursor-pointer">
+            Bắt đầu code
+          </button>
+        </div>
       </div>
-    </Router>
-  );
+    </div>
+  )
 }
-export default App;
+
+export default App

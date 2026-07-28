@@ -1,37 +1,25 @@
 {
-  "name": "chatweb-client",
+  "name": "chatweb_fe",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@heroicons/react": "^2.2.0",
-    "@stomp/stompjs": "^7.2.1",
-    "@tailwindcss/vite": "^4.3.3",
-    "axios": "^1.12.2",
-    "idb-keyval": "^6.2.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.4",
-    "sockjs-client": "^1.6.1"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@eslint/js": "^9.36.0",
-    "@types/react": "^19.1.16",
-    "@types/react-dom": "^19.1.9",
-    "@vitejs/plugin-react": "^5.0.4",
-    "autoprefixer": "^10.5.4",
-    "eslint": "^9.36.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.22",
-    "globals": "^16.4.0",
-    "postcss": "^8.5.23",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxlint": "^1.71.0",
     "tailwindcss": "^4.3.3",
-    "vite": "^7.1.7"
+    "vite": "^8.1.1"
   }
 }
