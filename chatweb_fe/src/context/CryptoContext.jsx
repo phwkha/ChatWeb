@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { authService } from '../services/authService';
+import {  keyService, authService  } from '../services';
 import { cryptoService } from '../services/cryptoService';
 
 const CryptoContext = createContext();
@@ -35,7 +35,7 @@ export const CryptoProvider = ({ children }) => {
     const unlockKeys = useCallback(async (pin) => {
         setError('');
         try {
-            const encryptedKeyData = await authService.getEncryptedRsaKey();
+            const encryptedKeyData = await keyService.getEncryptedRsaKey();
             if (!encryptedKeyData) {
                 setError("Không tìm thấy khóa. Vui lòng tạo khóa mới.");
                 return false;
@@ -45,7 +45,7 @@ export const CryptoProvider = ({ children }) => {
             
             // Lấy Public Key
             const currentUser = authService.getCurrentUser();
-            const publicKey = await authService.getPublicKey(currentUser.username);
+            const publicKey = await keyService.getPublicKey(currentUser.username);
 
             setRsaKeyPair({ publicKey, privateKey });
             setIsUnlocked(true);
@@ -74,8 +74,8 @@ export const CryptoProvider = ({ children }) => {
 
             const encryptedKey = await cryptoService.encryptPrivateKey(privateKey, derivedKey, salt);
             
-            await authService.savePublicKey(publicKey);
-            await authService.saveEncryptedRsaKey(encryptedKey);
+            await keyService.savePublicKey(publicKey);
+            await keyService.saveEncryptedRsaKey(encryptedKey);
 
             setRsaKeyPair({ publicKey, privateKey });
             setPinDerivedKey(derivedKey);

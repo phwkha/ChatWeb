@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { authService } from "../services/authService";
+import {  authService  } from '../services';
 
 const AdminRoute = ({ children }) => {
     const currentUser = authService.getCurrentUser();
