@@ -71,11 +71,21 @@ public class DataSeeder implements CommandLineRunner {
         PermissionEntity pUserCreate = createPermissionIfNotFound(USER_CREATE_STRING, T_O_USER_M_I_STRING);
         PermissionEntity pUserUpdate = createPermissionIfNotFound(USER_UPDATE_STRING, S_A_USER_STRING);
         PermissionEntity pUserDelete = createPermissionIfNotFound(USER_DELETE_STRING, X_A_USER_STRING);
+        
+        // Admin permissions to match AdminController
+        PermissionEntity pAdminView = createPermissionIfNotFound("ADMIN_VIEW", "Xem quyền quản trị");
+        PermissionEntity pAdminCreate = createPermissionIfNotFound("ADMIN_CREATE", "Tạo quyền quản trị");
+        PermissionEntity pAdminUpdate = createPermissionIfNotFound("ADMIN_UPDATE", "Sửa quyền quản trị");
+        PermissionEntity pAdminDelete = createPermissionIfNotFound("ADMIN_DELETE", "Xóa quyền quản trị");
+        PermissionEntity pAdminLock = createPermissionIfNotFound("ADMIN_LOCK", "Khóa user");
+        PermissionEntity pAdminUnlock = createPermissionIfNotFound("ADMIN_UNLOCK", "Mở khóa user");
+        PermissionEntity pAdminDeleteAvatar = createPermissionIfNotFound("ADMIN_DELETE_AVATAR", "Xóa avatar");
 
         RoleEntity roleAdmin = createRoleIfNotFound(ADMIN_STRING, QU_N_TR_VI_N_H_TH_NG_STRING);
         RoleEntity roleUser = createRoleIfNotFound(USER_STRING, NG_I_D_NG_C_B_N_STRING);
 
-        assignPermissionToRole(roleAdmin, pUserView, pUserCreate, pUserUpdate, pUserDelete);
+        assignPermissionToRole(roleAdmin, pUserView, pUserCreate, pUserUpdate, pUserDelete,
+                pAdminView, pAdminCreate, pAdminUpdate, pAdminDelete, pAdminLock, pAdminUnlock, pAdminDeleteAvatar);
 
         assignPermissionToRole(roleUser, pUserView);
 
