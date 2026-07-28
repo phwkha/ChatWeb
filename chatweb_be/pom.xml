@@ -291,7 +291,7 @@
 				<version>3.4.1</version>
 				<configuration>
 					<from>
-						<image>eclipse-temurin:21-jre-alpine</image>
+						<image>eclipse-temurin:21-jre-jammy</image>
 					</from>
 					<to>
 						<image>${env.DOCKER_USERNAME}/chatweb-backend:latest</image>
