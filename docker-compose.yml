@@ -214,26 +214,6 @@ services:
     depends_on:
       - prometheus
 
-  # --- VITE REACT FRONTEND ---
-  cw_frontend:
-    container_name: frontend
-    build:
-      context: ./chatweb_fe
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL}
-        - VITE_SOCKET_URL=${VITE_SOCKET_URL}
-    ports:
-      - "80:80"
-    networks:
-      - default
-    depends_on:
-      - cw_backend
-
-networks:
-  default:
-    name: chatweb_network
-
 volumes:
   mongo_data:
   mongo_config_data:
