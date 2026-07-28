@@ -32,8 +32,10 @@ import com.web.backend.common.MessageType;
 import com.web.backend.common.UserStatus;
 import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.ChatMessageRequest;
+import com.web.backend.controller.request.EditMessageRequest;
 import com.web.backend.controller.request.MessageSystemRequest;
 import com.web.backend.controller.request.ReactionRequest;
+import com.web.backend.controller.request.RevokeMessageRequest;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
@@ -122,7 +124,6 @@ public class MessageServiceImpl implements MessageService {
         if (recipientEntity.getUserStatus() == UserStatus.LOCKED) {
             throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_SEND_LOCKED_STRING));
         }
-
         if (!friendService.isFriend(Objects.requireNonNull(sender),
                 Objects.requireNonNull(request.getRecipient()))) {
             throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING));
@@ -272,8 +273,8 @@ public class MessageServiceImpl implements MessageService {
                 }
 
                 finalMessages = uniqueMessagesMap.values().stream()
-                        .sorted(Comparator.comparing((ChatMessage msg) -> msg.getTimestamp()).reversed())
-                        .limit(size + 1)
+                        .sorted(Comparator.comparing(ChatMessage::getTimestamp).reversed())
+                        .limit(size++)
                         .toList();
             }
         }
@@ -294,7 +295,7 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public void editMessage(String senderUsername, com.web.backend.controller.request.EditMessageRequest request) {
+    public void editMessage(String senderUsername, EditMessageRequest request) {
         ChatMessage message = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
                 .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
 
@@ -312,7 +313,7 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public void revokeMessage(String senderUsername, com.web.backend.controller.request.RevokeMessageRequest request) {
+    public void revokeMessage(String senderUsername, RevokeMessageRequest request) {
         ChatMessage message = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
                 .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
 
