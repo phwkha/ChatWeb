@@ -30,6 +30,8 @@ import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.*;
 import com.web.backend.repository.MessageRepository;
 import com.web.backend.repository.UserRepository;
+import com.web.backend.repository.FriendshipRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import com.web.backend.service.impl.UserServiceImpl;
 import com.web.backend.service.util.CuckooFilterService;
 import com.web.backend.service.util.EmailService;
@@ -53,6 +55,10 @@ public class UserServiceTest {
     private RedisTemplate<String, Object> redisTemplate;
     @Mock
     private CuckooFilterService cuckooFilterService;
+    @Mock
+    private FriendshipRepository friendshipRepository;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
     @Mock
     private ValueOperations<String, Object> valueOperations;
 
@@ -449,8 +455,13 @@ public class UserServiceTest {
 
     @Test
     void testSetUserOnlineStatus() {
+        org.springframework.test.util.ReflectionTestUtils.setField(userService, "friendTopic", "test-friend-topic");
+        when(friendshipRepository.findAllFriendUsernamesByUsername("testuser")).thenReturn(java.util.List.of("friend1"));
+        
         userService.setUserOnlineStatus("testuser", true);
+        
         verify(userRepository).updateOnlineStatus("testuser", true);
+        verify(eventPublisher).publishEvent(any(com.web.backend.event.KafkaDispatchEvent.class));
     }
 
     @Test
