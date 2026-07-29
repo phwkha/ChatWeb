@@ -66,4 +66,21 @@ public class FriendWebSocketController {
         }
     }
 
+    @MessageMapping("/friend/decline")
+    public void handleDeclineRequest(@Payload @NonNull String requesterUsername, @NonNull Authentication auth) {
+        UserEntity acceptor = (UserEntity) auth.getPrincipal();
+        String username = Objects.requireNonNull(acceptor.getUsername());
+        try {
+            friendService.deleteFriendship(username, requesterUsername);
+
+        } catch (AccessForbiddenException | ResourceNotFoundException | ResourceConflictException
+                | InvalidDataException e) {
+            log.warn("Business error declining friend request: {}", e.getMessage());
+            webSocketErrorHandler.handleChatError(username, requesterUsername, e.getMessage());
+        } catch (Exception e) {
+            log.error("System error declining friend request: ", e);
+            webSocketErrorHandler.handleChatError(username, requesterUsername,
+                    Translator.tolocale(ERROR_SYS_BUSY_STRING));
+        }
+    }
 }
