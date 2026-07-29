@@ -8,7 +8,7 @@ class WebSocketClient {
     this.callbacks = new Map();
   }
 
-  connect(token, onConnectCallback) {
+  connect(onConnectCallback) {
     if (this.isConnected) return;
 
     const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -17,7 +17,7 @@ class WebSocketClient {
     this.stompClient = new Client({
       webSocketFactory: () => new SockJS(`${serverUrl}/ws`),
       connectHeaders: {
-        Authorization: `Bearer ${token}`
+        // No Authorization header needed, HttpOnly cookies are sent automatically by SockJS
       },
       debug: function (str) {
         console.log('STOMP: ' + str);
@@ -41,7 +41,11 @@ class WebSocketClient {
       });
 
       this.stompClient.subscribe('/user/queue/errors', (message) => {
-        console.error("WS Error:", message.body);
+        if (message.body && this.callbacks.has('onMessageError')) {
+          this.callbacks.get('onMessageError')(JSON.parse(message.body));
+        } else {
+          console.error("WS Error:", message.body);
+        }
       });
 
       if (onConnectCallback) onConnectCallback();
@@ -60,6 +64,14 @@ class WebSocketClient {
       this.stompClient.deactivate();
     }
     this.isConnected = false;
+  }
+
+  reconnect() {
+    this.disconnect();
+    // Allow time for cleanup before reconnecting
+    setTimeout(() => {
+      this.connect();
+    }, 500);
   }
 
   on(event, callback) {

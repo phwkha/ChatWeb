@@ -12,11 +12,6 @@ const apiClient = axios.create({
 // Request Interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
     // Add Accept-Language for backend i18n
     const language = localStorage.getItem('i18nextLng') || 'vi';
     config.headers['Accept-Language'] = language;
@@ -68,34 +63,23 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error("No refresh token available");
-
         // The exact route based on BE grep: /api/auth/refresh-token (POST)
-        const res = await axios.post(`${apiClient.defaults.baseURL}/api/auth/refresh-token`, {
-          token: refreshToken
+        // Refresh token is automatically sent via HttpOnly cookie
+        await axios.post(`${apiClient.defaults.baseURL}/api/auth/refresh-token`, {}, {
+          withCredentials: true
         });
 
-        // Assuming response structure contains new token
-        const newAccessToken = res.data.data?.accessToken || res.data.accessToken; 
-        const newRefreshToken = res.data.data?.refreshToken || res.data.refreshToken;
+        // Backend automatically sets the new cookies
+        // We can just retry the original request
+        import('./webSocketClient').then(module => {
+           module.default.reconnect(); // No need to pass token, WS relies on cookies
+        });
 
-        localStorage.setItem('accessToken', newAccessToken);
-        if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
-        }
-
-        apiClient.defaults.headers.common['Authorization'] = 'Bearer ' + newAccessToken;
-        originalRequest.headers['Authorization'] = 'Bearer ' + newAccessToken;
-        
-        processQueue(null, newAccessToken);
+        processQueue(null, true);
         return apiClient(originalRequest);
         
       } catch (err) {
         processQueue(err, null);
-        // Dispatch logout action or redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         window.location.href = '/login';
         return Promise.reject(err);
       } finally {
@@ -103,8 +87,6 @@ apiClient.interceptors.response.use(
       }
     } else if (isUnauthorized) {
       // If it's a 401 but NOT 4011 (e.g. Invalid Token)
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
       window.location.href = '/login';
     }
 

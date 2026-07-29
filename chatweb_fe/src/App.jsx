@@ -17,6 +17,7 @@ import ProfilePage from './pages/profile/ProfilePage';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminRoute from './router/AdminRoute';
 
+import AuthInitializer from './components/auth/AuthInitializer';
 import ToastContainer from './components/ui/ToastContainer';
 
 const ProtectedRoute = ({ children }) => {
@@ -38,44 +39,46 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen w-full bg-transparent flex flex-col">
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/verify-account" element={<VerifyAccountPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          
-          {/* Protected Routes */}
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
-                <ChatLayout />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            } 
-          />
+        <AuthInitializer>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/verify-account" element={<VerifyAccountPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            
+            {/* Protected Routes */}
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <ChatLayout />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } 
+            />
 
-          {/* Admin Routes */}
-          <Route 
-            path="/admin/*" 
-            element={
-              <AdminRoute>
-                <AdminLayout />
-              </AdminRoute>
-            } 
-          />
-          
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Admin Routes */}
+            <Route 
+              path="/admin/*" 
+              element={
+                <AdminRoute>
+                  <AdminLayout />
+                </AdminRoute>
+              } 
+            />
+            
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AuthInitializer>
         <ToastContainer />
       </div>
     </Router>

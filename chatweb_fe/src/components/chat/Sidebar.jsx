@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { User, LogOut, Settings, Users, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const Sidebar = ({ activeTab, setActiveTab, handleLogout, contacts, activeChat, setActiveChat }) => {
+const Sidebar = ({ activeTab, setActiveTab, handleLogout, contacts, activeChat, setActiveChat, onLoadMoreContacts, hasMoreContacts }) => {
   const { t } = useTranslation();
 
   return (
@@ -58,7 +58,15 @@ const Sidebar = ({ activeTab, setActiveTab, handleLogout, contacts, activeChat, 
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
+        <div 
+          className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2"
+          onScroll={(e) => {
+            const { scrollTop, scrollHeight, clientHeight } = e.target;
+            if (scrollHeight - scrollTop <= clientHeight + 10 && hasMoreContacts) {
+              onLoadMoreContacts();
+            }
+          }}
+        >
           {contacts.map((contact, idx) => {
             const isSelected = activeChat === contact.username;
             return (
@@ -93,7 +101,14 @@ const Sidebar = ({ activeTab, setActiveTab, handleLogout, contacts, activeChat, 
               </motion.div>
             );
           })}
-          {contacts.length === 0 && (
+          
+          {hasMoreContacts && (
+            <div className="py-2 text-center text-xs text-gray-500">
+              Loading more...
+            </div>
+          )}
+          
+          {!hasMoreContacts && contacts.length === 0 && (
             <div className="p-4 text-center text-sm text-gray-500">
               No contacts found.
             </div>

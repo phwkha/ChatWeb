@@ -19,57 +19,102 @@ const ChatLayout = () => {
   const [activeTab, setActiveTab] = useState('chats'); // 'chats' or 'friends'
   const [activeChat, setActiveChat] = useState(null);
   const [contacts, setContacts] = useState([]);
+  const [contactsPage, setContactsPage] = useState(0);
+  const [hasMoreContacts, setHasMoreContacts] = useState(true);
+  const [loadingContacts, setLoadingContacts] = useState(false);
   
   const [messages, setMessages] = useState([]);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [cursor, setCursor] = useState(null); // Assuming cursor based on ID or date, or maybe page index
+  const [cursor, setCursor] = useState(null); 
 
-  const token = localStorage.getItem('accessToken');
-  
+
   // Fetch contacts list
-  const loadContacts = async () => {
+  const loadContacts = async (isLoadMore = false) => {
+    if (loadingContacts || (!hasMoreContacts && isLoadMore)) return;
+    
+    setLoadingContacts(true);
     try {
-      // Depending on active tab, fetch friends or conversations
-      // We'll use /api/friends for now
-      const res = await apiClient.get('/api/friends', { params: { size: 50 } });
+      const pageToFetch = isLoadMore ? contactsPage + 1 : 0;
+      const res = await apiClient.get('/api/friends', { params: { size: 20, page: pageToFetch } });
       const data = Array.isArray(res.data.data?.content) ? res.data.data.content : (Array.isArray(res.data.data) ? res.data.data : []);
-      // Map them to expected structure if needed
-      setContacts(data);
+      
+      if (isLoadMore) {
+        setContacts(prev => [...prev, ...data]);
+      } else {
+        setContacts(data);
+      }
+      
+      setContactsPage(pageToFetch);
+      // Assuming res.data.data.last is a boolean for last page, or check length
+      const isLast = res.data.data?.last ?? data.length < 20;
+      setHasMoreContacts(!isLast);
     } catch (err) {
       console.error("Failed to load contacts", err);
+    } finally {
+      setLoadingContacts(false);
     }
   };
 
   useEffect(() => {
-    loadContacts();
+    setContacts([]);
+    setContactsPage(0);
+    setHasMoreContacts(true);
+    loadContacts(false);
   }, [activeTab]);
 
   // Handle WebSocket connection
   useEffect(() => {
-    if (token) {
-      webSocketClient.connect(token, () => {
-        console.log("WebSocket connected from ChatLayout");
-      });
+    webSocketClient.connect(() => {
+      console.log("WebSocket connected from ChatLayout");
+    });
       
-      webSocketClient.on('onMessageReceived', (msg) => {
-        // Only append if it's for the currently active chat
-        // Depending on backend payload structure, adjust this
-        if (msg.senderUsername === activeChat || msg.receiverUsername === activeChat) {
-          setMessages(prev => [...prev, { 
-            ...msg, 
-            content: msg.content, 
-            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
-            isOwn: msg.senderUsername === currentUser?.username 
-          }]);
+      webSocketClient.on('onMessageReceived', (socketResponse) => {
+        const msg = socketResponse.data;
+        if (msg.sender === activeChat || msg.recipient === activeChat) {
+          setMessages(prev => {
+            // Check if we have an optimistic message with matching localId
+            const existingIndex = prev.findIndex(m => m.localId && m.localId === msg.localId);
+            
+            const newMsg = {
+              ...msg, 
+              content: msg.content, 
+              time: msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...', 
+              isOwn: msg.sender === currentUser?.username,
+              status: 'sent'
+            };
+
+            if (existingIndex > -1) {
+              const updated = [...prev];
+              updated[existingIndex] = newMsg;
+              return updated;
+            } else {
+              return [...prev, newMsg];
+            }
+          });
         }
       });
-    }
+
+      webSocketClient.on('onMessageError', (socketResponse) => {
+        const errorRequest = socketResponse.data;
+        // Find the message with the matching localId and mark it as error
+        if (errorRequest && errorRequest.localId) {
+          setMessages(prev => {
+            const existingIndex = prev.findIndex(m => m.localId === errorRequest.localId);
+            if (existingIndex > -1) {
+              const updated = [...prev];
+              updated[existingIndex] = { ...updated[existingIndex], status: 'error' };
+              return updated;
+            }
+            return prev;
+          });
+        }
+      });
     
     return () => {
       webSocketClient.disconnect();
     };
-  }, [token, activeChat, currentUser]);
+  }, [activeChat, currentUser]);
 
   // Fetch messages when activeChat changes
   const loadMessages = useCallback(async (isLoadMore = false) => {
@@ -94,8 +139,8 @@ const ChatLayout = () => {
       // Format messages if needed
       const formatted = newMessages.map(m => ({
         ...m,
-        isOwn: m.senderUsername === currentUser.username,
-        time: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...',
+        isOwn: m.sender === currentUser.username,
+        time: m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...',
       })).reverse(); // Assuming API returns newest first, reverse them for display
 
       if (isLoadMore) {
@@ -135,20 +180,24 @@ const ChatLayout = () => {
   };
 
   const handleSendMessage = (text) => {
-    // Send via STOMP
     if (activeChat) {
+      const localId = Date.now().toString(); // Generate unique localId
       const payload = {
-        receiverUsername: activeChat,
-        content: text
+        recipient: activeChat,
+        content: text,
+        messageType: 'CHAT',
+        contentType: 'TEXT',
+        localId: localId
       };
       webSocketClient.sendMessage('/app/chat/sendPrivateMessage', payload);
       
-      // Optimistic UI Update (Wait for WS broadcast is usually better to ensure order, but keeping optimistic here for UX)
       const newMsg = { 
-        id: Date.now(), // temporary ID
+        id: localId, // temporary ID
+        localId: localId,
         content: text, 
         time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
-        isOwn: true 
+        isOwn: true,
+        status: 'sending' 
       };
       setMessages(prev => [...prev, newMsg]);
     }
@@ -175,6 +224,8 @@ const ChatLayout = () => {
         contacts={contactData}
         activeChat={activeChat}
         setActiveChat={setActiveChat}
+        onLoadMoreContacts={() => loadContacts(true)}
+        hasMoreContacts={hasMoreContacts}
       />
 
       {/* Main Content Area */}

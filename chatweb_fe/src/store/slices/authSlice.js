@@ -2,7 +2,8 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   user: null,
-  isAuthenticated: !!localStorage.getItem('accessToken'),
+  isAuthenticated: false,
+  isInitialized: false,
   loading: false,
   error: null,
 };
@@ -11,6 +12,9 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    setInitialized(state, action) {
+      state.isInitialized = action.payload;
+    },
     loginStart(state) {
       state.loading = true;
       state.error = null;
@@ -18,16 +22,20 @@ const authSlice = createSlice({
     loginSuccess(state, action) {
       state.loading = false;
       state.isAuthenticated = true;
-      state.user = action.payload.user;
+      // Depending on API response, it might be action.payload.user or action.payload directly
+      state.user = action.payload.user || action.payload;
+      state.isInitialized = true;
     },
     loginFailure(state, action) {
       state.loading = false;
       state.error = action.payload;
+      state.isInitialized = true;
     },
     logout(state) {
       state.user = null;
       state.isAuthenticated = false;
-      localStorage.removeItem('accessToken');
+      state.isInitialized = true;
+      localStorage.removeItem('accessToken'); // Keeping for cleanup just in case
       localStorage.removeItem('refreshToken');
     },
     updateProfile(state, action) {
@@ -38,5 +46,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, updateProfile } = authSlice.actions;
+export const { setInitialized, loginStart, loginSuccess, loginFailure, logout, updateProfile } = authSlice.actions;
 export default authSlice.reducer;
