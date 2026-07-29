@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.web.backend.kafka.payload.FriendNotificationMessage;
 
+import java.util.List;
 import java.util.Objects;
 
 import lombok.RequiredArgsConstructor;
@@ -25,17 +26,27 @@ public class FriendConsumer {
 
     private static final String RESPONSE_MUST_NOT_BE_NULL_STRING = "Response must not be null";
 
-    @KafkaListener(topics = "friend-notifications", groupId = "friend-websocket-group-${random.uuid}")
+    @KafkaListener(topics = "${spring.kafka.topic.friend}", groupId = "${spring.kafka.topic.friend-group-id}-${random.uuid}")
     public void listenFriendNotifications(FriendNotificationMessage payload) {
         if (payload == null) {
             return;
         }
 
         String recipient = payload.getRecipientUsername();
+        List<String> recipients = payload.getRecipientUsernames();
         String sender = payload.getSenderUsername();
 
         try {
-            if (recipient != null && payload.getRecipientResponse() != null
+            if (recipients != null && !recipients.isEmpty() && payload.getRecipientResponse() != null) {
+                for (String r : recipients) {
+                    if (simpUserRegistry.getUser(r) != null) {
+                        simpMessagingTemplate.convertAndSendToUser(
+                                r,
+                                Objects.requireNonNull(payload.getDestination(), DESTINATION_MUST_NOT_BE_NULL_STRING),
+                                Objects.requireNonNull(payload.getRecipientResponse(), RESPONSE_MUST_NOT_BE_NULL_STRING));
+                    }
+                }
+            } else if (recipient != null && payload.getRecipientResponse() != null
                     && simpUserRegistry.getUser(recipient) != null) {
                 simpMessagingTemplate.convertAndSendToUser(
                         recipient,
