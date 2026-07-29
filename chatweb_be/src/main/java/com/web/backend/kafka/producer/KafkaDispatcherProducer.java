@@ -1,4 +1,4 @@
-package com.web.backend.listener;
+package com.web.backend.kafka.producer;
 
 import com.web.backend.event.KafkaDispatchEvent;
 import lombok.RequiredArgsConstructor;
@@ -12,8 +12,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j(topic = "KAFKA-DISPATCHER-LISTENER")
-public class KafkaDispatcherListener {
+@Slf4j(topic = "KAFKA-DISPATCHER-PRODUCER")
+public class KafkaDispatcherProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
