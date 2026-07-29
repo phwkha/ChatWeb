@@ -1,6 +1,9 @@
 package com.web.backend.listener;
 
 import java.security.Principal;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -22,6 +25,8 @@ public class WebSocketListener {
     private final UserService userService;
 
     private final RedisTemplate<String, Object> redisTemplate;
+
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private static final String ONLINE_USERS_KEY = "online_users";
 
@@ -64,14 +69,31 @@ public class WebSocketListener {
             Long count = redisTemplate.opsForHash().increment(ONLINE_USERS_COUNT_KEY, username, -1);
 
             if (count != null && count <= 0) {
+                log.info("User count <= 0, scheduling offline debounce for: {}", username);
+                scheduler.schedule(() -> {
+                    try {
+                        Object currentCountObj = redisTemplate.opsForHash().get(ONLINE_USERS_COUNT_KEY, username);
+                        long currentCount = 0;
+                        if (currentCountObj != null) {
+                            if (currentCountObj instanceof Number number) {
+                                currentCount = (number).longValue();
+                            } else {
+                                currentCount = Long.parseLong(currentCountObj.toString());
+                            }
+                        }
 
-                redisTemplate.opsForZSet().remove(ONLINE_USERS_KEY, username);
-
-                redisTemplate.opsForHash().delete(ONLINE_USERS_COUNT_KEY, username);
-
-                userService.setUserOnlineStatus(username, false);
-
-                log.info("User Disconnected Completely (All sessions closed): {}", username);
+                        if (currentCount <= 0) {
+                            redisTemplate.opsForZSet().remove(ONLINE_USERS_KEY, username);
+                            redisTemplate.opsForHash().delete(ONLINE_USERS_COUNT_KEY, username);
+                            userService.setUserOnlineStatus(username, false);
+                            log.info("User Disconnected Completely (All sessions closed): {}", username);
+                        } else {
+                            log.info("User reconnected during debounce period: {}", username);
+                        }
+                    } catch (Exception e) {
+                        log.error("Error during offline debounce", e);
+                    }
+                }, 5, TimeUnit.SECONDS);
             } else {
                 log.info("User closed one session, still online on other devices: {}, remaining: {}", username, count);
             }
