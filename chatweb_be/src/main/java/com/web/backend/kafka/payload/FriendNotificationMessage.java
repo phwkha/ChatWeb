@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,6 +16,7 @@ import lombok.NoArgsConstructor;
 public class FriendNotificationMessage {
     private String senderUsername;
     private String recipientUsername;
+    private List<String> recipientUsernames;
     private String destination;
     private SocketResponse<NotificationMessageResponse> senderResponse;
     private SocketResponse<NotificationMessageResponse> recipientResponse;
