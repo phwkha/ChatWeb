@@ -3,9 +3,11 @@ package com.web.backend.service.impl;
 import com.web.backend.common.AuthProvider;
 import com.web.backend.common.OtpType;
 import com.web.backend.common.UserStatus;
+import com.web.backend.common.NotificationsStatus;
 import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.*;
+import com.web.backend.controller.response.form.SocketResponse;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.exception.custom.InvalidOtpException;
@@ -13,10 +15,13 @@ import com.web.backend.exception.custom.InvalidPasswordException;
 import com.web.backend.exception.custom.PasswordMismatchException;
 import com.web.backend.exception.custom.ResourceConflictException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
+import com.web.backend.kafka.payload.FriendNotificationMessage;
+import com.web.backend.event.KafkaDispatchEvent;
 import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.*;
 import com.web.backend.repository.MessageRepository;
 import com.web.backend.repository.UserRepository;
+import com.web.backend.repository.FriendshipRepository;
 import com.web.backend.service.StorageService;
 import com.web.backend.service.util.CuckooFilterService;
 import com.web.backend.service.util.EmailService;
@@ -30,6 +35,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.multipart.MultipartFile;
 import java.security.SecureRandom;
 import java.util.*;
@@ -56,10 +62,17 @@ public class UserServiceImpl implements UserService {
 
     private final CuckooFilterService cuckooFilterService;
 
+    private final FriendshipRepository friendshipRepository;
+
+    private final ApplicationEventPublisher eventPublisher;
+
     private SecureRandom secureRandom = new SecureRandom();
 
     @Value("${spring.mail.expiration-minutes}")
     private int expirationMinutes;
+
+    @Value("${spring.kafka.topic.friend}")
+    private String friendTopic;
 
     private static final String EMAIL_FILTER_KEY = "filter:emails";
     private static final String USER_DETAILS_STRING = "user_details";
@@ -67,6 +80,9 @@ public class UserServiceImpl implements UserService {
     private static final String AVATARS_STRING = "avatars";
     private static final String OTP_STRING = "otp:";
     private static final String COOLDOWN_RESEND_STRING = "cooldown:resend:";
+    private static final String SYS_MSG_USER_ONLINE_STRING = "sys.msg.user_online";
+    private static final String SYS_MSG_USER_OFFLINE_STRING = "sys.msg.user_offline";
+    private static final String QUEUE_NOTIFICATIONS_STRING = "/queue/notifications";
 
     private static final String ERROR_USER_NOT_FOUND_WITH_STRING = "error.user.not_found_with";
     private static final String ERROR_AUTH_INVALID_OTP_ATTEMPTS_STRING = "error.auth.invalid_otp_attempts";
@@ -358,6 +374,29 @@ public class UserServiceImpl implements UserService {
     public void setUserOnlineStatus(String username, boolean isOnline) {
         userRepository.updateOnlineStatus(username, isOnline);
         log.info("Set user online status");
+
+        List<String> friends = friendshipRepository.findAllFriendUsernamesByUsername(username);
+
+        if (friends != null && !friends.isEmpty()) {
+            NotificationMessageResponse data = NotificationMessageResponse.builder()
+                    .status(isOnline ? NotificationsStatus.USER_ONLINE
+                            : NotificationsStatus.USER_OFFLINE)
+                    .relatedUsername(username)
+                    .build();
+
+            SocketResponse<NotificationMessageResponse> response = SocketResponse
+                    .notifications(
+                            Translator.tolocale(isOnline ? SYS_MSG_USER_ONLINE_STRING : SYS_MSG_USER_OFFLINE_STRING),
+                            data);
+
+            FriendNotificationMessage payload = FriendNotificationMessage.builder()
+                    .recipientUsernames(friends)
+                    .destination(QUEUE_NOTIFICATIONS_STRING)
+                    .recipientResponse(response)
+                    .build();
+            eventPublisher.publishEvent(new KafkaDispatchEvent(
+                    Objects.requireNonNull(friendTopic), payload));
+        }
     }
 
     @Override
