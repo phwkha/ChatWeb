@@ -136,9 +136,13 @@ public class FriendServiceImpl implements FriendService {
                                 Translator.tolocale(SUCCESS_FRIEND_INVITE_SENT_STRING),
                                 senderData);
 
-                FriendNotificationMessage payload = new FriendNotificationMessage(
-                                requesterUsername, addresseeUsername, QUEUE_NOTIFICATIONS_STRING, senderResponse,
-                                response);
+                FriendNotificationMessage payload = FriendNotificationMessage.builder()
+                                .senderUsername(requesterUsername)
+                                .recipientUsername(addresseeUsername)
+                                .destination(QUEUE_NOTIFICATIONS_STRING)
+                                .senderResponse(senderResponse)
+                                .recipientResponse(response)
+                                .build();
                 eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(friendTopic), payload));
         }
 
@@ -186,9 +190,13 @@ public class FriendServiceImpl implements FriendService {
                                 Translator.tolocale(SUCCESS_FRIEND_ACCEPTED_STRING),
                                 acceptorData);
 
-                FriendNotificationMessage payload = new FriendNotificationMessage(
-                                acceptorUsername, requesterUsername, QUEUE_NOTIFICATIONS_STRING, acceptorResponse,
-                                response);
+                FriendNotificationMessage payload = FriendNotificationMessage.builder()
+                                .senderUsername(acceptorUsername)
+                                .recipientUsername(requesterUsername)
+                                .destination(QUEUE_NOTIFICATIONS_STRING)
+                                .senderResponse(acceptorResponse)
+                                .recipientResponse(response)
+                                .build();
                 eventPublisher.publishEvent(new KafkaDispatchEvent(Objects.requireNonNull(friendTopic), payload));
         }
 
@@ -282,11 +290,14 @@ public class FriendServiceImpl implements FriendService {
                                         .relatedUsername(currentUsername)
                                         .build();
 
-                        FriendNotificationMessage payload = new FriendNotificationMessage(
-                                        currentUsername, targetUsername, QUEUE_NOTIFICATIONS_STRING, null,
-                                        SocketResponse.notifications(
+                        FriendNotificationMessage payload = FriendNotificationMessage.builder()
+                                        .senderUsername(currentUsername)
+                                        .recipientUsername(targetUsername)
+                                        .destination(QUEUE_NOTIFICATIONS_STRING)
+                                        .recipientResponse(SocketResponse.notifications(
                                                         Translator.tolocale(SUCCESS_FRIEND_UNFRIENDED_STRING),
-                                                        data));
+                                                        data))
+                                        .build();
                         eventPublisher.publishEvent(
                                         new KafkaDispatchEvent(Objects.requireNonNull(friendTopic), payload));
 
@@ -297,12 +308,14 @@ public class FriendServiceImpl implements FriendService {
                                                 .relatedUsername(currentUsername)
                                                 .build();
 
-                                FriendNotificationMessage payload = new FriendNotificationMessage(
-                                                currentUsername, targetUsername, QUEUE_NOTIFICATIONS_STRING, null,
-                                                SocketResponse.notifications(
-                                                                Translator.tolocale(
-                                                                                SUCCESS_FRIEND_INVITE_RETRACTED_STRING),
-                                                                data));
+                                FriendNotificationMessage payload = FriendNotificationMessage.builder()
+                                                .senderUsername(currentUsername)
+                                                .recipientUsername(targetUsername)
+                                                .destination(QUEUE_NOTIFICATIONS_STRING)
+                                                .recipientResponse(SocketResponse.notifications(
+                                                                Translator.tolocale(SUCCESS_FRIEND_INVITE_RETRACTED_STRING),
+                                                                data))
+                                                .build();
                                 eventPublisher.publishEvent(
                                                 new KafkaDispatchEvent(Objects.requireNonNull(friendTopic), payload));
 
@@ -312,12 +325,14 @@ public class FriendServiceImpl implements FriendService {
                                                 .relatedUsername(currentUsername)
                                                 .build();
 
-                                FriendNotificationMessage payload = new FriendNotificationMessage(
-                                                currentUsername, targetUsername, QUEUE_NOTIFICATIONS_STRING, null,
-                                                SocketResponse.notifications(
-                                                                Translator.tolocale(
-                                                                                SUCCESS_FRIEND_INVITE_DECLINED_STRING),
-                                                                data));
+                                FriendNotificationMessage payload = FriendNotificationMessage.builder()
+                                                .senderUsername(currentUsername)
+                                                .recipientUsername(targetUsername)
+                                                .destination(QUEUE_NOTIFICATIONS_STRING)
+                                                .recipientResponse(SocketResponse.notifications(
+                                                                Translator.tolocale(SUCCESS_FRIEND_INVITE_DECLINED_STRING),
+                                                                data))
+                                                .build();
                                 eventPublisher.publishEvent(
                                                 new KafkaDispatchEvent(Objects.requireNonNull(friendTopic), payload));
                         }
