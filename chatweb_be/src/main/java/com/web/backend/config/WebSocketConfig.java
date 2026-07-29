@@ -136,6 +136,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                 Objects.requireNonNull(Translator.tolocale(ERROR_WS_MISSING_TOKEN_STRING)));
                     }
                 }
+
+                if (accessor != null
+                        && accessor.getUser() != null
+                        && accessor.getUser().getName() != null
+                        && !StompCommand.DISCONNECT.equals(accessor.getCommand())) {
+                    redisTemplate.opsForZSet().add("online_users", accessor.getUser().getName(),
+                            System.currentTimeMillis());
+                }
+
                 return message;
             }
         });
