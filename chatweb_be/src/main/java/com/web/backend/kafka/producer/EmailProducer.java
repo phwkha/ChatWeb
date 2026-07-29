@@ -20,31 +20,31 @@ public class EmailProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Value("${spring.kafka.topic.email.email-topic}")
-    private String EMAIL_TOPIC;
+    private String emailTopic;
 
     public void sendOtpEmailTask(String to, String name, String otp) {
         log.info("Pushing OTP email task to Kafka for email: {}", to);
         EmailPayload event = EmailPayload.createOtpEvent(to, name, otp);
-        kafkaTemplate.send(Objects.requireNonNull(EMAIL_TOPIC), event).whenComplete((result, ex) -> {
+        kafkaTemplate.send(Objects.requireNonNull(emailTopic), event).whenComplete((result, ex) -> {
             if (ex != null) {
-                log.error("Critical Error: Cannot push message to Kafka. Topic: {}", EMAIL_TOPIC, ex);
+                log.error("Critical Error: Cannot push message to Kafka. Topic: {}", emailTopic, ex);
             } else {
                 log.debug("Email otp: Kafka push successful offset: {}", result.getRecordMetadata().offset());
             }
         });
-        log.info("Pushed OTP email task to Kafka Topic '{}' for email: {}", EMAIL_TOPIC, to);
+        log.info("Pushed OTP email task to Kafka Topic '{}' for email: {}", emailTopic, to);
     }
 
     public void sendTextEmailTask(String to, String subject, String content) {
         log.info("Pushing TEXT email task to Kafka for email: {}", to);
         EmailPayload event = EmailPayload.createTextEvent(to, subject, content);
-        kafkaTemplate.send(Objects.requireNonNull(EMAIL_TOPIC), event).whenComplete((result, ex) -> {
+        kafkaTemplate.send(Objects.requireNonNull(emailTopic), event).whenComplete((result, ex) -> {
             if (ex != null) {
-                log.error("Critical Error: Cannot push message to Kafka. Topic: {}", EMAIL_TOPIC, ex);
+                log.error("Critical Error: Cannot push message to Kafka. Topic: {}", emailTopic, ex);
             } else {
                 log.debug("Email text: Kafka push successful offset: {}", result.getRecordMetadata().offset());
             }
         });
-        log.info("Pushed TEXT email task to Kafka Topic '{}' for email: {}", EMAIL_TOPIC, to);
+        log.info("Pushed TEXT email task to Kafka Topic '{}' for email: {}", emailTopic, to);
     }
 }
