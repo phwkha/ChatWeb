@@ -29,7 +29,7 @@ public class ChatConsumer {
 
     private static final String TOPIC_PUBLIC_STRING = "/topic/public";
 
-    @KafkaListener(topics = "${spring.kafka.topic.chat.messages}", groupId = "chat-websocket-group-${random.uuid}")
+    @KafkaListener(topics = "${spring.kafka.topic.chat.messages}", groupId = "${spring.kafka.topic.chat.messages-group-id}-${random.uuid}")
     public void listenChatMessages(ChatMessage message) {
         if (message == null) {
             return;
@@ -63,7 +63,7 @@ public class ChatConsumer {
         }
     }
 
-    @KafkaListener(topics = "${spring.kafka.topic.chat.system-messages}", groupId = "system-websocket-group-${random.uuid}")
+    @KafkaListener(topics = "${spring.kafka.topic.chat.system-messages}", groupId = "${spring.kafka.topic.chat.system-messages-group-id}-${random.uuid}")
     public void listenSystemMessages(MessageSystemResponse systemMessage) {
         if (systemMessage == null)
             return;
