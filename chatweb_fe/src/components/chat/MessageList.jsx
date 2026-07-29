@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import MessageItem from './MessageItem';
 
-const MessageList = ({ messages, onLoadMore, hasMore }) => {
+const MessageList = ({ messages, onLoadMore, hasMore, onReaction, onEdit, onRevoke }) => {
   const containerRef = useRef(null);
 
   const handleScroll = (e) => {
@@ -32,7 +32,7 @@ const MessageList = ({ messages, onLoadMore, hasMore }) => {
       )}
       {messages && messages.length > 0 ? (
         messages.map((msg, idx) => (
-          <MessageItem key={msg.id || idx} message={msg} isOwn={msg.isOwn} />
+          <MessageItem key={msg.id || idx} message={msg} isOwn={msg.isOwn} onReaction={onReaction} onEdit={onEdit} onRevoke={onRevoke} />
         ))
       ) : (
         <div className="h-full flex items-center justify-center text-gray-500 text-sm flex-1">

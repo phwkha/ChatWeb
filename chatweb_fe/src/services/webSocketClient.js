@@ -40,6 +40,18 @@ class WebSocketClient {
         }
       });
 
+      this.stompClient.subscribe('/user/queue/notifications', (message) => {
+        if (message.body && this.callbacks.has('onNotification')) {
+          this.callbacks.get('onNotification')(JSON.parse(message.body));
+        }
+      });
+
+      this.stompClient.subscribe('/topic/public', (message) => {
+        if (message.body && this.callbacks.has('onSystemMessage')) {
+          this.callbacks.get('onSystemMessage')(JSON.parse(message.body));
+        }
+      });
+
       this.stompClient.subscribe('/user/queue/errors', (message) => {
         if (message.body && this.callbacks.has('onMessageError')) {
           this.callbacks.get('onMessageError')(JSON.parse(message.body));
