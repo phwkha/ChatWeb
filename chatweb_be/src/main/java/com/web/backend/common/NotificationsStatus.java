@@ -9,5 +9,8 @@ public enum NotificationsStatus {
 
     UNFRIENDED,
     REQUEST_CANCELLED,
-    REQUEST_REJECTED
+    REQUEST_REJECTED,
+
+    USER_ONLINE,
+    USER_OFFLINE
 }
