@@ -8,7 +8,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
@@ -110,7 +109,7 @@ public class AdminServiceImpl implements AdminService {
         List<String> usernames = onlineUsernames.stream()
                 .filter(Objects::nonNull)
                 .map(String::valueOf)
-                .collect(Collectors.toList());
+                .toList();
 
         List<UserEntity> userEntities = userRepository.findByUsernameIn(usernames);
 
@@ -118,7 +117,7 @@ public class AdminServiceImpl implements AdminService {
                 .peek(entity -> entity.setOnline(true))
                 .sorted(Comparator.comparingInt(entity -> usernames.indexOf(entity.getUsername())))
                 .map(userMapper::toUserSummaryResponse)
-                .collect(Collectors.toList());
+                .toList();
 
         long total = totalOnline != null ? totalOnline : 0;
         int totalPages = (int) Math.ceil((double) total / pageSize);
@@ -163,7 +162,7 @@ public class AdminServiceImpl implements AdminService {
 
         List<UserSummaryResponse> content = pageResult.getContent().stream()
                 .map(userMapper::toUserSummaryResponse)
-                .collect(Collectors.toList());
+                .toList();
 
         log.info("Get all user");
         return PageResponse.<UserSummaryResponse>builder()
@@ -286,10 +285,9 @@ public class AdminServiceImpl implements AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Translator.tolocale(ERROR_USER_NOT_FOUND_WITH_STRING, username)));
 
-        if (request.getEmail() != null && !request.getEmail().equals(userEntity.getEmail())) {
-            if (userRepository.existsByEmail(request.getEmail())) {
-                throw new ResourceConflictException(Translator.tolocale(ERROR_ADMIN_EMAIL_EXISTS_STRING));
-            }
+        if (request.getEmail() != null && !request.getEmail().equals(userEntity.getEmail())
+                && userRepository.existsByEmail(request.getEmail())) {
+            throw new ResourceConflictException(Translator.tolocale(ERROR_ADMIN_EMAIL_EXISTS_STRING));
         }
 
         userMapper.updateAdminUserFromRequest(request, userEntity);
@@ -342,7 +340,7 @@ public class AdminServiceImpl implements AdminService {
         log.info("Get all address for user by admin");
         return user.getAddresses().stream()
                 .map(userMapper::toAddressResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
