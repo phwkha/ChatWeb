@@ -47,10 +47,13 @@ spring:
         messages: chat-messages
         system-messages: "chat-system-messages"
         save: chat-save
+        messages-group-id: chat-websocket-group
+        system-messages-group-id: system-websocket-group
       email:
         email-topic: email-messages
         group-id: email-worker-group
       friend: friend-notifications
+      friend-group-id: friend-websocket-group
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
