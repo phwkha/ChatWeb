@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Key, Mail, Smartphone, Loader2, Check, AlertTriangle, MonitorX, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
@@ -30,6 +30,17 @@ const SecuritySettings = () => {
   const [otp, setOtp] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState('');
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
@@ -78,6 +89,7 @@ const SecuritySettings = () => {
     setModalInput('');
     setOtp('');
     setModalError('');
+    setCountdown(0);
   };
 
   const closeModal = () => {
@@ -102,6 +114,7 @@ const SecuritySettings = () => {
       const payload = modalType === 'email' ? { newEmail: modalInput } : { newPhoneNumber: modalInput };
       await apiClient.post(endpoint, payload);
       setModalStep(2);
+      setCountdown(60);
     } catch (err) {
       setModalError(err.response?.data?.message || `Failed to initiate ${modalType} change`);
     } finally {
@@ -131,6 +144,19 @@ const SecuritySettings = () => {
       setModalError(err.response?.data?.message || `Failed to verify ${modalType} change`);
     } finally {
       setModalLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (countdown > 0) return;
+    setModalError('');
+    try {
+      const endpoint = modalType === 'email' ? '/api/users/resend-email-verification' : '/api/users/resend-phone-change-verification';
+      await apiClient.post(endpoint);
+      toast.success('Verification code resent successfully.');
+      setCountdown(60);
+    } catch (err) {
+      setModalError(err.response?.data?.message || 'Failed to resend verification code');
     }
   };
 
@@ -378,21 +404,34 @@ const SecuritySettings = () => {
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                         />
                       </div>
-                      <div className="flex justify-end gap-3 mt-6">
+                      <div className="flex justify-between items-center mt-6">
                         <button 
                           type="button"
-                          onClick={() => setModalStep(1)}
-                          className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm"
+                          onClick={handleResendOtp}
+                          disabled={countdown > 0}
+                          className="text-sm text-primary hover:text-primary-dark disabled:text-gray-500 transition-colors"
                         >
-                          Back
+                          {countdown > 0 ? `Resend code in ${countdown}s` : 'Resend code'}
                         </button>
-                        <button 
-                          type="submit"
-                          disabled={modalLoading}
-                          className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg text-sm flex items-center gap-2"
-                        >
-                          {modalLoading ? <Loader2 size={16} className="animate-spin"/> : 'Verify & Save'}
-                        </button>
+                        <div className="flex gap-3">
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setModalStep(1);
+                              setCountdown(0);
+                            }}
+                            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm"
+                          >
+                            Back
+                          </button>
+                          <button 
+                            type="submit"
+                            disabled={modalLoading}
+                            className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg text-sm flex items-center gap-2"
+                          >
+                            {modalLoading ? <Loader2 size={16} className="animate-spin"/> : 'Verify & Save'}
+                          </button>
+                        </div>
                       </div>
                     </form>
                   )}
