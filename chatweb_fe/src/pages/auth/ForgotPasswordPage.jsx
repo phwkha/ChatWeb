@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { KeyRound, Mail, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import apiClient from '../../services/apiClient';
 
 const ForgotPasswordPage = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -17,7 +18,7 @@ const ForgotPasswordPage = () => {
 
     try {
       await apiClient.post('/api/auth/forgot-password', { email });
-      setSuccess(true);
+      navigate(`/reset-password?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send reset instructions');
     } finally {

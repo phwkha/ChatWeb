@@ -8,6 +8,7 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import VerifyAccountPage from './pages/auth/VerifyAccountPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 
 // Main App Pages
 import ChatLayout from './pages/chat/ChatLayout';
@@ -46,6 +47,7 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-account" element={<VerifyAccountPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             
             {/* Protected Routes */}
             <Route 

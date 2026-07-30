@@ -6,8 +6,7 @@ import { motion } from 'framer-motion';
 
 import DashboardOverview from '../../components/admin/DashboardOverview';
 import UserManagement from '../../components/admin/UserManagement';
-
-const RoleManagement = () => <div className="p-6">Role & Permissions Management</div>;
+import RoleManagement from '../../components/admin/RoleManagement';
 
 const AdminLayout = () => {
   const { user } = useSelector(state => state.auth);

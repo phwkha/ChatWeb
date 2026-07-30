@@ -86,6 +86,21 @@ const ChatLayout = () => {
     loadContacts(false);
   }, [activeTab]);
 
+  // Mark messages as read when opening a chat with unread messages
+  useEffect(() => {
+    const markAsRead = async () => {
+      if (activeChat && unreadCounts[activeChat] > 0) {
+        try {
+          await apiClient.post('/api/messages/mark-as-read', { sender: activeChat });
+          setUnreadCounts(prev => ({ ...prev, [activeChat]: 0 }));
+        } catch (err) {
+          console.error("Failed to mark messages as read", err);
+        }
+      }
+    };
+    markAsRead();
+  }, [activeChat, unreadCounts]);
+
   // Handle WebSocket connection
   useEffect(() => {
     webSocketClient.connect(() => {
@@ -468,3 +483,6 @@ const ChatLayout = () => {
       </div>
     </div>
   );
+};
+
+export default ChatLayout;
