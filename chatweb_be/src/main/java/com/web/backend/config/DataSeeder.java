@@ -49,15 +49,7 @@ public class DataSeeder implements CommandLineRunner {
     private static final String ONLINE_USERS_STRING = "online_users";
     private static final String QU_N_TR_VI_N_H_TH_NG_STRING = "Quản trị viên hệ thống";
     private static final String SUPER_STRING = "Super";
-    private static final String S_A_USER_STRING = "Sửa user";
-    private static final String T_O_USER_M_I_STRING = "Tạo user mới";
-    private static final String USER_CREATE_STRING = "USER_CREATE";
-    private static final String USER_DELETE_STRING = "USER_DELETE";
     private static final String USER_STRING = "USER";
-    private static final String USER_UPDATE_STRING = "USER_UPDATE";
-    private static final String USER_VIEW_STRING = "USER_VIEW";
-    private static final String XEM_DANH_S_CH_USER_STRING = "Xem danh sách user";
-    private static final String X_A_USER_STRING = "Xóa user";
     private static final String ADMIN_STRING = "ADMIN";
 
     private static final String FILTER_EMAILS_STRING = "filter:emails";
@@ -67,11 +59,6 @@ public class DataSeeder implements CommandLineRunner {
     @Transactional
     public void run(String... args) throws Exception {
         log.info("import data start");
-        PermissionEntity pUserView = createPermissionIfNotFound(USER_VIEW_STRING, XEM_DANH_S_CH_USER_STRING);
-        PermissionEntity pUserCreate = createPermissionIfNotFound(USER_CREATE_STRING, T_O_USER_M_I_STRING);
-        PermissionEntity pUserUpdate = createPermissionIfNotFound(USER_UPDATE_STRING, S_A_USER_STRING);
-        PermissionEntity pUserDelete = createPermissionIfNotFound(USER_DELETE_STRING, X_A_USER_STRING);
-        
         // Admin permissions to match AdminController
         PermissionEntity pAdminView = createPermissionIfNotFound("ADMIN_VIEW", "Xem quyền quản trị");
         PermissionEntity pAdminCreate = createPermissionIfNotFound("ADMIN_CREATE", "Tạo quyền quản trị");
@@ -81,13 +68,27 @@ public class DataSeeder implements CommandLineRunner {
         PermissionEntity pAdminUnlock = createPermissionIfNotFound("ADMIN_UNLOCK", "Mở khóa user");
         PermissionEntity pAdminDeleteAvatar = createPermissionIfNotFound("ADMIN_DELETE_AVATAR", "Xóa avatar");
 
+        // Role permissions
+        PermissionEntity pRoleViewAll = createPermissionIfNotFound("ROLE_VIEW_ALL", "Xem danh sách role");
+        PermissionEntity pRoleViewAllPermission = createPermissionIfNotFound("ROLE_VIEW_ALL_PERMISSION",
+                "Xem tất cả quyền");
+        PermissionEntity pRoleAdd = createPermissionIfNotFound("ROLE_ADD", "Thêm role");
+        PermissionEntity pRoleUpdate = createPermissionIfNotFound("ROLE_UPDATE", "Cập nhật role");
+        PermissionEntity pRoleDelete = createPermissionIfNotFound("ROLE_DELETE", "Xóa role");
+
+        // Email permissions
+        PermissionEntity pSendEmail = createPermissionIfNotFound("SEND_EMAIL", "Gửi email");
+
+        // Chat permissions
+        PermissionEntity pAdminSendMessage = createPermissionIfNotFound("ADMIN_SEND-MESSAGE", "Gửi tin nhắn hệ thống");
+
         RoleEntity roleAdmin = createRoleIfNotFound(ADMIN_STRING, QU_N_TR_VI_N_H_TH_NG_STRING);
-        RoleEntity roleUser = createRoleIfNotFound(USER_STRING, NG_I_D_NG_C_B_N_STRING);
+        createRoleIfNotFound(USER_STRING, NG_I_D_NG_C_B_N_STRING);
 
-        assignPermissionToRole(roleAdmin, pUserView, pUserCreate, pUserUpdate, pUserDelete,
-                pAdminView, pAdminCreate, pAdminUpdate, pAdminDelete, pAdminLock, pAdminUnlock, pAdminDeleteAvatar);
-
-        assignPermissionToRole(roleUser, pUserView);
+        assignPermissionToRole(roleAdmin,
+                pAdminView, pAdminCreate, pAdminUpdate, pAdminDelete, pAdminLock, pAdminUnlock, pAdminDeleteAvatar,
+                pRoleViewAll, pRoleViewAllPermission, pRoleAdd, pRoleUpdate, pRoleDelete,
+                pSendEmail, pAdminSendMessage);
 
         if (!userRepository.existsByUsername(ADMIN_2_STRING)) {
             UserEntity admin = new UserEntity();
