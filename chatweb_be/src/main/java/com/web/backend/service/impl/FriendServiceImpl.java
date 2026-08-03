@@ -313,7 +313,8 @@ public class FriendServiceImpl implements FriendService {
                                                 .recipientUsername(targetUsername)
                                                 .destination(QUEUE_NOTIFICATIONS_STRING)
                                                 .recipientResponse(SocketResponse.notifications(
-                                                                Translator.tolocale(SUCCESS_FRIEND_INVITE_RETRACTED_STRING),
+                                                                Translator.tolocale(
+                                                                                SUCCESS_FRIEND_INVITE_RETRACTED_STRING),
                                                                 data))
                                                 .build();
                                 eventPublisher.publishEvent(
@@ -330,7 +331,8 @@ public class FriendServiceImpl implements FriendService {
                                                 .recipientUsername(targetUsername)
                                                 .destination(QUEUE_NOTIFICATIONS_STRING)
                                                 .recipientResponse(SocketResponse.notifications(
-                                                                Translator.tolocale(SUCCESS_FRIEND_INVITE_DECLINED_STRING),
+                                                                Translator.tolocale(
+                                                                                SUCCESS_FRIEND_INVITE_DECLINED_STRING),
                                                                 data))
                                                 .build();
                                 eventPublisher.publishEvent(
