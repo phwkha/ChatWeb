@@ -1,0 +1,110 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST:localhost}:27017/${MONGO_DB:chatdb}?authSource=admin
+      auto-index-creation: false
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+    cache:
+      type: redis
+      redis:
+        time-to-live: 10m
+        cache-null-values: false
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/${POSTGRES_DB:postgres}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${USERNAME_EMAIL}
+    password: ${PASSWORD_EMAIL}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    expiration-minutes: 5
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    topic:
+      chat:
+        messages: chat-messages
+        system-messages: "chat-system-messages"
+        save: chat-save
+        messages-group-id: chat-websocket-group
+        system-messages-group-id: system-websocket-group
+      email:
+        email-topic: email-messages
+        group-id: email-worker-group
+      friend: friend-notifications
+      friend-group-id: friend-websocket-group
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      compression-type: "snappy"
+    consumer:
+      max-poll-records: 100
+      fetch-max-wait-ms: 500
+      group-id: chat-app-group-${random.uuid}
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+openapi:
+  service:
+    api-docs: backend
+    title: Backend API document
+    version: v1.0.0
+    server: ${VITE_API_URL:http://localhost:8080}
+
+jwt:
+  secret-key-access: ${JWT_SECRET_ACCESS}
+  secret-key-refresh: ${JWT_SECRET_REFRESH}
+  expiry-minutes: 60
+  expiry-day: 7
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
+app:
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI}
+  upload:
+    avatar:
+      max-size: 5242880
+    max-size-video: 20971520
+    max-size-image: 20971520

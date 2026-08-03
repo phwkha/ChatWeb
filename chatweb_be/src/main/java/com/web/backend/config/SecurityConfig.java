@@ -121,10 +121,13 @@ public class SecurityConfig {
                                                 SWAGGER_UI_SWAGGER_INITIALIZER_JS_STRING);
         }
 
+        @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:http://localhost:5173}")
+        private String allowedOrigins;
+
         @Bean
         public CorsConfigurationSource addConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+                configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
                 configuration
                                 .setAllowedMethods(Arrays.asList(GET_STRING, POST_STRING, PUT_STRING, DELETE_STRING,
                                                 OPTIONS_STRING));
