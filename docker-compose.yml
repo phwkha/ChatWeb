@@ -124,6 +124,19 @@ services:
       - cw_redis
       - kafka
 
+  # --- REACT FRONTEND ---
+  cw_frontend:
+    container_name: frontend
+    build:
+      context: ./chatweb_fe
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80" # Exposed to 5173 on host, forwards to Nginx port 80
+    networks:
+      - default
+    depends_on:
+      - cw_backend
+
   # --- FILEBEAT ---
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.10.4
