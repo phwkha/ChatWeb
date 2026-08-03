@@ -94,7 +94,7 @@ class WebSocketClient {
     if (this.stompClient && this.stompClient.connected) {
       this.stompClient.publish({
         destination: destination,
-        body: JSON.stringify(body)
+        body: typeof body === 'string' ? body : JSON.stringify(body)
       });
     } else {
       console.error("Cannot send message, WebSocket is not connected");

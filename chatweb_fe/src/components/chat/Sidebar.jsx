@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { User, LogOut, Settings, Users, MessageSquare, UserPlus, Search, Check, X, MoreVertical, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,6 +8,7 @@ import webSocketClient from '../../services/webSocketClient';
 
 const Sidebar = ({ activeTab, setActiveTab, handleLogout, contacts, activeChat, setActiveChat, onLoadMoreContacts, hasMoreContacts, onUnfriend, onBlock, unreadCounts = {}, onOpenSystemModal }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -339,7 +341,11 @@ const Sidebar = ({ activeTab, setActiveTab, handleLogout, contacts, activeChat, 
         </div>
         
         <div className="flex flex-col items-center gap-4">
-          <button className="w-12 h-12 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+          <button 
+            onClick={() => navigate('/profile')}
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+            title="Settings"
+          >
             <Settings size={24} />
           </button>
           <button 

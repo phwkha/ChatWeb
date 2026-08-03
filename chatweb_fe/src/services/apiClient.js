@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { toast } from '../utils/toast';
+import webSocketClient from './webSocketClient';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
@@ -71,30 +72,40 @@ apiClient.interceptors.response.use(
 
         // Backend automatically sets the new cookies
         // We can just retry the original request
-        import('./webSocketClient').then(module => {
-           module.default.reconnect(); // No need to pass token, WS relies on cookies
-        });
+        webSocketClient.reconnect(); // No need to pass token, WS relies on cookies
 
         processQueue(null, true);
         return apiClient(originalRequest);
         
       } catch (err) {
         processQueue(err, null);
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+          window.location.href = '/login';
+        }
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
       }
     } else if (isUnauthorized) {
       // If it's a 401 but NOT 4011 (e.g. Invalid Token)
-      window.location.href = '/login';
+      // Do not hard redirect if it's just the initial profile check or already on auth pages
+      const isProfileCheck = originalRequest.url === '/api/users/profile';
+      const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register';
+      
+      if (!isProfileCheck && !isAuthPage) {
+        window.location.href = '/login';
+      }
     }
 
     // Show a beautiful global toast for any API error!
-    if (error.response?.data?.message) {
-      toast.error(error.response.data.message);
-    } else if (error.message) {
-      toast.error(error.message);
+    // Skip toast for 401 on profile check as it's expected when not logged in
+    const isProfileCheck = originalRequest.url === '/api/users/profile';
+    if (!(isUnauthorized && isProfileCheck)) {
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (error.message) {
+        toast.error(error.message);
+      }
     }
 
     return Promise.reject(error);
