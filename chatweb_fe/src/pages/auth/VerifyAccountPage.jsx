@@ -28,7 +28,7 @@ const VerifyAccountPage = () => {
     setLoading(true);
 
     try {
-      await apiClient.post('/api/auth/verify-account', { email, code });
+      await apiClient.post('/api/auth/verify-account', { email, otp: code });
       setMessage('Account verified successfully! Redirecting...');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
