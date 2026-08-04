@@ -14,6 +14,8 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.bson.types.ObjectId;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -133,7 +135,7 @@ public class MessageServiceImpl implements MessageService {
         String convId = generateConversationId(sender, request.getRecipient());
         chatMessage.setConversationId(convId);
         chatMessage.setSender(sender);
-        chatMessage.setId(null);
+        chatMessage.setId(new ObjectId().toHexString());
         chatMessage.setStatus(MessageStatus.SENT);
         chatMessage.setLocalId(request.getLocalId());
         if (chatMessage.getTimestamp() == null) {
