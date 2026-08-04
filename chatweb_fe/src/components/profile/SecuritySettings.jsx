@@ -128,7 +128,7 @@ const SecuritySettings = () => {
     setModalLoading(true);
     try {
       const endpoint = modalType === 'email' ? '/api/users/verify-email-change' : '/api/users/verify-phone-change';
-      const payload = modalType === 'email' ? { newEmail: modalInput, code: otp } : { newPhoneNumber: modalInput, code: otp };
+      const payload = modalType === 'email' ? { email: modalInput, otp: otp } : { newPhoneNumber: modalInput, otp: otp };
       await apiClient.post(endpoint, payload);
       
       // Update local user state

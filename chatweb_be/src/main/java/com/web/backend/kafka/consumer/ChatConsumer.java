@@ -46,7 +46,7 @@ public class ChatConsumer {
                         recipient,
                         QUEUE_MESSAGES_STRING,
                         response);
-                log.debug("Sent message via WS to recipient: {}", recipient);
+                log.info("Sent message via WS to recipient: {}", recipient);
             }
 
             if (sender != null && simpUserRegistry.getUser(sender) != null) {
@@ -54,10 +54,10 @@ public class ChatConsumer {
                         sender,
                         QUEUE_MESSAGES_STRING,
                         response);
-                log.debug("Synced message via WS to sender: {}", sender);
+                log.info("Synced message via WS to sender: {}", sender);
             }
 
-            log.info("Sent message via WS to recipient: {}", message.getRecipient());
+            log.info("Finished processing Kafka message for recipient: {}", message.getRecipient());
         } catch (Exception e) {
             log.error("Failed to send WebSocket message: {}", e.getMessage());
         }

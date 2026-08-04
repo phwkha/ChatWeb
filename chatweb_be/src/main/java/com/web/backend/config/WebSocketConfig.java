@@ -61,7 +61,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(@NonNull MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker(TOPIC_STRING, QUEUE_STRING, USER_STRING);
+        registry.enableSimpleBroker(TOPIC_STRING, QUEUE_STRING);
         registry.setApplicationDestinationPrefixes(APP_STRING);
         registry.setUserDestinationPrefix(USER_STRING);
     }
@@ -148,6 +148,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             System.currentTimeMillis());
                 }
 
+                if (accessor != null && accessor.isModified()) {
+                    return org.springframework.messaging.support.MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
+                }
                 return message;
             }
         });

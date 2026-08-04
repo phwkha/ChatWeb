@@ -43,6 +43,11 @@ public class WebSocketListener {
 
             Long count = redisTemplate.opsForHash().increment(ONLINE_USERS_COUNT_KEY, username, 1);
 
+            if (count != null && count <= 0) {
+                redisTemplate.opsForHash().put(ONLINE_USERS_COUNT_KEY, username, 1L);
+                count = 1L;
+            }
+
             redisTemplate.opsForZSet().add(ONLINE_USERS_KEY, username, System.currentTimeMillis());
 
             if (count != null && count == 1) {
@@ -67,6 +72,11 @@ public class WebSocketListener {
             log.info("WebSocket Disconnected: {}", username);
 
             Long count = redisTemplate.opsForHash().increment(ONLINE_USERS_COUNT_KEY, username, -1);
+
+            if (count != null && count < 0) {
+                redisTemplate.opsForHash().put(ONLINE_USERS_COUNT_KEY, username, 0L);
+                count = 0L;
+            }
 
             if (count != null && count <= 0) {
                 log.info("User count <= 0, scheduling offline debounce for: {}", username);
