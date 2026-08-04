@@ -18,7 +18,7 @@ public class SessionCleanupScheduler {
     private final UserService userService;
     private static final String ONLINE_USERS_KEY = "online_users";
     private static final String ONLINE_USERS_COUNT_KEY = "online_users_count";
-    private static final long TIMEOUT_MS = 60L * 1000;
+    private static final long TIMEOUT_MS = 3L * 60 * 1000;
 
     private static final String LOCK_KEY = "lock:session_cleanup";
 
