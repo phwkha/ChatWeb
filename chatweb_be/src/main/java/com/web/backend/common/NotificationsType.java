@@ -1,0 +1,16 @@
+package com.web.backend.common;
+
+public enum NotificationsType {
+    REQUEST_SENT_SUCCESS,
+    YOU_ACCEPTED,
+
+    FRIEND_REQUEST,
+    FRIEND_ACCEPTED,
+
+    UNFRIENDED,
+    REQUEST_CANCELLED,
+    REQUEST_REJECTED,
+
+    USER_ONLINE,
+    USER_OFFLINE
+}
