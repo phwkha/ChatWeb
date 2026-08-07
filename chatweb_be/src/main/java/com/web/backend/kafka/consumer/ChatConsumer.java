@@ -10,6 +10,7 @@ import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.form.SocketResponse;
 import com.web.backend.mapper.MessageMapper;
 import com.web.backend.model.ChatMessage;
+import com.web.backend.model.SystemMessage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,15 +65,17 @@ public class ChatConsumer {
     }
 
     @KafkaListener(topics = "${spring.kafka.topic.chat.system-messages}", groupId = "${spring.kafka.topic.chat.system-messages-group-id}-${random.uuid}")
-    public void listenSystemMessages(MessageSystemResponse systemMessage) {
+    public void listenSystemMessages(SystemMessage systemMessage) {
         if (systemMessage == null)
             return;
 
-        log.info("Kafka received SYSTEM message from: {}", systemMessage.getSender());
+        MessageSystemResponse response = messageMapper.systemMessageToResponse(systemMessage);
+
+        log.info("Kafka received SYSTEM message from: {}", response.getSender());
 
         try {
-            simpMessagingTemplate.convertAndSend(TOPIC_PUBLIC_STRING, systemMessage);
-            log.info("Kafka sent SYSTEM message from: {}", systemMessage.getSender());
+            simpMessagingTemplate.convertAndSend(TOPIC_PUBLIC_STRING, response);
+            log.info("Kafka sent SYSTEM message from: {}", response.getSender());
         } catch (Exception e) {
             log.error("Failed to send System WebSocket message: {}", e.getMessage());
         }
