@@ -71,16 +71,16 @@ public class FriendServiceImpl implements FriendService {
         @Transactional
         public void sendFriendRequest(String requesterUsername, String addresseeUsername) {
                 if (requesterUsername.equals(addresseeUsername))
-                        throw new InvalidDataException(Translator.tolocale(ERROR_FRIEND_SELF_ADD_STRING));
+                        throw new InvalidDataException(Translator.tolocale(ERROR_FRIEND_SELF_ADD_STRING), addresseeUsername);
 
                 UserEntity requester = getUser(requesterUsername);
                 UserEntity addressee = getUser(addresseeUsername);
 
                 if (addressee.getUserStatus() == UserStatus.INACTIVE) {
-                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_SEND_DELETED_STRING));
+                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_SEND_DELETED_STRING), addresseeUsername);
                 }
                 if (addressee.getUserStatus() == UserStatus.LOCKED) {
-                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_SEND_LOCKED_STRING));
+                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_SEND_LOCKED_STRING), addresseeUsername);
                 }
 
                 Optional<FriendshipEntity> existingRelation = friendshipRepository.findByUsers(requester, addressee);
@@ -89,11 +89,11 @@ public class FriendServiceImpl implements FriendService {
                         FriendshipEntity f = existingRelation.get();
                         if (f.getStatus() == FriendshipStatus.BLOCKED) {
                                 throw new AccessForbiddenException(
-                                                Translator.tolocale(ERROR_FRIEND_BLOCKED_CANNOT_SEND_STRING));
+                                                Translator.tolocale(ERROR_FRIEND_BLOCKED_CANNOT_SEND_STRING), addresseeUsername);
                         }
                         if (f.getStatus() == FriendshipStatus.ACCEPTED || f.getStatus() == FriendshipStatus.PENDING) {
                                 throw new ResourceConflictException(
-                                                Translator.tolocale(ERROR_FRIEND_INVITE_EXISTS_STRING));
+                                                Translator.tolocale(ERROR_FRIEND_INVITE_EXISTS_STRING), addresseeUsername);
                         }
                 }
 
@@ -122,18 +122,18 @@ public class FriendServiceImpl implements FriendService {
                 UserEntity requester = getUser(requesterUsername);
 
                 if (requester.getUserStatus() == UserStatus.INACTIVE) {
-                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_ACCEPT_DELETED_STRING));
+                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_ACCEPT_DELETED_STRING), requesterUsername);
                 }
                 if (requester.getUserStatus() == UserStatus.LOCKED) {
-                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_ACCEPT_LOCKED_STRING));
+                        throw new AccessForbiddenException(Translator.tolocale(ERROR_FRIEND_ACCEPT_LOCKED_STRING), requesterUsername);
                 }
 
                 FriendshipEntity friendship = friendshipRepository.findByUsers(acceptor, requester)
                                 .orElseThrow(() -> new ResourceNotFoundException(
-                                                Translator.tolocale(ERROR_FRIEND_INVITE_NOT_FOUND_STRING)));
+                                                Translator.tolocale(ERROR_FRIEND_INVITE_NOT_FOUND_STRING), requesterUsername));
 
                 if (friendship.getStatus() == FriendshipStatus.ACCEPTED) {
-                        throw new ResourceConflictException(Translator.tolocale(ERROR_FRIEND_ALREADY_FRIENDS_STRING));
+                        throw new ResourceConflictException(Translator.tolocale(ERROR_FRIEND_ALREADY_FRIENDS_STRING), requesterUsername);
                 }
 
                 friendship.setStatus(FriendshipStatus.ACCEPTED);
@@ -228,7 +228,7 @@ public class FriendServiceImpl implements FriendService {
 
                 FriendshipEntity friendship = friendshipRepository.findByUsers(user1, user2)
                                 .orElseThrow(() -> new ResourceNotFoundException(
-                                                Translator.tolocale(ERROR_FRIEND_RELATION_NOT_FOUND_STRING)));
+                                                Translator.tolocale(ERROR_FRIEND_RELATION_NOT_FOUND_STRING), targetUsername));
 
                 boolean isAccepted = friendship.getStatus() == FriendshipStatus.ACCEPTED;
                 boolean isRequester = friendship.getRequester().getUsername().equals(currentUsername);

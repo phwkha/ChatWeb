@@ -23,23 +23,23 @@ public class FriendWebSocketController {
     private final FriendService friendService;
 
     @MessageMapping("/friend/request")
-    public void handleFriendRequest(@Payload @NonNull String targetUsername, @NonNull Authentication auth) {
+    public void handleFriendRequest(@Payload @jakarta.validation.Valid com.web.backend.controller.request.FriendRequest request, @NonNull Authentication auth) {
         UserEntity sender = (UserEntity) auth.getPrincipal();
         String username = Objects.requireNonNull(sender.getUsername());
-        friendService.sendFriendRequest(username, targetUsername);
+        friendService.sendFriendRequest(username, request.getTargetUsername());
     }
 
     @MessageMapping("/friend/accept")
-    public void handleAcceptRequest(@Payload @NonNull String requesterUsername, @NonNull Authentication auth) {
+    public void handleAcceptRequest(@Payload @jakarta.validation.Valid com.web.backend.controller.request.FriendRequest request, @NonNull Authentication auth) {
         UserEntity acceptor = (UserEntity) auth.getPrincipal();
         String username = Objects.requireNonNull(acceptor.getUsername());
-        friendService.acceptFriendRequest(username, requesterUsername);
+        friendService.acceptFriendRequest(username, request.getTargetUsername());
     }
 
     @MessageMapping("/friend/decline")
-    public void handleDeclineRequest(@Payload @NonNull String requesterUsername, @NonNull Authentication auth) {
+    public void handleDeclineRequest(@Payload @jakarta.validation.Valid com.web.backend.controller.request.FriendRequest request, @NonNull Authentication auth) {
         UserEntity acceptor = (UserEntity) auth.getPrincipal();
         String username = Objects.requireNonNull(acceptor.getUsername());
-        friendService.deleteFriendship(username, requesterUsername);
+        friendService.deleteFriendship(username, request.getTargetUsername());
     }
 }

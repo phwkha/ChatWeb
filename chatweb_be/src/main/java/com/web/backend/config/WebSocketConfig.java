@@ -43,6 +43,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
 
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
     private static final String TOPIC_STRING = "/topic";
     private static final String QUEUE_STRING = "/queue";
     private static final String USER_STRING = "/user";
@@ -85,7 +87,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 try {
                     com.web.backend.controller.response.form.SocketResponse<Object> response = 
                         com.web.backend.controller.response.form.SocketResponse.error(errorMessage, null);
-                    payload = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsBytes(response);
+                    payload = objectMapper.writeValueAsBytes(response);
                 } catch (Exception e) {
                     payload = errorMessage != null ? errorMessage.getBytes() : new byte[0];
                 }

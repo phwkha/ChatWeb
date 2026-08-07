@@ -110,17 +110,17 @@ public class MessageServiceImpl implements MessageService {
 
         UserEntity recipientEntity = userRepository.findByUsername(request.getRecipient())
                 .orElseThrow(
-                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_RECIPIENT_NOT_FOUND_STRING)));
+                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_RECIPIENT_NOT_FOUND_STRING), request));
 
         if (recipientEntity.getUserStatus() == UserStatus.INACTIVE) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_SEND_DELETED_STRING));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_SEND_DELETED_STRING), request);
         }
         if (recipientEntity.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_SEND_LOCKED_STRING));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_SEND_LOCKED_STRING), request);
         }
         if (!friendService.isFriend(Objects.requireNonNull(sender),
                 Objects.requireNonNull(request.getRecipient()))) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING), request);
         }
 
         ChatMessage chatMsg = messageMapper.toEntity(request);
@@ -201,7 +201,7 @@ public class MessageServiceImpl implements MessageService {
 
         if (!friendService.isFriend(Objects.requireNonNull(senderUsername),
                 Objects.requireNonNull(request.getRecipient()))) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING), request);
         }
 
         String convId = generateConversationId(senderUsername, request.getRecipient());
@@ -307,10 +307,10 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public void editMessage(String senderUsername, EditMessageRequest request) {
         ChatMessage editMsg = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING), request));
 
         if (!editMsg.getSender().equals(senderUsername)) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_EDIT_FORBIDDEN_STRING));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_EDIT_FORBIDDEN_STRING), request);
         }
 
         editMsg.setContent(request.getNewContent());
@@ -330,10 +330,10 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public void revokeMessage(String senderUsername, RevokeMessageRequest request) {
         ChatMessage revokeMsg = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
+                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING), request));
 
         if (!revokeMsg.getSender().equals(senderUsername)) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_DELETE_FORBIDDEN_STRING));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_DELETE_FORBIDDEN_STRING), request);
         }
 
         revokeMsg.setContent("");
