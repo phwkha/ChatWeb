@@ -31,7 +31,7 @@ import com.web.backend.repository.UserRepository;
 import com.web.backend.service.impl.RoleServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
-public class RoleServiceTest {
+class RoleServiceTest {
 
     @Mock
     private RoleRepository roleRepository;

@@ -45,7 +45,7 @@ import com.web.backend.repository.UserRepository;
 import com.web.backend.service.impl.AdminServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
-public class AdminServiceTest {
+class AdminServiceTest {
 
     @Mock
     private UserRepository userRepository;

@@ -23,7 +23,7 @@ import com.web.backend.service.impl.JwtServiceImpl;
 import io.jsonwebtoken.security.SignatureException;
 
 @ExtendWith(MockitoExtension.class)
-public class JwtServiceTest {
+class JwtServiceTest {
 
     @InjectMocks
     private JwtServiceImpl jwtService;

@@ -37,7 +37,7 @@ import com.web.backend.service.util.CuckooFilterService;
 import com.web.backend.service.util.EmailService;
 
 @ExtendWith(MockitoExtension.class)
-public class UserServiceTest {
+ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;

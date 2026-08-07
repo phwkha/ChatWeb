@@ -24,7 +24,7 @@ import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.service.impl.StorageServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
-public class StorageServiceTest {
+class StorageServiceTest {
 
     @Mock
     private Cloudinary cloudinary;

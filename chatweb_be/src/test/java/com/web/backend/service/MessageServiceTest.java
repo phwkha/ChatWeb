@@ -17,10 +17,9 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.web.backend.common.UserStatus;
 import com.web.backend.config.localresolverconfig.Translator;
@@ -54,7 +53,7 @@ import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
 
 @ExtendWith(MockitoExtension.class)
-public class MessageServiceTest {
+class MessageServiceTest {
 
     @Mock
     private MessageRepository messageRepository;
@@ -70,7 +69,7 @@ public class MessageServiceTest {
     private MongoTemplate mongoTemplate;
     @Mock
     private MessageMapper messageMapper;
-    
+
     @Mock
     private com.web.backend.kafka.producer.ChatProducer chatProducer;
 
@@ -81,6 +80,8 @@ public class MessageServiceTest {
     private ListOperations<String, Object> listOperations;
     @Mock
     private HashOperations<String, Object, Object> hashOperations;
+    @Mock
+    private ZSetOperations<String, Object> zSetOperations;
 
     @InjectMocks
     private MessageServiceImpl messageService;
@@ -93,7 +94,6 @@ public class MessageServiceTest {
         ResourceBundleMessageSource messageSource = mock(ResourceBundleMessageSource.class);
         lenient().when(messageSource.getMessage(anyString(), any(), any())).thenReturn("Mocked Error Message");
         new Translator(messageSource);
-
 
         recipientUser = new UserEntity();
         recipientUser.setUsername("recipient");
@@ -151,7 +151,7 @@ public class MessageServiceTest {
         when(chatProducer.sendChatMessage(any())).thenReturn(future);
 
         // Mock Redis operations
-        lenient().when(redisTemplate.opsForList()).thenReturn(listOperations);
+        lenient().when(redisTemplate.opsForZSet()).thenReturn(zSetOperations);
         lenient().when(redisTemplate.opsForHash()).thenReturn(hashOperations);
 
         // Act
@@ -160,8 +160,9 @@ public class MessageServiceTest {
         // Assert
         verify(chatProducer).sendChatMessage(chatMessage);
 
-        // Verify it was pushed to Redis list for caching
-        verify(listOperations).rightPush(anyString(), eq(chatMessage));
+        // Verify it was pushed to Redis hash/zset for caching
+        verify(hashOperations).put(anyString(), eq(chatMessage.getId()), eq(chatMessage));
+        verify(zSetOperations).add(anyString(), eq(chatMessage.getId()), anyDouble());
 
         // Verify unread count was incremented
         verify(hashOperations).increment(anyString(), eq("sender"), eq(1L));
@@ -220,8 +221,8 @@ public class MessageServiceTest {
                 any(org.springframework.data.mongodb.core.query.Update.class),
                 eq(ChatMessage.class));
 
-        // Verify Redis deletion
-        verify(redisTemplate).delete(eq("chat:recent:recipient_sender"));
+        // Verify Redis updated
+        verify(redisTemplate, atLeastOnce()).opsForHash();
 
         // Verify Kafka push
         verify(chatProducer).sendReaction(any(ChatMessage.class));
@@ -398,9 +399,12 @@ public class MessageServiceTest {
         when(messageRepository.findByConversationId(eq("user1_user2"), any(Pageable.class)))
                 .thenReturn(List.of(dbMsg));
 
-        when(redisTemplate.opsForList()).thenReturn(listOperations);
-        when(listOperations.range("chat:recent:user1_user2", 0, -1))
-                .thenReturn(List.of(redisMsg));
+        when(redisTemplate.opsForZSet()).thenReturn(zSetOperations);
+        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
+        java.util.Set<Object> mockSet = java.util.Collections.singleton((Object) redisMsg.getId());
+        when(zSetOperations.reverseRange(anyString(), anyLong(), anyLong())).thenReturn(mockSet);
+        when(hashOperations.multiGet(anyString(), anyCollection()))
+                .thenReturn(java.util.Collections.singletonList(redisMsg));
 
         when(messageMapper.toResponse(any())).thenReturn(ChatMessageResponse.builder().build());
 
@@ -419,6 +423,7 @@ public class MessageServiceTest {
         request.setContent("Hello!");
 
         ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setMessageType(com.web.backend.common.MessageType.CHAT);
         when(messageMapper.toEntity(request)).thenReturn(chatMessage);
 
         CompletableFuture<SendResult<String, Object>> future = new CompletableFuture<>();
@@ -443,7 +448,7 @@ public class MessageServiceTest {
                 .completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
         when(chatProducer.sendChatMessage(any())).thenReturn(future);
 
-        when(redisTemplate.opsForList()).thenThrow(new RuntimeException("Redis down"));
+        when(redisTemplate.opsForHash()).thenThrow(new RuntimeException("Redis down"));
 
         // Should not throw exception to caller, just logs
         assertDoesNotThrow(() -> messageService.sendPrivateMessage("sender", request));

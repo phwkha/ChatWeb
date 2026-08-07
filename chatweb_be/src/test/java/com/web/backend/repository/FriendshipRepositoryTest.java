@@ -17,7 +17,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-public class FriendshipRepositoryTest {
+class FriendshipRepositoryTest {
 
     @Autowired
     private TestEntityManager entityManager;
@@ -91,7 +91,8 @@ public class FriendshipRepositoryTest {
         friendship.setStatus(FriendshipStatus.PENDING);
         entityManager.persistAndFlush(friendship);
 
-        Page<FriendshipEntity> page = friendshipRepository.findByAddresseeAndStatus(user2, FriendshipStatus.PENDING, PageRequest.of(0, 10));
+        Page<FriendshipEntity> page = friendshipRepository.findByAddresseeAndStatus(user2, FriendshipStatus.PENDING,
+                PageRequest.of(0, 10));
         assertThat(page.getTotalElements()).isEqualTo(1);
         assertThat(page.getContent().get(0).getRequester().getUsername()).isEqualTo("user1");
     }
@@ -104,7 +105,8 @@ public class FriendshipRepositoryTest {
         friendship.setStatus(FriendshipStatus.PENDING);
         entityManager.persistAndFlush(friendship);
 
-        boolean exists = friendshipRepository.existsByRequesterAndAddresseeAndStatus(user1, user2, FriendshipStatus.PENDING);
+        boolean exists = friendshipRepository.existsByRequesterAndAddresseeAndStatus(user1, user2,
+                FriendshipStatus.PENDING);
         assertThat(exists).isTrue();
     }
 

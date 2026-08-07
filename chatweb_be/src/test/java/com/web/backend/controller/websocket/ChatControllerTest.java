@@ -21,7 +21,7 @@ import java.util.Collections;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class ChatControllerTest {
+class ChatControllerTest {
 
     @Mock
     private MessageService messageService;

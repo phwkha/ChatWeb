@@ -17,7 +17,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -40,7 +39,7 @@ import com.web.backend.repository.UserRepository;
 import com.web.backend.service.impl.FriendServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
-public class FriendServiceTest {
+class FriendServiceTest {
 
     @Mock
     private UserRepository userRepository;
@@ -66,8 +65,6 @@ public class FriendServiceTest {
         ResourceBundleMessageSource messageSource = mock(ResourceBundleMessageSource.class);
         lenient().when(messageSource.getMessage(anyString(), any(), any())).thenReturn("Mocked Error Message");
         new Translator(messageSource);
-
-
 
         userA = new UserEntity();
         userA.setUsername("userA");

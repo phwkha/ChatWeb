@@ -36,7 +36,6 @@ import com.web.backend.controller.request.LoginRequest;
 import com.web.backend.controller.request.VerifyOtpRequest;
 import com.web.backend.exception.custom.InvalidOtpException;
 import com.web.backend.model.RegisterData;
-import java.util.Date;
 import com.web.backend.controller.response.LoginResponse;
 import com.web.backend.controller.response.TokenResponse;
 import com.web.backend.controller.response.UserResponse;

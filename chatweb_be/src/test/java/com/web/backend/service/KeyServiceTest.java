@@ -22,7 +22,7 @@ import com.web.backend.repository.UserRepository;
 import com.web.backend.service.impl.KeyServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
-public class KeyServiceTest {
+class KeyServiceTest {
 
     @Mock
     private UserRepository userRepository;

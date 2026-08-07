@@ -44,7 +44,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 }, excludeFilters = {
                 @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
 })
-public class SearchUserControllerTest {
+class SearchUserControllerTest {
 
         @Autowired
         private MockMvc mockMvc;

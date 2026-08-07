@@ -32,7 +32,6 @@ import jakarta.servlet.http.Cookie;
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,7 +49,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 }, excludeFilters = {
                 @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
 })
-public class AuthControllerTest {
+class AuthControllerTest {
 
         @Autowired
         private MockMvc mockMvc;

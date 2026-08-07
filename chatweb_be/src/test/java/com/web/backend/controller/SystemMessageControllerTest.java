@@ -1,6 +1,5 @@
 package com.web.backend.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;

@@ -16,7 +16,7 @@ import java.util.Collections;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class FriendWebSocketControllerTest {
+class FriendWebSocketControllerTest {
 
     @Mock
     private FriendService friendService;

@@ -28,7 +28,7 @@ import com.web.backend.repository.UserRepository;
 import com.web.backend.service.impl.SearchUserServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
-public class SearchUserServiceTest {
+ class SearchUserServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private UserMapper userMapper;
