@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 
 
 import java.util.Optional;
+import java.util.List;
+import org.springframework.data.repository.query.Param;
 
 
 public interface FriendshipRepository extends JpaRepository<FriendshipEntity, Long> {
@@ -39,5 +41,5 @@ public interface FriendshipRepository extends JpaRepository<FriendshipEntity, Lo
            "FROM FriendshipEntity f " +
            "WHERE (f.requester.username = :username OR f.addressee.username = :username) " +
            "AND f.status = 'ACCEPTED'")
-    java.util.List<String> findAllFriendUsernamesByUsername(@org.springframework.data.repository.query.Param("username") String username);
+    List<String> findAllFriendUsernamesByUsername(@Param("username") String username);
 }

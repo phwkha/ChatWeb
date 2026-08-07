@@ -28,6 +28,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 @EnableWebSecurity
@@ -121,7 +122,7 @@ public class SecurityConfig {
                                                 SWAGGER_UI_SWAGGER_INITIALIZER_JS_STRING);
         }
 
-        @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:http://localhost:5173}")
+        @Value("${app.cors.allowed-origins:http://localhost:5173}")
         private String allowedOrigins;
 
         @Bean

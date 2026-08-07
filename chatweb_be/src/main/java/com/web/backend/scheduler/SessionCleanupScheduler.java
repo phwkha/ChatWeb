@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
+import java.time.Duration;
 
 @Component
 @RequiredArgsConstructor
@@ -24,7 +25,7 @@ public class SessionCleanupScheduler {
 
     @Scheduled(fixedRate = 30 * 1000)
     public void cleanupZombieSessions() {
-        Boolean locked = redisTemplate.opsForValue().setIfAbsent(LOCK_KEY, "locked", java.time.Duration.ofSeconds(20));
+        Boolean locked = redisTemplate.opsForValue().setIfAbsent(LOCK_KEY, "locked", Duration.ofSeconds(20));
 
         if (Boolean.TRUE.equals(locked)) {
             try {

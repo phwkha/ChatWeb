@@ -13,6 +13,8 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
+import com.web.backend.controller.request.EditMessageRequest;
+import com.web.backend.controller.request.RevokeMessageRequest;
 @Controller
 @RequiredArgsConstructor
 @Slf4j(topic = "CHAT-CONTROLLER")
@@ -54,7 +56,7 @@ public class ChatController {
     }
 
     @MessageMapping("/chat/editMessage")
-    public void editMessage(@Payload @Valid com.web.backend.controller.request.EditMessageRequest request,
+    public void editMessage(@Payload @Valid EditMessageRequest request,
             Authentication authentication) {
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String senderUsername = userPrincipal.getUsername();
@@ -64,7 +66,7 @@ public class ChatController {
     }
 
     @MessageMapping("/chat/revokeMessage")
-    public void revokeMessage(@Payload @Valid com.web.backend.controller.request.RevokeMessageRequest request,
+    public void revokeMessage(@Payload @Valid RevokeMessageRequest request,
             Authentication authentication) {
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String senderUsername = userPrincipal.getUsername();

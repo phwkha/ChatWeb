@@ -12,6 +12,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.web.backend.config.localresolverconfig.Translator;
 
 @Component
 public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
@@ -26,7 +27,7 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
             AuthenticationException exception) throws IOException, ServletException {
 
         String targetUrl = UriComponentsBuilder.fromUriString(Objects.requireNonNull(redirectUri))
-                .queryParam(ERROR_STRING, com.web.backend.config.localresolverconfig.Translator.tolocale(exception.getLocalizedMessage()))
+                .queryParam(ERROR_STRING, Translator.tolocale(exception.getLocalizedMessage()))
                 .build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);

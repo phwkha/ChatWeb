@@ -22,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.kafka.support.SendResult;
 import com.web.backend.kafka.producer.ChatProducer;
 import org.springframework.stereotype.Service;
 import org.springframework.data.mongodb.core.query.Query;
@@ -56,6 +57,11 @@ import com.web.backend.service.MessageService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.web.backend.exception.WebSocketErrorHandler;
+import java.time.ZoneId;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j(topic = "MESSAGE-SERVICE")
 @Service
@@ -78,7 +84,7 @@ public class MessageServiceImpl implements MessageService {
 
     private final ChatProducer chatProducer;
 
-    private final com.web.backend.exception.WebSocketErrorHandler webSocketErrorHandler;
+    private final WebSocketErrorHandler webSocketErrorHandler;
 
     private static final long REDIS_TTL_MINUTES = 5;
 
@@ -147,7 +153,7 @@ public class MessageServiceImpl implements MessageService {
                 String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
 
                 redisTemplate.opsForHash().put(hashKey, chatMsg.getId(), chatMsg);
-                long score = chatMsg.getTimestamp().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+                long score = chatMsg.getTimestamp().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
                 redisTemplate.opsForZSet().add(zsetKey, chatMsg.getId(), score);
 
                 redisTemplate.opsForZSet().removeRange(zsetKey, 0, -51);
@@ -265,7 +271,7 @@ public class MessageServiceImpl implements MessageService {
             String hashKey = CHAT_RECENT_HASH_STRING + conversationId;
             String zsetKey = CHAT_RECENT_ZSET_STRING + conversationId;
 
-            java.util.Set<Object> messageIds = redisTemplate.opsForZSet().reverseRange(zsetKey, 0, -1);
+            Set<Object> messageIds = redisTemplate.opsForZSet().reverseRange(zsetKey, 0, -1);
 
             if (messageIds != null && !messageIds.isEmpty()) {
                 List<Object> redisObjects = redisTemplate.opsForHash().multiGet(hashKey, messageIds);
@@ -470,7 +476,7 @@ public class MessageServiceImpl implements MessageService {
     }
 
     private void updateMessageInRedisCache(String conversationId, String messageId,
-            java.util.function.Consumer<ChatMessage> updateAction) {
+            Consumer<ChatMessage> updateAction) {
         try {
             String hashKey = CHAT_RECENT_HASH_STRING + conversationId;
             Object obj = redisTemplate.opsForHash().get(hashKey, messageId);
@@ -484,7 +490,7 @@ public class MessageServiceImpl implements MessageService {
         }
     }
 
-    private void handleKafkaFuture(java.util.concurrent.CompletableFuture<org.springframework.kafka.support.SendResult<String, Object>> future, String sender, Object request, String actionName) {
+    private void handleKafkaFuture(CompletableFuture<SendResult<String, Object>> future, String sender, Object request, String actionName) {
         future.whenComplete((result, ex) -> {
             if (ex != null) {
                 log.error("Critical Error: Cannot push {} to Kafka.", actionName, ex);

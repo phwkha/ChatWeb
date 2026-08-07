@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import org.springframework.data.annotation.Transient;
 
 @Document("messages")
 @Data
@@ -52,6 +53,6 @@ public class ChatMessage {
     private String wrappedKeyRecipient;
     private String wrappedKeySender;
 
-    @org.springframework.data.annotation.Transient
+    @Transient
     private String localId;
 }

@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.web.backend.common.TokenType;
 import com.web.backend.config.localresolverconfig.Translator;
+import jakarta.servlet.http.Cookie;
 
 @Tag(name = "Auth Controller")
 @RestController
@@ -228,7 +229,7 @@ public class AuthController {
                 if (request.getCookies() == null) {
                         return null;
                 }
-                for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                for (Cookie cookie : request.getCookies()) {
                         if (cookieName.equals(cookie.getName())) {
                                 return cookie.getValue();
                         }

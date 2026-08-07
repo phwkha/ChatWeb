@@ -327,8 +327,8 @@ public class MessageServiceTest {
                 .thenReturn(List.of(msg1));
         when(redisTemplate.opsForHash()).thenReturn(hashOperations);
 
-        CompletableFuture<org.springframework.kafka.support.SendResult<String, Object>> future = CompletableFuture
-                .completedFuture(mock(org.springframework.kafka.support.SendResult.class, RETURNS_DEEP_STUBS));
+        CompletableFuture<SendResult<String, Object>> future = CompletableFuture
+                .completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
         when(chatProducer.sendStatusMessage(any())).thenReturn(future);
 
         messageService.markMessagesAsRead("recipient", "sender");

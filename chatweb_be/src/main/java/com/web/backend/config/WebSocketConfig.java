@@ -5,7 +5,6 @@ import java.util.Objects;
 
 import com.web.backend.jwt.JwtHandshakeInterceptor;
 import com.web.backend.common.TokenType;
-import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.model.UserEntity;
 import com.web.backend.service.JwtService;
 import com.web.backend.service.util.UserServiceDetail;
@@ -28,6 +27,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import com.web.backend.config.localresolverconfig.Translator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.socket.messaging.StompSubProtocolErrorHandler;
+import com.web.backend.controller.response.form.SocketResponse;
+import org.springframework.messaging.support.MessageBuilder;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -43,7 +48,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
 
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     private static final String TOPIC_STRING = "/topic";
     private static final String QUEUE_STRING = "/queue";
@@ -68,12 +73,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.setUserDestinationPrefix(USER_STRING);
     }
 
-    @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:http://localhost:5173}")
+    @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
 
     @Override
     public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
-        registry.setErrorHandler(new org.springframework.web.socket.messaging.StompSubProtocolErrorHandler() {
+        registry.setErrorHandler(new StompSubProtocolErrorHandler() {
             @Override
             public Message<byte[]> handleClientMessageProcessingError(Message<byte[]> clientMessage, Throwable ex) {
                 Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
@@ -85,14 +90,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
                 byte[] payload;
                 try {
-                    com.web.backend.controller.response.form.SocketResponse<Object> response = 
-                        com.web.backend.controller.response.form.SocketResponse.error(errorMessage, null);
+                    SocketResponse<Object> response = 
+                        SocketResponse.error(errorMessage, null);
                     payload = objectMapper.writeValueAsBytes(response);
                 } catch (Exception e) {
                     payload = errorMessage != null ? errorMessage.getBytes() : new byte[0];
                 }
 
-                return org.springframework.messaging.support.MessageBuilder.createMessage(payload, accessor.getMessageHeaders());
+                return MessageBuilder.createMessage(payload, accessor.getMessageHeaders());
             }
         });
 
@@ -174,7 +179,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 }
 
                 if (accessor != null && accessor.isModified()) {
-                    return org.springframework.messaging.support.MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
+                    return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
                 }
                 return message;
             }

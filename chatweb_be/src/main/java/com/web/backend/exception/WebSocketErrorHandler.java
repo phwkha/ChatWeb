@@ -10,6 +10,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.validation.BindingResult;
+import com.web.backend.config.localresolverconfig.Translator;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.simp.SimpMessageType;
+import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
+import org.springframework.messaging.handler.annotation.Header;
+import com.web.backend.exception.custom.AccessForbiddenException;
+import com.web.backend.exception.custom.InvalidDataException;
+import com.web.backend.exception.custom.ResourceNotFoundException;
+import com.web.backend.exception.custom.ResourceConflictException;
+import org.springframework.security.access.AccessDeniedException;
+import com.web.backend.controller.response.form.SocketResponse;
 
 @ControllerAdvice
 @RequiredArgsConstructor
@@ -34,8 +45,8 @@ public class WebSocketErrorHandler {
         if (authentication != null && authentication.getName() != null) {
             handleChatError(authentication.getName(), request, message);
         } else if (sessionId != null) {
-            org.springframework.messaging.simp.SimpMessageHeaderAccessor headerAccessor = org.springframework.messaging.simp.SimpMessageHeaderAccessor
-                    .create(org.springframework.messaging.simp.SimpMessageType.MESSAGE);
+            SimpMessageHeaderAccessor headerAccessor = SimpMessageHeaderAccessor
+                    .create(SimpMessageType.MESSAGE);
             headerAccessor.setSessionId(sessionId);
             headerAccessor.setLeaveMutable(true);
             simpMessagingTemplate.convertAndSendToUser(
@@ -46,11 +57,11 @@ public class WebSocketErrorHandler {
         }
     }
 
-    @MessageExceptionHandler(org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException.class)
+    @MessageExceptionHandler(MethodArgumentNotValidException.class)
     public void handleWebSocketValidationException(
-            org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException ex,
+            MethodArgumentNotValidException ex,
             Authentication authentication,
-            @org.springframework.messaging.handler.annotation.Header(value = "simpSessionId", required = false) String sessionId) {
+            @Header(value = "simpSessionId", required = false) String sessionId) {
 
         String errorMessage = Translator.tolocale(ERROR_WS_INVALID_DATA_STRING);
         Object requestData = null;
@@ -71,50 +82,50 @@ public class WebSocketErrorHandler {
     public void handleMessageConversionException(
             MessageConversionException ex,
             Authentication authentication,
-            @org.springframework.messaging.handler.annotation.Header(value = "simpSessionId", required = false) String sessionId) {
+            @Header(value = "simpSessionId", required = false) String sessionId) {
 
         String errorMessage = Translator.tolocale(ERROR_SYS_BAD_FORMAT_STRING);
 
         this.handleChatError(authentication, sessionId, null, errorMessage);
     }
 
-    @MessageExceptionHandler(com.web.backend.exception.custom.AccessForbiddenException.class)
+    @MessageExceptionHandler(AccessForbiddenException.class)
     public void handleAccessForbiddenException(
-            com.web.backend.exception.custom.AccessForbiddenException ex,
+            AccessForbiddenException ex,
             Authentication authentication,
-            @org.springframework.messaging.handler.annotation.Header(value = "simpSessionId", required = false) String sessionId) {
+            @Header(value = "simpSessionId", required = false) String sessionId) {
         this.handleChatError(authentication, sessionId, ex.getRequestData(), ex.getMessage());
     }
 
-    @MessageExceptionHandler(com.web.backend.exception.custom.InvalidDataException.class)
+    @MessageExceptionHandler(InvalidDataException.class)
     public void handleInvalidDataException(
-            com.web.backend.exception.custom.InvalidDataException ex,
+            InvalidDataException ex,
             Authentication authentication,
-            @org.springframework.messaging.handler.annotation.Header(value = "simpSessionId", required = false) String sessionId) {
+            @Header(value = "simpSessionId", required = false) String sessionId) {
         this.handleChatError(authentication, sessionId, ex.getRequestData(), ex.getMessage());
     }
 
-    @MessageExceptionHandler(com.web.backend.exception.custom.ResourceNotFoundException.class)
+    @MessageExceptionHandler(ResourceNotFoundException.class)
     public void handleResourceNotFoundException(
-            com.web.backend.exception.custom.ResourceNotFoundException ex,
+            ResourceNotFoundException ex,
             Authentication authentication,
-            @org.springframework.messaging.handler.annotation.Header(value = "simpSessionId", required = false) String sessionId) {
+            @Header(value = "simpSessionId", required = false) String sessionId) {
         this.handleChatError(authentication, sessionId, ex.getRequestData(), ex.getMessage());
     }
 
-    @MessageExceptionHandler(com.web.backend.exception.custom.ResourceConflictException.class)
+    @MessageExceptionHandler(ResourceConflictException.class)
     public void handleResourceConflictException(
-            com.web.backend.exception.custom.ResourceConflictException ex,
+            ResourceConflictException ex,
             Authentication authentication,
-            @org.springframework.messaging.handler.annotation.Header(value = "simpSessionId", required = false) String sessionId) {
+            @Header(value = "simpSessionId", required = false) String sessionId) {
         this.handleChatError(authentication, sessionId, ex.getRequestData(), ex.getMessage());
     }
 
-    @MessageExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    @MessageExceptionHandler(AccessDeniedException.class)
     public void handleAccessDeniedException(
-            org.springframework.security.access.AccessDeniedException ex,
+            AccessDeniedException ex,
             Authentication authentication,
-            @org.springframework.messaging.handler.annotation.Header(value = "simpSessionId", required = false) String sessionId) {
+            @Header(value = "simpSessionId", required = false) String sessionId) {
 
         this.handleChatError(authentication, sessionId, null, ex.getMessage());
     }
@@ -123,7 +134,7 @@ public class WebSocketErrorHandler {
     public void handleAllOtherExceptions(
             Exception ex,
             Authentication authentication,
-            @org.springframework.messaging.handler.annotation.Header(value = "simpSessionId", required = false) String sessionId) {
+            @Header(value = "simpSessionId", required = false) String sessionId) {
 
         String errorMessage = Translator.tolocale(ERROR_SYS_BUSY_STRING);
 
