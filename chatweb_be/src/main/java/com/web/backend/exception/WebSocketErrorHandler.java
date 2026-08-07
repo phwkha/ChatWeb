@@ -64,4 +64,27 @@ public class WebSocketErrorHandler {
 
         this.handleChatError(username, null, errorMessage);
     }
+
+    @MessageExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public void handleAccessDeniedException(
+            org.springframework.security.access.AccessDeniedException ex,
+            Authentication authentication) {
+
+        String username = (authentication != null) ? authentication.getName() : UNKNOWS_STRING;
+
+        String errorMessage = Translator.tolocale("");
+
+        this.handleChatError(username, null, errorMessage);
+    }
+
+    @MessageExceptionHandler(Exception.class)
+    public void handleAllOtherExceptions(
+            Exception ex,
+            Authentication authentication) {
+
+        String username = (authentication != null) ? authentication.getName() : UNKNOWS_STRING;
+        String errorMessage = Translator.tolocale("");
+
+        this.handleChatError(username, null, errorMessage);
+    }
 }
