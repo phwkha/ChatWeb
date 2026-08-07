@@ -78,6 +78,8 @@ public class MessageServiceImpl implements MessageService {
 
     private final ChatProducer chatProducer;
 
+    private final com.web.backend.exception.WebSocketErrorHandler webSocketErrorHandler;
+
     private static final long REDIS_TTL_MINUTES = 5;
 
     private static final String CONVERSATIONID_STRING = "conversationId";
@@ -146,7 +148,7 @@ public class MessageServiceImpl implements MessageService {
                 redisTemplate.opsForHash().put(hashKey, chatMsg.getId(), chatMsg);
                 long score = chatMsg.getTimestamp().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
                 redisTemplate.opsForZSet().add(zsetKey, chatMsg.getId(), score);
-                
+
                 redisTemplate.opsForZSet().removeRange(zsetKey, 0, -51);
 
                 redisTemplate.expire(hashKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
@@ -159,7 +161,7 @@ public class MessageServiceImpl implements MessageService {
             }
         }
 
-        chatProducer.sendChatMessage(chatMsg, sender, request).whenComplete((result, ex) -> {
+        chatProducer.sendChatMessage(chatMsg).whenComplete((result, ex) -> {
             if (ex != null && chatMsg.getMessageType() == MessageType.CHAT) {
                 log.error("Kafka failed, rolling back Redis cache for message {}", chatMsg.getId());
                 try {
@@ -167,12 +169,13 @@ public class MessageServiceImpl implements MessageService {
                     String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
                     redisTemplate.opsForHash().delete(hashKey, chatMsg.getId());
                     redisTemplate.opsForZSet().remove(zsetKey, chatMsg.getId());
-                    
+
                     String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
                     redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), -1);
                 } catch (Exception rollbackEx) {
                     log.error("Failed to rollback Redis cache: {}", rollbackEx.getMessage());
                 }
+                webSocketErrorHandler.handleChatError(sender, request, Translator.tolocale("error.msg.system_overload"));
             } else if (ex == null && chatMsg.getMessageType() == MessageType.CHAT) {
                 log.info("save message success");
             }
@@ -189,7 +192,7 @@ public class MessageServiceImpl implements MessageService {
         systemMsg.setContent(request.getContent());
         systemMessageRepository.save(Objects.requireNonNull(systemMsg));
 
-        chatProducer.sendSystemMessage(systemMsg, currentUsername, request);
+        handleKafkaFuture(chatProducer.sendSystemMessage(systemMsg), currentUsername, request, "System Message");
         log.info("{} Chat system message success", systemMsg.getSender());
     }
 
@@ -236,7 +239,7 @@ public class MessageServiceImpl implements MessageService {
         reactionMsg.setContent(request.getReactionType() != null ? request.getReactionType().toString() : "");
         reactionMsg.setTimestamp(LocalDateTime.now());
 
-        chatProducer.sendReaction(reactionMsg, senderUsername, request);
+        handleKafkaFuture(chatProducer.sendReaction(reactionMsg), senderUsername, request, "Reaction");
     }
 
     @Override
@@ -313,12 +316,14 @@ public class MessageServiceImpl implements MessageService {
         editMsg.setContent(request.getNewContent());
         editMsg.setEdited(true);
 
+        messageRepository.save(editMsg);
+
         updateMessageInRedisCache(editMsg.getConversationId(), editMsg.getId(), msg -> {
             msg.setContent(request.getNewContent());
             msg.setEdited(true);
         });
 
-        chatProducer.sendEditMessage(editMsg, senderUsername, request);
+        handleKafkaFuture(chatProducer.sendEditMessage(editMsg), senderUsername, request, "Edit Message");
 
     }
 
@@ -338,6 +343,8 @@ public class MessageServiceImpl implements MessageService {
         revokeMsg.setReactions(null);
         revokeMsg.setDeleted(true);
 
+        messageRepository.save(revokeMsg);
+
         updateMessageInRedisCache(revokeMsg.getConversationId(), revokeMsg.getId(), msg -> {
             msg.setContent("");
             msg.setFileUrl(null);
@@ -347,7 +354,7 @@ public class MessageServiceImpl implements MessageService {
             msg.setDeleted(true);
         });
 
-        chatProducer.sendRevokeMessage(revokeMsg, senderUsername, request);
+        handleKafkaFuture(chatProducer.sendRevokeMessage(revokeMsg), senderUsername, request, "Revoke Message");
     }
 
     @Override
@@ -435,7 +442,7 @@ public class MessageServiceImpl implements MessageService {
         statusMsg.setSender(senderUsername);
         statusMsg.setRecipient(recipientUsername);
 
-        chatProducer.sendStatusMessage(statusMsg, recipientUsername, null);
+        handleKafkaFuture(chatProducer.sendStatusMessage(statusMsg), recipientUsername, null, "Status Message");
 
         log.info("User marking messages");
     }
@@ -474,5 +481,16 @@ public class MessageServiceImpl implements MessageService {
         } catch (Exception e) {
             log.warn("Error updating Redis cache for message {}: {}", messageId, e.getMessage());
         }
+    }
+
+    private void handleKafkaFuture(java.util.concurrent.CompletableFuture<org.springframework.kafka.support.SendResult<String, Object>> future, String sender, Object request, String actionName) {
+        future.whenComplete((result, ex) -> {
+            if (ex != null) {
+                log.error("Critical Error: Cannot push {} to Kafka.", actionName, ex);
+                if (sender != null) {
+                    webSocketErrorHandler.handleChatError(sender, request, Translator.tolocale("error.msg.system_overload"));
+                }
+            }
+        });
     }
 }

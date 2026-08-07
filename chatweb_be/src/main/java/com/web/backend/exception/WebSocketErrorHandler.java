@@ -65,16 +65,27 @@ public class WebSocketErrorHandler {
         this.handleChatError(username, null, errorMessage);
     }
 
+    @MessageExceptionHandler({
+            com.web.backend.exception.custom.AccessForbiddenException.class,
+            com.web.backend.exception.custom.InvalidDataException.class,
+            com.web.backend.exception.custom.ResourceNotFoundException.class,
+            com.web.backend.exception.custom.ResourceConflictException.class
+    })
+    public void handleCustomBusinessExceptions(
+            Exception ex,
+            Authentication authentication) {
+
+        String username = (authentication != null) ? authentication.getName() : UNKNOWS_STRING;
+        this.handleChatError(username, null, ex.getMessage());
+    }
+
     @MessageExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public void handleAccessDeniedException(
             org.springframework.security.access.AccessDeniedException ex,
             Authentication authentication) {
 
         String username = (authentication != null) ? authentication.getName() : UNKNOWS_STRING;
-
-        String errorMessage = Translator.tolocale("");
-
-        this.handleChatError(username, null, errorMessage);
+        this.handleChatError(username, null, ex.getMessage());
     }
 
     @MessageExceptionHandler(Exception.class)
@@ -83,7 +94,7 @@ public class WebSocketErrorHandler {
             Authentication authentication) {
 
         String username = (authentication != null) ? authentication.getName() : UNKNOWS_STRING;
-        String errorMessage = Translator.tolocale("");
+        String errorMessage = Translator.tolocale("error.sys.busy");
 
         this.handleChatError(username, null, errorMessage);
     }

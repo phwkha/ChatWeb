@@ -38,13 +38,15 @@ public class DatabaseWriteBehindConsumer {
             } catch (Exception e) {
                 log.warn("Error writing to DB (Attempt {}/{}): {}", attempt, maxAttempts, e.getMessage());
                 if (attempt == maxAttempts) {
-                    log.error("Database save FAILED after {} attempts. Skipping this message batch.", maxAttempts);
+                    log.error("Database save FAILED after {} attempts. Throwing exception to prevent data loss.", maxAttempts);
+                    throw new RuntimeException("Failed to save messages to DB after " + maxAttempts + " attempts", e);
                 } else {
                     try {
                         Thread.sleep(backoffDelay);
                         backoffDelay *= 2;
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
+                        throw new RuntimeException("Thread interrupted during DB retry backoff", ie);
                     }
                 }
             }

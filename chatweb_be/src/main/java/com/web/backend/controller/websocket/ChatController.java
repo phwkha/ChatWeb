@@ -1,6 +1,5 @@
 package com.web.backend.controller.websocket;
 
-import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.ChatMessageRequest;
 import com.web.backend.controller.request.MessageSystemRequest;
 import com.web.backend.controller.request.ReactionRequest;
@@ -14,22 +13,12 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
-import com.web.backend.exception.WebSocketErrorHandler;
-import com.web.backend.exception.custom.AccessForbiddenException;
-import com.web.backend.exception.custom.InvalidDataException;
-import com.web.backend.exception.custom.ResourceNotFoundException;
-
 @Controller
 @RequiredArgsConstructor
 @Slf4j(topic = "CHAT-CONTROLLER")
 public class ChatController {
 
     private final MessageService messageService;
-
-    private final WebSocketErrorHandler webSocketErrorHandler;
-
-    private static final String ERROR_CHAT_SYS_MSG_FAIL_STRING = "error.chat.sys_msg_fail";
-    private static final String ERROR_SYS_BUSY_STRING = "error.sys.busy";
 
     @MessageMapping("/chat/sendMessageSystem")
     @PreAuthorize("hasAuthority('ADMIN_SEND-MESSAGE')")
@@ -39,14 +28,8 @@ public class ChatController {
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String currentUsername = userPrincipal.getUsername();
 
-        try {
-            log.debug("Public chat from: {}", currentUsername);
-            messageService.sendSystemMessage(currentUsername, request);
-        } catch (Exception e) {
-            log.error("Error sending system message: {}", e.getMessage());
-            webSocketErrorHandler.handleChatError(currentUsername, request,
-                    Translator.tolocale(ERROR_CHAT_SYS_MSG_FAIL_STRING));
-        }
+        log.debug("Public chat from: {}", currentUsername);
+        messageService.sendSystemMessage(currentUsername, request);
     }
 
     @MessageMapping("/chat/sendPrivateMessage")
@@ -55,18 +38,8 @@ public class ChatController {
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String senderUsername = userPrincipal.getUsername();
 
-        try {
-            log.debug("Private from {} to {}", senderUsername, request.getRecipient());
-
-            messageService.sendPrivateMessage(senderUsername, request);
-
-        } catch (AccessForbiddenException | ResourceNotFoundException | InvalidDataException e) {
-            log.warn("Business error sending private message: {}", e.getMessage());
-            webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
-        } catch (Exception e) {
-            log.error("System error sending private message: ", e);
-            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale(ERROR_SYS_BUSY_STRING));
-        }
+        log.debug("Private from {} to {}", senderUsername, request.getRecipient());
+        messageService.sendPrivateMessage(senderUsername, request);
     }
 
     @MessageMapping("/chat/reaction")
@@ -75,19 +48,9 @@ public class ChatController {
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String senderUsername = userPrincipal.getUsername();
 
-        try {
-            log.debug("Reaction from {} to message {} of {}",
-                    senderUsername, request.getMessageId(), request.getRecipient());
-
-            messageService.reactToMessage(senderUsername, request);
-
-        } catch (AccessForbiddenException | ResourceNotFoundException | InvalidDataException e) {
-            log.warn("Business error processing reaction: {}", e.getMessage());
-            webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
-        } catch (Exception e) {
-            log.error("System error processing reaction: ", e);
-            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale(ERROR_SYS_BUSY_STRING));
-        }
+        log.debug("Reaction from {} to message {} of {}",
+                senderUsername, request.getMessageId(), request.getRecipient());
+        messageService.reactToMessage(senderUsername, request);
     }
 
     @MessageMapping("/chat/editMessage")
@@ -95,16 +58,9 @@ public class ChatController {
             Authentication authentication) {
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String senderUsername = userPrincipal.getUsername();
-        try {
-            log.debug("Edit message {} from {}", request.getMessageId(), senderUsername);
-            messageService.editMessage(senderUsername, request);
-        } catch (AccessForbiddenException | ResourceNotFoundException | InvalidDataException e) {
-            log.warn("Business error editing message: {}", e.getMessage());
-            webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
-        } catch (Exception e) {
-            log.error("System error editing message: ", e);
-            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale(ERROR_SYS_BUSY_STRING));
-        }
+
+        log.debug("Edit message {} from {}", request.getMessageId(), senderUsername);
+        messageService.editMessage(senderUsername, request);
     }
 
     @MessageMapping("/chat/revokeMessage")
@@ -112,16 +68,9 @@ public class ChatController {
             Authentication authentication) {
         UserEntity userPrincipal = (UserEntity) authentication.getPrincipal();
         String senderUsername = userPrincipal.getUsername();
-        try {
-            log.debug("Revoke message {} from {}", request.getMessageId(), senderUsername);
-            messageService.revokeMessage(senderUsername, request);
-        } catch (AccessForbiddenException | ResourceNotFoundException | InvalidDataException e) {
-            log.warn("Business error revoking message: {}", e.getMessage());
-            webSocketErrorHandler.handleChatError(senderUsername, request, e.getMessage());
-        } catch (Exception e) {
-            log.error("System error revoking message: ", e);
-            webSocketErrorHandler.handleChatError(senderUsername, request, Translator.tolocale(ERROR_SYS_BUSY_STRING));
-        }
+
+        log.debug("Revoke message {} from {}", request.getMessageId(), senderUsername);
+        messageService.revokeMessage(senderUsername, request);
     }
 
 }

@@ -71,6 +71,29 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
+        registry.setErrorHandler(new org.springframework.web.socket.messaging.StompSubProtocolErrorHandler() {
+            @Override
+            public Message<byte[]> handleClientMessageProcessingError(Message<byte[]> clientMessage, Throwable ex) {
+                Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                String errorMessage = cause.getMessage();
+
+                StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.ERROR);
+                accessor.setMessage(errorMessage);
+                accessor.setLeaveMutable(true);
+
+                byte[] payload;
+                try {
+                    com.web.backend.controller.response.form.SocketResponse<Object> response = 
+                        com.web.backend.controller.response.form.SocketResponse.error(errorMessage, null);
+                    payload = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsBytes(response);
+                } catch (Exception e) {
+                    payload = errorMessage != null ? errorMessage.getBytes() : new byte[0];
+                }
+
+                return org.springframework.messaging.support.MessageBuilder.createMessage(payload, accessor.getMessageHeaders());
+            }
+        });
+
         registry.addEndpoint(WS_STRING)
                 .setAllowedOriginPatterns(allowedOrigins.split(","))
                 .addInterceptors(jwtHandshakeInterceptor)
