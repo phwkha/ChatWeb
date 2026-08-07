@@ -22,7 +22,6 @@ public class FriendProducer {
     private String friendTopic;
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final com.web.backend.exception.WebSocketErrorHandler webSocketErrorHandler;
 
     private static final String TOPIC_MUST_NOT_BE_NULL_STRING = "Topic must not be null";
 
@@ -38,21 +37,12 @@ public class FriendProducer {
                         if (ex != null) {
                             log.error("Critical Error: Cannot push friend payload to Kafka. Topic: {}", friendTopic,
                                     ex);
-                            String notifyUser = payload.senderUsername();
-                            if (notifyUser != null) {
-                                webSocketErrorHandler.handleChatError(notifyUser, ex,
-                                        "Không thể gửi yêu cầu do lỗi hệ thống.");
-                            }
                         } else {
                             log.info("sendFriendNoti Kafka message to topic: {}", friendTopic);
                         }
                     });
         } catch (Exception e) {
             log.error("Error sendFriendNoti Kafka message: {}", e.getMessage(), e);
-            String notifyUser = payload.senderUsername();
-            if (notifyUser != null) {
-                webSocketErrorHandler.handleChatError(notifyUser, e, "Không thể gửi yêu cầu do lỗi hệ thống.");
-            }
         }
     }
 }

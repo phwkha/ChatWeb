@@ -41,7 +41,6 @@ import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.CursorResponse;
 import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
-import com.web.backend.exception.WebSocketErrorHandler;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.mapper.MessageMapper;
@@ -79,8 +78,6 @@ public class MessageServiceImpl implements MessageService {
 
     private final ChatProducer chatProducer;
 
-    private final WebSocketErrorHandler webSocketErrorHandler;
-
     private static final long REDIS_TTL_MINUTES = 5;
 
     private static final String CONVERSATIONID_STRING = "conversationId";
@@ -88,7 +85,8 @@ public class MessageServiceImpl implements MessageService {
     private static final String ID_STRING = "id";
     private static final String TIMESTAMP_STRING = "timestamp";
 
-    private static final String CHAT_RECENT_STRING = "chat:recent:";
+    private static final String CHAT_RECENT_HASH_STRING = "chat:recent:hash:";
+    private static final String CHAT_RECENT_ZSET_STRING = "chat:recent:zset:";
     private static final String UNREAD_COUNTS_STRING = "unread_counts:";
 
     private static final String REACTIONS_STRING = "reactions.";
@@ -97,7 +95,6 @@ public class MessageServiceImpl implements MessageService {
     private static final String ERROR_MSG_SEND_DELETED_STRING = "error.msg.send_deleted";
     private static final String ERROR_MSG_SEND_LOCKED_STRING = "error.msg.send_locked";
     private static final String ERROR_MSG_NOT_FRIENDS_STRING = "error.msg.not_friends";
-    private static final String ERROR_MSG_SYSTEM_OVERLOAD_STRING = "error.msg.system_overload";
     private static final String ERROR_MSG_NOT_FOUND_STRING = "error.msg.not_found";
     private static final String ERROR_MSG_EDIT_FORBIDDEN_STRING = "error.msg.edit_forbidden";
     private static final String ERROR_MSG_DELETE_FORBIDDEN_STRING = "error.msg.delete_forbidden";
@@ -140,30 +137,46 @@ public class MessageServiceImpl implements MessageService {
         if (chatMsg.getContentType() == null)
             chatMsg.setContentType(ContentType.TEXT);
 
-        chatProducer.sendChatMessage(chatMsg).exceptionally(ex -> {
-            webSocketErrorHandler.handleChatError(sender, request,
-                    Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
-            return null;
+        if (chatMsg.getMessageType() == MessageType.CHAT) {
+            log.info("Optimistically caching message from {} to Redis", chatMsg.getSender());
+            try {
+                String hashKey = CHAT_RECENT_HASH_STRING + convId;
+                String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
+
+                redisTemplate.opsForHash().put(hashKey, chatMsg.getId(), chatMsg);
+                long score = chatMsg.getTimestamp().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+                redisTemplate.opsForZSet().add(zsetKey, chatMsg.getId(), score);
+                
+                redisTemplate.opsForZSet().removeRange(zsetKey, 0, -51);
+
+                redisTemplate.expire(hashKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
+                redisTemplate.expire(zsetKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
+
+                String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
+                redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), 1);
+            } catch (Exception e) {
+                log.warn("Redis is encountering issues, skipping temporary cache save: {}", e.getMessage());
+            }
+        }
+
+        chatProducer.sendChatMessage(chatMsg, sender, request).whenComplete((result, ex) -> {
+            if (ex != null && chatMsg.getMessageType() == MessageType.CHAT) {
+                log.error("Kafka failed, rolling back Redis cache for message {}", chatMsg.getId());
+                try {
+                    String hashKey = CHAT_RECENT_HASH_STRING + convId;
+                    String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
+                    redisTemplate.opsForHash().delete(hashKey, chatMsg.getId());
+                    redisTemplate.opsForZSet().remove(zsetKey, chatMsg.getId());
+                    
+                    String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
+                    redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), -1);
+                } catch (Exception rollbackEx) {
+                    log.error("Failed to rollback Redis cache: {}", rollbackEx.getMessage());
+                }
+            } else if (ex == null && chatMsg.getMessageType() == MessageType.CHAT) {
+                log.info("save message success");
+            }
         });
-
-        if (chatMsg.getMessageType() != MessageType.CHAT) {
-            return;
-        }
-
-        log.info("Pushed message from {} to DB save queue", chatMsg.getSender());
-
-        try {
-            String redisKey = CHAT_RECENT_STRING + convId;
-            redisTemplate.opsForList().rightPush(redisKey, chatMsg);
-            redisTemplate.opsForList().trim(redisKey, -50, -1);
-            redisTemplate.expire(redisKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
-
-            String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
-            redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), 1);
-        } catch (Exception e) {
-            log.warn("Redis is encountering issues, skipping temporary cache save: {}", e.getMessage());
-        }
-        log.info("save message success");
     }
 
     @Override
@@ -176,11 +189,7 @@ public class MessageServiceImpl implements MessageService {
         systemMsg.setContent(request.getContent());
         systemMessageRepository.save(Objects.requireNonNull(systemMsg));
 
-        chatProducer.sendSystemMessage(systemMsg).exceptionally(ex -> {
-            webSocketErrorHandler.handleChatError(currentUsername, request,
-                    Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
-            return null;
-        });
+        chatProducer.sendSystemMessage(systemMsg, currentUsername, request);
         log.info("{} Chat system message success", systemMsg.getSender());
     }
 
@@ -205,8 +214,18 @@ public class MessageServiceImpl implements MessageService {
         }
         mongoTemplate.updateFirst(query, update, ChatMessage.class);
 
-        String redisKey = CHAT_RECENT_STRING + convId;
-        redisTemplate.delete(redisKey);
+        updateMessageInRedisCache(convId, request.getMessageId(), msg -> {
+            Map<String, String> reactions = msg.getReactions();
+            if (reactions == null) {
+                reactions = new HashMap<>();
+                msg.setReactions(reactions);
+            }
+            if (request.getReactionType() != null) {
+                reactions.put(senderUsername, request.getReactionType().toString());
+            } else {
+                reactions.remove(senderUsername);
+            }
+        });
 
         ChatMessage reactionMsg = new ChatMessage();
         reactionMsg.setId(request.getMessageId());
@@ -217,11 +236,7 @@ public class MessageServiceImpl implements MessageService {
         reactionMsg.setContent(request.getReactionType() != null ? request.getReactionType().toString() : "");
         reactionMsg.setTimestamp(LocalDateTime.now());
 
-        chatProducer.sendReaction(reactionMsg).exceptionally(ex -> {
-            webSocketErrorHandler.handleChatError(senderUsername, request,
-                    Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
-            return null;
-        });
+        chatProducer.sendReaction(reactionMsg, senderUsername, request);
     }
 
     @Override
@@ -243,15 +258,21 @@ public class MessageServiceImpl implements MessageService {
         List<ChatMessage> finalMessages = new ArrayList<>(messages);
 
         if (cursorStr == null || cursorStr.isEmpty()) {
-            String redisKey = CHAT_RECENT_STRING + conversationId;
-            List<Object> redisObjects = redisTemplate.opsForList().range(redisKey, 0, -1);
+            String hashKey = CHAT_RECENT_HASH_STRING + conversationId;
+            String zsetKey = CHAT_RECENT_ZSET_STRING + conversationId;
 
-            if (redisObjects != null && !redisObjects.isEmpty()) {
+            java.util.Set<Object> messageIds = redisTemplate.opsForZSet().reverseRange(zsetKey, 0, -1);
+
+            if (messageIds != null && !messageIds.isEmpty()) {
+                List<Object> redisObjects = redisTemplate.opsForHash().multiGet(hashKey, messageIds);
+
                 Map<String, ChatMessage> uniqueMessagesMap = new LinkedHashMap<>();
 
                 for (Object obj : redisObjects) {
-                    ChatMessage msg = (ChatMessage) obj;
-                    uniqueMessagesMap.put(msg.getId(), msg);
+                    if (obj != null) {
+                        ChatMessage msg = (ChatMessage) obj;
+                        uniqueMessagesMap.put(msg.getId(), msg);
+                    }
                 }
 
                 for (ChatMessage msg : messages) {
@@ -292,11 +313,13 @@ public class MessageServiceImpl implements MessageService {
         editMsg.setContent(request.getNewContent());
         editMsg.setEdited(true);
 
-        chatProducer.sendEditMessage(editMsg).exceptionally(ex -> {
-            webSocketErrorHandler.handleChatError(senderUsername, request,
-                    Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
-            return null;
+        updateMessageInRedisCache(editMsg.getConversationId(), editMsg.getId(), msg -> {
+            msg.setContent(request.getNewContent());
+            msg.setEdited(true);
         });
+
+        chatProducer.sendEditMessage(editMsg, senderUsername, request);
+
     }
 
     @Override
@@ -315,11 +338,16 @@ public class MessageServiceImpl implements MessageService {
         revokeMsg.setReactions(null);
         revokeMsg.setDeleted(true);
 
-        chatProducer.sendRevokeMessage(revokeMsg).exceptionally(ex -> {
-            webSocketErrorHandler.handleChatError(senderUsername, request,
-                    Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
-            return null;
+        updateMessageInRedisCache(revokeMsg.getConversationId(), revokeMsg.getId(), msg -> {
+            msg.setContent("");
+            msg.setFileUrl(null);
+            msg.setFileName(null);
+            msg.setFileSize(null);
+            msg.setReactions(null);
+            msg.setDeleted(true);
         });
+
+        chatProducer.sendRevokeMessage(revokeMsg, senderUsername, request);
     }
 
     @Override
@@ -407,10 +435,7 @@ public class MessageServiceImpl implements MessageService {
         statusMsg.setSender(senderUsername);
         statusMsg.setRecipient(recipientUsername);
 
-        chatProducer.sendStatusMessage(statusMsg).exceptionally(ex -> {
-            webSocketErrorHandler.handleChatError(recipientUsername, ex, "Failed to send read receipt message");
-            return null;
-        });
+        chatProducer.sendStatusMessage(statusMsg, recipientUsername, null);
 
         log.info("User marking messages");
     }
@@ -434,5 +459,20 @@ public class MessageServiceImpl implements MessageService {
                 .toList();
 
         return new CursorResponse<>(responseList, nextCursor, hasMore);
+    }
+
+    private void updateMessageInRedisCache(String conversationId, String messageId,
+            java.util.function.Consumer<ChatMessage> updateAction) {
+        try {
+            String hashKey = CHAT_RECENT_HASH_STRING + conversationId;
+            Object obj = redisTemplate.opsForHash().get(hashKey, messageId);
+            if (obj != null) {
+                ChatMessage msg = (ChatMessage) obj;
+                updateAction.accept(msg);
+                redisTemplate.opsForHash().put(hashKey, messageId, msg);
+            }
+        } catch (Exception e) {
+            log.warn("Error updating Redis cache for message {}: {}", messageId, e.getMessage());
+        }
     }
 }
