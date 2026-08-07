@@ -64,7 +64,9 @@ public class FriendConsumer {
             }
         } catch (Exception e) {
             log.error("Error sending WS notification: {}", e.getMessage(), e);
-            // bat loi
+            if (payload != null && payload.senderUsername() != null) {
+                routeMessage(payload.senderUsername(), "/queue/errors", SocketResponse.error("System error while processing your request", null));
+            }
         }
     }
 

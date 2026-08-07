@@ -53,7 +53,9 @@ public class ChatConsumer {
             log.info("Finished processing Kafka message for recipient: {}", message.getRecipient());
         } catch (Exception e) {
             log.error("Failed to send WebSocket message: {}", e.getMessage());
-            // bat loi
+            if (message != null && message.getSender() != null) {
+                routeMessage(message.getSender(), "/queue/errors", SocketResponse.error("System error while processing your message", null));
+            }
         }
     }
 
