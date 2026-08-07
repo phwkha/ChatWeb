@@ -106,9 +106,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private static final String ERROR_AUTH_MISSING_REFRESH_STRING = "error.auth.missing_refresh";
     private static final String ERROR_AUTH_REFRESH_REVOKED_STRING = "error.auth.refresh_revoked";
     private static final String ERROR_AUTH_REFRESH_EXPIRED_STRING = "error.auth.refresh_expired";
-    private static final String ERROR_AUTH_LOCKED_OR_NOT_FOUND_STRING = "error.auth.locked_or_not_found";
     private static final String ERROR_AUTH_EMAIL_NOT_FOUND_STRING = "error.auth.email_not_found";
-    private static final String ERROR_AUTH_LOCKED_NOT_FOUND_STRING = "error.auth.locked_not_found";
     private static final String ERROR_AUTH_OTP_EXPIRED_OR_EMAIL_MISSING_STRING = "error.auth.otp_expired_or_email_missing";
     private static final String ERROR_AUTH_INVALID_OTP_STRING = "error.auth.invalid_otp";
     private static final String ERROR_AUTH_REGISTERED_BY_OTHER_STRING = "error.auth.registered_by_other";
@@ -268,7 +266,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         List<String> authorities = new ArrayList<>();
         user.getAuthorities().forEach(authority -> authorities.add(authority.getAuthority()));
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_LOCKED_OR_NOT_FOUND_STRING));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_ACCOUNT_LOCKED_DELETED_STRING));
         }
 
         String newAccessToken = jwtService.generateAccessToken(user.getUsername(), authorities, currentVersion);
@@ -291,7 +289,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                         () -> new ResourceNotFoundException(Translator.tolocale(ERROR_AUTH_EMAIL_NOT_FOUND_STRING)));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_LOCKED_NOT_FOUND_STRING));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_ACCOUNT_LOCKED_DELETED_STRING));
         }
 
         generateAndSenResponseToken(user, OtpType.PASSWORD_RESET, null, user.getEmail());
@@ -408,7 +406,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING)));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_LOCKED_NOT_FOUND_STRING));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_ACCOUNT_LOCKED_DELETED_STRING));
         }
 
         validateRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, otp);
@@ -433,7 +431,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                                 Translator.tolocale(ERROR_USER_EMAIL_USER_NOT_FOUND_STRING)));
 
         if (user.getUserStatus() == UserStatus.INACTIVE || user.getUserStatus() == UserStatus.LOCKED) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_LOCKED_NOT_FOUND_STRING));
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_AUTH_ACCOUNT_LOCKED_DELETED_STRING));
         }
 
         resendRedisOtp(user.getUsername(), OtpType.PASSWORD_RESET, email);

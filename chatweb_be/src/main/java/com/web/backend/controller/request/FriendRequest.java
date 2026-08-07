@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class FriendRequest {
-    @NotBlank(message = "Username must not be blank")
+    @NotBlank(message = "{valid.username_empty}")
     private String targetUsername;
 }

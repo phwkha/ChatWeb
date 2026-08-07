@@ -33,6 +33,22 @@ public class FriendConsumer {
 
     private static final String DESTINATION_MUST_NOT_BE_NULL_STRING = "Destination must not be null";
 
+    private static final String WS_ROUTING_STRING = "ws:routing:";
+    private static final String CHANNEL_SERVER_STRING = "channel:server:";
+
+    private static final String ERROR_SYS_PROCESSING_REQ_STRING = "error.sys.processing_req";
+    private static final String QUEUE_ERRORS_STRING = "/queue/errors";
+    
+    private static final String SYS_MSG_NEW_FRIEND_INVITE_STRING = "sys.msg.new_friend_invite";
+    private static final String SUCCESS_FRIEND_INVITE_SENT_STRING = "success.friend.invite_sent";
+    private static final String SUCCESS_FRIEND_ACCEPTED_STRING = "success.friend.accepted";
+    private static final String SUCCESS_FRIEND_YOU_ACCEPTED_STRING = "success.friend.you_accepted";
+    private static final String SUCCESS_FRIEND_UNFRIENDED_STRING = "success.friend.unfriended";
+    private static final String SUCCESS_FRIEND_INVITE_RETRACTED_STRING = "success.friend.invite_retracted";
+    private static final String SUCCESS_FRIEND_INVITE_DECLINED_STRING = "success.friend.invite_declined";
+    private static final String SYS_MSG_USER_ONLINE_STRING = "sys.msg.user_online";
+    private static final String SYS_MSG_USER_OFFLINE_STRING = "sys.msg.user_offline";
+
     @KafkaListener(topics = "${spring.kafka.topic.friend.friend-topic}", groupId = "${spring.kafka.topic.friend.friend-group-id}")
     public void listenFriendNotifications(FriendPayload payload) {
         if (payload == null) {
@@ -65,7 +81,8 @@ public class FriendConsumer {
         } catch (Exception e) {
             log.error("Error sending WS notification: {}", e.getMessage(), e);
             if (payload != null && payload.senderUsername() != null) {
-                routeMessage(payload.senderUsername(), "/queue/errors", SocketResponse.error("System error while processing your request", null));
+                routeMessage(payload.senderUsername(), QUEUE_ERRORS_STRING, SocketResponse.error(
+                        Translator.tolocale(ERROR_SYS_PROCESSING_REQ_STRING), null));
             }
         }
     }
@@ -74,14 +91,14 @@ public class FriendConsumer {
         if (username == null)
             return;
         try {
-            String targetServerId = (String) redisTemplate.opsForValue().get("ws:routing:" + username);
+            String targetServerId = (String) redisTemplate.opsForValue().get(WS_ROUTING_STRING + username);
             if (targetServerId != null) {
                 if (ServerIdentity.SERVER_ID.equals(targetServerId)) {
                     simpMessagingTemplate.convertAndSendToUser(username, destination, payload);
                     log.info("Sent locally to {}", username);
                 } else {
                     RedisWsMessage wsMessage = new RedisWsMessage(username, destination, payload);
-                    redisTemplate.convertAndSend("channel:server:" + targetServerId,
+                    redisTemplate.convertAndSend(CHANNEL_SERVER_STRING + targetServerId,
                             objectMapper.writeValueAsString(wsMessage));
                     log.info("Routed to Server {} for user {}", targetServerId, username);
                 }
@@ -102,31 +119,31 @@ public class FriendConsumer {
         String translationKey;
         switch (status) {
             case FRIEND_REQUEST:
-                translationKey = "sys.msg.new_friend_invite";
+                translationKey = SYS_MSG_NEW_FRIEND_INVITE_STRING;
                 break;
             case REQUEST_SENT_SUCCESS:
-                translationKey = "success.friend.invite_sent";
+                translationKey = SUCCESS_FRIEND_INVITE_SENT_STRING;
                 break;
             case FRIEND_ACCEPTED:
-                translationKey = "success.friend.accepted";
+                translationKey = SUCCESS_FRIEND_ACCEPTED_STRING;
                 break;
             case YOU_ACCEPTED:
-                translationKey = "success.friend.you_accepted";
+                translationKey = SUCCESS_FRIEND_YOU_ACCEPTED_STRING;
                 break;
             case UNFRIENDED:
-                translationKey = "success.friend.unfriended";
+                translationKey = SUCCESS_FRIEND_UNFRIENDED_STRING;
                 break;
             case REQUEST_CANCELLED:
-                translationKey = "success.friend.invite_retracted";
+                translationKey = SUCCESS_FRIEND_INVITE_RETRACTED_STRING;
                 break;
             case REQUEST_REJECTED:
-                translationKey = "success.friend.invite_declined";
+                translationKey = SUCCESS_FRIEND_INVITE_DECLINED_STRING;
                 break;
             case USER_ONLINE:
-                translationKey = "sys.msg.user_online";
+                translationKey = SYS_MSG_USER_ONLINE_STRING;
                 break;
             case USER_OFFLINE:
-                translationKey = "sys.msg.user_offline";
+                translationKey = SYS_MSG_USER_OFFLINE_STRING;
                 break;
             default:
                 translationKey = "";

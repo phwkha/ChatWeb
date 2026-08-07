@@ -98,6 +98,7 @@ public class MessageServiceImpl implements MessageService {
     private static final String ERROR_MSG_SEND_LOCKED_STRING = "error.msg.send_locked";
     private static final String ERROR_MSG_NOT_FRIENDS_STRING = "error.msg.not_friends";
     private static final String ERROR_MSG_NOT_FOUND_STRING = "error.msg.not_found";
+    private static final String ERROR_MSG_SYSTEM_OVERLOAD_STRING = "error.msg.system_overload";
     private static final String ERROR_MSG_EDIT_FORBIDDEN_STRING = "error.msg.edit_forbidden";
     private static final String ERROR_MSG_DELETE_FORBIDDEN_STRING = "error.msg.delete_forbidden";
 
@@ -175,7 +176,7 @@ public class MessageServiceImpl implements MessageService {
                 } catch (Exception rollbackEx) {
                     log.error("Failed to rollback Redis cache: {}", rollbackEx.getMessage());
                 }
-                webSocketErrorHandler.handleChatError(sender, request, Translator.tolocale("error.msg.system_overload"));
+                webSocketErrorHandler.handleChatError(sender, request, Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
             } else if (ex == null && chatMsg.getMessageType() == MessageType.CHAT) {
                 log.info("save message success");
             }
@@ -488,7 +489,7 @@ public class MessageServiceImpl implements MessageService {
             if (ex != null) {
                 log.error("Critical Error: Cannot push {} to Kafka.", actionName, ex);
                 if (sender != null) {
-                    webSocketErrorHandler.handleChatError(sender, request, Translator.tolocale("error.msg.system_overload"));
+                    webSocketErrorHandler.handleChatError(sender, request, Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
                 }
             }
         });

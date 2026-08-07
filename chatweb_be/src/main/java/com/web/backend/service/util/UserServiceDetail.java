@@ -26,6 +26,8 @@ public class UserServiceDetail implements UserDetailsService {
     private static final String ERROR_USER_NOT_FOUND_WITH_STRING = "error.user.not_found_with";
     private static final String ERROR_USER_NOT_FOUND_STRING = "error.user.not_found";
     private static final String ERROR_AUTH_LOCKED_ADMIN_STRING = "error.auth.locked_admin";
+    private static final String ERROR_AUTH_ACCOUNT_UNVERIFIED_STRING = "error.auth.account_unverified";
+    private static final String ERROR_AUTH_ACCOUNT_INACTIVE_STRING = "error.auth.account_inactive";
 
     @Override
     @Cacheable(value = USER_DETAILS_STRING, key = USERNAME_STRING)
@@ -38,9 +40,14 @@ public class UserServiceDetail implements UserDetailsService {
             throw new LockedException(Translator.tolocale(ERROR_AUTH_LOCKED_ADMIN_STRING));
         }
 
-        if (!user.isEnabled()) {
-            log.info("user not found: {}", username);
-            throw new DisabledException(Translator.tolocale(ERROR_USER_NOT_FOUND_STRING));
+        if (user.getUserStatus() == com.web.backend.common.UserStatus.UNVERIFIED) {
+            log.info("user unverified: {}", username);
+            throw new DisabledException(Translator.tolocale(ERROR_AUTH_ACCOUNT_UNVERIFIED_STRING));
+        }
+
+        if (user.getUserStatus() == com.web.backend.common.UserStatus.INACTIVE) {
+            log.info("user inactive: {}", username);
+            throw new DisabledException(Translator.tolocale(ERROR_AUTH_ACCOUNT_INACTIVE_STRING));
         }
 
         return user;

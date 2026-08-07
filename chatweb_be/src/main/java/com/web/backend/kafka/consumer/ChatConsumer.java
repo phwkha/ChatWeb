@@ -13,6 +13,7 @@ import com.web.backend.controller.response.form.SocketResponse;
 import com.web.backend.mapper.MessageMapper;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.model.SystemMessage;
+import com.web.backend.config.localresolverconfig.Translator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,8 +32,14 @@ public class ChatConsumer {
     private final ObjectMapper objectMapper;
 
     private static final String QUEUE_MESSAGES_STRING = "/queue/messages";
+    private static final String QUEUE_ERRORS_STRING = "/queue/errors";
 
     private static final String TOPIC_PUBLIC_STRING = "/topic/public";
+    
+    private static final String WS_ROUTING_STRING = "ws:routing:";
+    private static final String CHANNEL_SERVER_STRING = "channel:server:";
+    
+    private static final String ERROR_SYS_PROCESSING_MSG_STRING = "error.sys.processing_msg";
 
     @KafkaListener(topics = "${spring.kafka.topic.chat.messages}", groupId = "${spring.kafka.topic.chat.messages-group-id}")
     public void listenChatMessages(ChatMessage message) {
@@ -54,7 +61,8 @@ public class ChatConsumer {
         } catch (Exception e) {
             log.error("Failed to send WebSocket message: {}", e.getMessage());
             if (message != null && message.getSender() != null) {
-                routeMessage(message.getSender(), "/queue/errors", SocketResponse.error("System error while processing your message", null));
+                routeMessage(message.getSender(), QUEUE_ERRORS_STRING, SocketResponse.error(
+                        Translator.tolocale(ERROR_SYS_PROCESSING_MSG_STRING), null));
             }
         }
     }
@@ -63,14 +71,14 @@ public class ChatConsumer {
         if (username == null)
             return;
         try {
-            String targetServerId = (String) redisTemplate.opsForValue().get("ws:routing:" + username);
+            String targetServerId = (String) redisTemplate.opsForValue().get(WS_ROUTING_STRING + username);
             if (targetServerId != null) {
                 if (ServerIdentity.SERVER_ID.equals(targetServerId)) {
                     simpMessagingTemplate.convertAndSendToUser(username, destination, payload);
                     log.info("Sent locally to {}", username);
                 } else {
                     RedisWsMessage wsMessage = new RedisWsMessage(username, destination, payload);
-                    redisTemplate.convertAndSend("channel:server:" + targetServerId,
+                    redisTemplate.convertAndSend(CHANNEL_SERVER_STRING + targetServerId,
                             objectMapper.writeValueAsString(wsMessage));
                     log.info("Routed to Server {} for user {}", targetServerId, username);
                 }

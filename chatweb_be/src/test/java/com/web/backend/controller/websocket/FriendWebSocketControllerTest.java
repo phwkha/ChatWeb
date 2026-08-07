@@ -39,14 +39,18 @@ public class FriendWebSocketControllerTest {
 
     @Test
     void testHandleFriendRequest_Success() {
-        friendWebSocketController.handleFriendRequest("targetuser", mockAuth);
+        com.web.backend.controller.request.FriendRequest request = new com.web.backend.controller.request.FriendRequest();
+        request.setTargetUsername("targetuser");
+        friendWebSocketController.handleFriendRequest(request, mockAuth);
 
         verify(friendService).sendFriendRequest("testuser", "targetuser");
     }
 
     @Test
     void testHandleAcceptRequest_Success() {
-        friendWebSocketController.handleAcceptRequest("requesteruser", mockAuth);
+        com.web.backend.controller.request.FriendRequest request = new com.web.backend.controller.request.FriendRequest();
+        request.setTargetUsername("requesteruser");
+        friendWebSocketController.handleAcceptRequest(request, mockAuth);
 
         verify(friendService).acceptFriendRequest("testuser", "requesteruser");
     }

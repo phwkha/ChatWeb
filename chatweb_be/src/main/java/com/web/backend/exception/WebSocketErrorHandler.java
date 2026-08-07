@@ -21,6 +21,7 @@ public class WebSocketErrorHandler {
 
     private static final String ERROR_WS_INVALID_DATA_STRING = "error.ws.invalid_data";
     private static final String ERROR_SYS_BAD_FORMAT_STRING = "error.sys.bad_format";
+    private static final String ERROR_SYS_BUSY_STRING = "error.sys.busy";
 
     public void handleChatError(String username, Object request, String message) {
         simpMessagingTemplate.convertAndSendToUser(
@@ -124,7 +125,7 @@ public class WebSocketErrorHandler {
             Authentication authentication,
             @org.springframework.messaging.handler.annotation.Header(value = "simpSessionId", required = false) String sessionId) {
 
-        String errorMessage = Translator.tolocale("error.sys.busy");
+        String errorMessage = Translator.tolocale(ERROR_SYS_BUSY_STRING);
 
         this.handleChatError(authentication, sessionId, null, errorMessage);
     }
