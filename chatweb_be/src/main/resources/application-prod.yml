@@ -50,8 +50,9 @@ spring:
       email:
         email-topic: email-messages
         group-id: email-worker-group
-      friend: friend-notifications
-      friend-group-id: friend-websocket-group
+      friend:
+        friend-topic: friend-notifications
+        friend-group-id: friend-websocket-group
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -59,7 +60,6 @@ spring:
     consumer:
       max-poll-records: 100
       fetch-max-wait-ms: 500
-      group-id: chat-app-group-${random.uuid}
       auto-offset-reset: latest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer

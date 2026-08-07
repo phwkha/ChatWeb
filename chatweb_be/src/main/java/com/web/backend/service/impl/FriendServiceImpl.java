@@ -4,10 +4,8 @@ import com.web.backend.common.FriendshipStatus;
 import com.web.backend.common.UserStatus;
 import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.common.NotificationsType;
-import com.web.backend.controller.response.NotificationMessageResponse;
 import com.web.backend.controller.response.PageResponse;
 import com.web.backend.controller.response.UserSummaryResponse;
-import com.web.backend.controller.response.form.SocketResponse;
 import com.web.backend.kafka.payload.FriendPayload;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.InvalidDataException;
@@ -22,7 +20,6 @@ import com.web.backend.service.FriendService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,7 +30,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -59,8 +55,6 @@ public class FriendServiceImpl implements FriendService {
 
         private static final String QUEUE_NOTIFICATIONS_STRING = "/queue/notifications";
 
-        private static final String SYS_MSG_NEW_FRIEND_INVITE_STRING = "sys.msg.new_friend_invite";
-
         private static final String ERROR_FRIEND_SELF_ADD_STRING = "error.friend.self_add";
         private static final String ERROR_FRIEND_SEND_DELETED_STRING = "error.friend.send_deleted";
         private static final String ERROR_FRIEND_SEND_LOCKED_STRING = "error.friend.send_locked";
@@ -72,12 +66,6 @@ public class FriendServiceImpl implements FriendService {
         private static final String ERROR_FRIEND_ALREADY_FRIENDS_STRING = "error.friend.already_friends";
         private static final String ERROR_FRIEND_RELATION_NOT_FOUND_STRING = "error.friend.relation_not_found";
         private static final String ERROR_USER_NOT_FOUND_STRING = "error.user.not_found";
-
-        private static final String SUCCESS_FRIEND_INVITE_SENT_STRING = "success.friend.invite_sent";
-        private static final String SUCCESS_FRIEND_ACCEPTED_STRING = "success.friend.accepted";
-        private static final String SUCCESS_FRIEND_UNFRIENDED_STRING = "success.friend.unfriended";
-        private static final String SUCCESS_FRIEND_INVITE_RETRACTED_STRING = "success.friend.invite_retracted";
-        private static final String SUCCESS_FRIEND_INVITE_DECLINED_STRING = "success.friend.invite_declined";
 
         @Override
         @Transactional

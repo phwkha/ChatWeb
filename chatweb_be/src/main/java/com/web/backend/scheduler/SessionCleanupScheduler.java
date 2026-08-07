@@ -25,7 +25,7 @@ public class SessionCleanupScheduler {
     @Scheduled(fixedRate = 30 * 1000)
     public void cleanupZombieSessions() {
         Boolean locked = redisTemplate.opsForValue().setIfAbsent(LOCK_KEY, "locked", java.time.Duration.ofSeconds(20));
-        
+
         if (Boolean.TRUE.equals(locked)) {
             try {
                 long timeoutLimit = System.currentTimeMillis() - TIMEOUT_MS;
@@ -38,13 +38,12 @@ public class SessionCleanupScheduler {
                         String username = (String) userObj;
                         redisTemplate.opsForZSet().remove(ONLINE_USERS_KEY, username);
                         redisTemplate.opsForHash().delete(ONLINE_USERS_COUNT_KEY, username);
+                        redisTemplate.delete("ws:routing:" + username);
                         userService.setUserOnlineStatus(username, false);
                         log.info("Cleaned up zombie session for user: {}", username);
                     }
                 }
             } finally {
-                // Not strictly necessary to delete the lock if we rely on expiration, 
-                // but good practice to release it if finished early.
                 redisTemplate.delete(LOCK_KEY);
             }
         } else {

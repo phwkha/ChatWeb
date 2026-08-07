@@ -2,8 +2,11 @@ package com.web.backend.kafka.consumer;
 
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.stereotype.Component;
+import org.springframework.data.redis.core.RedisTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.web.backend.redis.RedisWsMessage;
+import com.web.backend.config.ServerIdentity;
 
 import com.web.backend.common.NotificationsType;
 import com.web.backend.config.localresolverconfig.Translator;
@@ -24,11 +27,13 @@ public class FriendConsumer {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
 
-    private final SimpUserRegistry simpUserRegistry;
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    private final ObjectMapper objectMapper;
 
     private static final String DESTINATION_MUST_NOT_BE_NULL_STRING = "Destination must not be null";
 
-    @KafkaListener(topics = "${spring.kafka.topic.friend}", groupId = "${spring.kafka.topic.friend-group-id}-${random.uuid}")
+    @KafkaListener(topics = "${spring.kafka.topic.friend.friend-topic}", groupId = "${spring.kafka.topic.friend.friend-group-id}")
     public void listenFriendNotifications(FriendPayload payload) {
         if (payload == null) {
             return;
@@ -44,33 +49,45 @@ public class FriendConsumer {
             SocketResponse<NotificationMessageResponse> senderResp = buildResponse(payload.senderStatus(),
                     payload.recipientDisplayName());
 
+            String destination = Objects.requireNonNull(payload.destination(), DESTINATION_MUST_NOT_BE_NULL_STRING);
+
             if (recipients != null && !recipients.isEmpty() && recipientResp != null) {
                 for (String r : recipients) {
-                    if (simpUserRegistry.getUser(r) != null) {
-                        simpMessagingTemplate.convertAndSendToUser(
-                                r,
-                                Objects.requireNonNull(payload.destination(), DESTINATION_MUST_NOT_BE_NULL_STRING),
-                                recipientResp);
-                    }
+                    routeMessage(r, destination, recipientResp);
                 }
-            } else if (recipient != null && recipientResp != null
-                    && simpUserRegistry.getUser(recipient) != null) {
-                simpMessagingTemplate.convertAndSendToUser(
-                        recipient,
-                        Objects.requireNonNull(payload.destination(), DESTINATION_MUST_NOT_BE_NULL_STRING),
-                        recipientResp);
-                log.info("Sent friend notification via WS to recipient: {}", recipient);
+            } else if (recipient != null && recipientResp != null) {
+                routeMessage(recipient, destination, recipientResp);
             }
 
-            if (sender != null && senderResp != null && simpUserRegistry.getUser(sender) != null) {
-                simpMessagingTemplate.convertAndSendToUser(
-                        sender,
-                        Objects.requireNonNull(payload.destination(), DESTINATION_MUST_NOT_BE_NULL_STRING),
-                        senderResp);
-                log.info("Sent friend notification via WS to sender: {}", sender);
+            if (sender != null && senderResp != null) {
+                routeMessage(sender, destination, senderResp);
             }
         } catch (Exception e) {
             log.error("Error sending WS notification: {}", e.getMessage(), e);
+            // bat loi
+        }
+    }
+
+    private void routeMessage(String username, String destination, Object payload) {
+        if (username == null)
+            return;
+        try {
+            String targetServerId = (String) redisTemplate.opsForValue().get("ws:routing:" + username);
+            if (targetServerId != null) {
+                if (ServerIdentity.SERVER_ID.equals(targetServerId)) {
+                    simpMessagingTemplate.convertAndSendToUser(username, destination, payload);
+                    log.info("Sent locally to {}", username);
+                } else {
+                    RedisWsMessage wsMessage = new RedisWsMessage(username, destination, payload);
+                    redisTemplate.convertAndSend("channel:server:" + targetServerId,
+                            objectMapper.writeValueAsString(wsMessage));
+                    log.info("Routed to Server {} for user {}", targetServerId, username);
+                }
+            } else {
+                log.info("User {} is offline, skipped routing.", username);
+            }
+        } catch (Exception e) {
+            log.error("Error routing message for {}: {}", username, e.getMessage());
         }
     }
 

@@ -1,5 +1,7 @@
 package com.web.backend.listener;
 
+import com.web.backend.config.ServerIdentity;
+
 import java.security.Principal;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -57,6 +59,9 @@ public class WebSocketListener {
             } else {
                 log.debug("User opened new tab/device: {}, total sessions: {}", username, count);
             }
+
+            redisTemplate.opsForValue().set("ws:routing:" + username, ServerIdentity.SERVER_ID);
+            log.info("Mapped User {} to Server {}", username, ServerIdentity.SERVER_ID);
         }
     }
 
@@ -95,6 +100,7 @@ public class WebSocketListener {
                         if (currentCount <= 0) {
                             redisTemplate.opsForZSet().remove(ONLINE_USERS_KEY, username);
                             redisTemplate.opsForHash().delete(ONLINE_USERS_COUNT_KEY, username);
+                            redisTemplate.delete("ws:routing:" + username);
                             userService.setUserOnlineStatus(username, false);
                             log.info("User Disconnected Completely (All sessions closed): {}", username);
                         } else {

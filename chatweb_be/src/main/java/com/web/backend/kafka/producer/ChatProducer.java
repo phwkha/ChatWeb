@@ -53,6 +53,7 @@ public class ChatProducer {
         future.whenComplete((result, ex) -> {
             if (ex != null) {
                 log.error("Critical Error: Cannot push {} to Kafka. Topic: {}", actionName, topic, ex);
+                // bat loi
             } else {
                 log.debug("{}: Kafka push successful offset: {}", actionName, result.getRecordMetadata().offset());
             }

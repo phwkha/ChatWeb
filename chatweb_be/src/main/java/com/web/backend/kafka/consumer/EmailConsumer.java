@@ -34,7 +34,6 @@ public class EmailConsumer {
             emailService.sendTextEmail(event.to(), event.subject(), event.content());
         }
 
-        // Manual commit offset sau khi xử lý thành công
         ack.acknowledge();
     }
 }

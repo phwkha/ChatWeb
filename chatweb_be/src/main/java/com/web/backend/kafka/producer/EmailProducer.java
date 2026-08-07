@@ -28,6 +28,7 @@ public class EmailProducer {
         kafkaTemplate.send(Objects.requireNonNull(emailTopic), event).whenComplete((result, ex) -> {
             if (ex != null) {
                 log.error("Critical Error: Cannot push message to Kafka. Topic: {}", emailTopic, ex);
+                // bat loi
             } else {
                 log.debug("Email otp: Kafka push successful offset: {}", result.getRecordMetadata().offset());
             }
@@ -41,6 +42,7 @@ public class EmailProducer {
         kafkaTemplate.send(Objects.requireNonNull(emailTopic), event).whenComplete((result, ex) -> {
             if (ex != null) {
                 log.error("Critical Error: Cannot push message to Kafka. Topic: {}", emailTopic, ex);
+                // bat loi
             } else {
                 log.debug("Email text: Kafka push successful offset: {}", result.getRecordMetadata().offset());
             }

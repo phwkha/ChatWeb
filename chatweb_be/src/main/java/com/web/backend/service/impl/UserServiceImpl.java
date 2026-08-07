@@ -7,7 +7,6 @@ import com.web.backend.common.NotificationsType;
 import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.*;
-import com.web.backend.controller.response.form.SocketResponse;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.exception.custom.InvalidOtpException;
@@ -70,7 +69,7 @@ public class UserServiceImpl implements UserService {
     @Value("${spring.mail.expiration-minutes}")
     private int expirationMinutes;
 
-    @Value("${spring.kafka.topic.friend}")
+    @Value("${spring.kafka.topic.friend.friend-topic}")
     private String friendTopic;
 
     private static final String EMAIL_FILTER_KEY = "filter:emails";
@@ -79,8 +78,6 @@ public class UserServiceImpl implements UserService {
     private static final String AVATARS_STRING = "avatars";
     private static final String OTP_STRING = "otp:";
     private static final String COOLDOWN_RESEND_STRING = "cooldown:resend:";
-    private static final String SYS_MSG_USER_ONLINE_STRING = "sys.msg.user_online";
-    private static final String SYS_MSG_USER_OFFLINE_STRING = "sys.msg.user_offline";
     private static final String QUEUE_NOTIFICATIONS_STRING = "/queue/notifications";
 
     private static final String ERROR_USER_NOT_FOUND_WITH_STRING = "error.user.not_found_with";

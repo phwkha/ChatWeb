@@ -18,7 +18,7 @@ import com.web.backend.kafka.payload.FriendPayload;
 @Slf4j(topic = "FRIEND-PRODUCER")
 public class FriendProducer {
 
-    @Value("${spring.kafka.topic.friend}")
+    @Value("${spring.kafka.topic.friend.friend-topic}")
     private String friendTopic;
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -28,28 +28,30 @@ public class FriendProducer {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
-    public void handleKafkaDispatch(FriendPayload payload) {
+    public void sendFriendNoti(FriendPayload payload) {
         if (payload == null) {
             return;
         }
         try {
             kafkaTemplate.send(Objects.requireNonNull(friendTopic, TOPIC_MUST_NOT_BE_NULL_STRING), payload)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        log.error("Critical Error: Cannot push friend payload to Kafka. Topic: {}", friendTopic, ex);
-                        String notifyUser = payload.senderUsername();
-                        if (notifyUser != null) {
-                            webSocketErrorHandler.handleChatError(notifyUser, ex, "Không thể gửi yêu cầu kết bạn do lỗi hệ thống.");
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            log.error("Critical Error: Cannot push friend payload to Kafka. Topic: {}", friendTopic,
+                                    ex);
+                            String notifyUser = payload.senderUsername();
+                            if (notifyUser != null) {
+                                webSocketErrorHandler.handleChatError(notifyUser, ex,
+                                        "Không thể gửi yêu cầu do lỗi hệ thống.");
+                            }
+                        } else {
+                            log.info("sendFriendNoti Kafka message to topic: {}", friendTopic);
                         }
-                    } else {
-                        log.info("Dispatched Kafka message to topic: {}", friendTopic);
-                    }
-                });
+                    });
         } catch (Exception e) {
-            log.error("Error dispatching Kafka message: {}", e.getMessage(), e);
+            log.error("Error sendFriendNoti Kafka message: {}", e.getMessage(), e);
             String notifyUser = payload.senderUsername();
             if (notifyUser != null) {
-                webSocketErrorHandler.handleChatError(notifyUser, e, "Không thể gửi yêu cầu kết bạn do lỗi hệ thống.");
+                webSocketErrorHandler.handleChatError(notifyUser, e, "Không thể gửi yêu cầu do lỗi hệ thống.");
             }
         }
     }
