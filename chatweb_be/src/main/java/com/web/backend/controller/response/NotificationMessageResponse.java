@@ -1,6 +1,6 @@
 package com.web.backend.controller.response;
 
-import com.web.backend.common.NotificationsStatus;
+import com.web.backend.common.NotificationsType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class NotificationMessageResponse {
 
-    private NotificationsStatus status;
+    private NotificationsType status;
 
     private String relatedUsername;
 
