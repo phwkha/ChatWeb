@@ -27,11 +27,11 @@ import com.web.backend.common.UserStatus;
 import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.UserSummaryResponse;
 import com.web.backend.controller.response.PageResponse;
-import com.web.backend.event.KafkaDispatchEvent;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.exception.custom.ResourceConflictException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
+import com.web.backend.kafka.payload.FriendPayload;
 import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.FriendshipEntity;
 import com.web.backend.model.UserEntity;
@@ -67,7 +67,7 @@ public class FriendServiceTest {
         lenient().when(messageSource.getMessage(anyString(), any(), any())).thenReturn("Mocked Error Message");
         new Translator(messageSource);
 
-        ReflectionTestUtils.setField(friendService, "friendTopic", "test-friend-topic");
+
 
         userA = new UserEntity();
         userA.setUsername("userA");
@@ -104,7 +104,7 @@ public class FriendServiceTest {
         friendService.sendFriendRequest("userA", "userB");
 
         verify(friendshipRepository).save(any(FriendshipEntity.class));
-        verify(eventPublisher).publishEvent(any(KafkaDispatchEvent.class));
+        verify(eventPublisher).publishEvent(any(FriendPayload.class));
     }
 
     // =====================================
@@ -127,7 +127,7 @@ public class FriendServiceTest {
         verify(friendshipRepository).save(pendingReq);
         verify(setOperations).add("friends:userA", "userB");
         verify(setOperations).add("friends:userB", "userA");
-        verify(eventPublisher).publishEvent(any(KafkaDispatchEvent.class));
+        verify(eventPublisher).publishEvent(any(FriendPayload.class));
     }
 
     @Test
@@ -163,7 +163,7 @@ public class FriendServiceTest {
         verify(friendshipRepository).delete(f);
         verify(setOperations).remove("friends:userA", "userB");
         verify(setOperations).remove("friends:userB", "userA");
-        verify(eventPublisher).publishEvent(any(KafkaDispatchEvent.class));
+        verify(eventPublisher).publishEvent(any(FriendPayload.class));
     }
 
     @Test
@@ -325,7 +325,7 @@ public class FriendServiceTest {
         when(redisTemplate.opsForSet()).thenReturn(setOperations);
 
         friendService.deleteFriendship("userA", "userB");
-        verify(eventPublisher).publishEvent(any(KafkaDispatchEvent.class));
+        verify(eventPublisher).publishEvent(any(FriendPayload.class));
     }
 
     @Test
@@ -341,7 +341,7 @@ public class FriendServiceTest {
         when(redisTemplate.opsForSet()).thenReturn(setOperations);
 
         friendService.deleteFriendship("userB", "userA");
-        verify(eventPublisher).publishEvent(any(KafkaDispatchEvent.class));
+        verify(eventPublisher).publishEvent(any(FriendPayload.class));
     }
 
     @Test

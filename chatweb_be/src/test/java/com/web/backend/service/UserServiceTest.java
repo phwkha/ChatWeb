@@ -455,13 +455,14 @@ public class UserServiceTest {
 
     @Test
     void testSetUserOnlineStatus() {
-        org.springframework.test.util.ReflectionTestUtils.setField(userService, "friendTopic", "test-friend-topic");
-        when(friendshipRepository.findAllFriendUsernamesByUsername("testuser")).thenReturn(java.util.List.of("friend1"));
-        
+
+        when(friendshipRepository.findAllFriendUsernamesByUsername("testuser"))
+                .thenReturn(java.util.List.of("friend1"));
+
         userService.setUserOnlineStatus("testuser", true);
-        
+
         verify(userRepository).updateOnlineStatus("testuser", true);
-        verify(eventPublisher).publishEvent(any(com.web.backend.event.KafkaDispatchEvent.class));
+        verify(eventPublisher).publishEvent(any(com.web.backend.kafka.payload.FriendPayload.class));
     }
 
     @Test
