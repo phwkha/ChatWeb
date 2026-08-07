@@ -26,12 +26,12 @@ public class EmailConsumer {
 
     @KafkaListener(topics = "${spring.kafka.topic.email.email-topic}", groupId = "${spring.kafka.topic.email.group-id}", containerFactory = EMAILKAFKALISTENERCONTAINERFACTORY_STRING)
     public void consumeEmailTask(EmailPayload event, Acknowledgment ack) {
-        log.info("Kafka Consumer received email task of type {} for: {}", event.getType(), event.getTo());
+        log.info("Kafka Consumer received email task of type {} for: {}", event.type(), event.to());
 
-        if (OTP_STRING.equals(event.getType())) {
-            emailService.sendOtpEmail(event.getTo(), event.getName(), event.getOtp());
-        } else if (TEXT_STRING.equals(event.getType())) {
-            emailService.sendTextEmail(event.getTo(), event.getSubject(), event.getContent());
+        if (OTP_STRING.equals(event.type())) {
+            emailService.sendOtpEmail(event.to(), event.name(), event.otp());
+        } else if (TEXT_STRING.equals(event.type())) {
+            emailService.sendTextEmail(event.to(), event.subject(), event.content());
         }
 
         // Manual commit offset sau khi xử lý thành công
