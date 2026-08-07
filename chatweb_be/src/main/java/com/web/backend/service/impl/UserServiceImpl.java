@@ -3,7 +3,7 @@ package com.web.backend.service.impl;
 import com.web.backend.common.AuthProvider;
 import com.web.backend.common.OtpType;
 import com.web.backend.common.UserStatus;
-import com.web.backend.common.NotificationsStatus;
+import com.web.backend.common.NotificationsType;
 import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.*;
 import com.web.backend.controller.response.*;
@@ -15,8 +15,7 @@ import com.web.backend.exception.custom.InvalidPasswordException;
 import com.web.backend.exception.custom.PasswordMismatchException;
 import com.web.backend.exception.custom.ResourceConflictException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
-import com.web.backend.kafka.payload.FriendNotificationMessage;
-import com.web.backend.event.KafkaDispatchEvent;
+import com.web.backend.kafka.payload.FriendPayload;
 import com.web.backend.mapper.UserMapper;
 import com.web.backend.model.*;
 import com.web.backend.repository.MessageRepository;
@@ -378,24 +377,12 @@ public class UserServiceImpl implements UserService {
         List<String> friends = friendshipRepository.findAllFriendUsernamesByUsername(username);
 
         if (friends != null && !friends.isEmpty()) {
-            NotificationMessageResponse data = NotificationMessageResponse.builder()
-                    .status(isOnline ? NotificationsStatus.USER_ONLINE
-                            : NotificationsStatus.USER_OFFLINE)
-                    .relatedUsername(username)
-                    .build();
-
-            SocketResponse<NotificationMessageResponse> response = SocketResponse
-                    .notifications(
-                            Translator.tolocale(isOnline ? SYS_MSG_USER_ONLINE_STRING : SYS_MSG_USER_OFFLINE_STRING),
-                            data);
-
-            FriendNotificationMessage payload = FriendNotificationMessage.builder()
+            eventPublisher.publishEvent(FriendPayload.builder()
                     .recipientUsernames(friends)
                     .destination(QUEUE_NOTIFICATIONS_STRING)
-                    .recipientResponse(response)
-                    .build();
-            eventPublisher.publishEvent(new KafkaDispatchEvent(
-                    Objects.requireNonNull(friendTopic), payload));
+                    .recipientStatus(isOnline ? NotificationsType.USER_ONLINE : NotificationsType.USER_OFFLINE)
+                    .senderDisplayName(username)
+                    .build());
         }
     }
 

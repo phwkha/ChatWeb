@@ -16,14 +16,13 @@ import java.util.stream.Collectors;
 
 import org.bson.types.ObjectId;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.web.backend.kafka.producer.ChatProducer;
 import org.springframework.stereotype.Service;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -78,15 +77,9 @@ public class MessageServiceImpl implements MessageService {
 
     private final MessageMapper messageMapper;
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ChatProducer chatProducer;
 
     private final WebSocketErrorHandler webSocketErrorHandler;
-
-    @Value("${spring.kafka.topic.chat.messages}")
-    private String chatTopic;
-
-    @Value("${spring.kafka.topic.chat.system-messages}")
-    private String systemTopic;
 
     private static final long REDIS_TTL_MINUTES = 5;
 
@@ -131,45 +124,42 @@ public class MessageServiceImpl implements MessageService {
             throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING));
         }
 
-        ChatMessage chatMessage = messageMapper.toEntity(request);
+        ChatMessage chatMsg = messageMapper.toEntity(request);
         String convId = generateConversationId(sender, request.getRecipient());
-        chatMessage.setConversationId(convId);
-        chatMessage.setSender(sender);
-        chatMessage.setId(new ObjectId().toHexString());
-        chatMessage.setStatus(MessageStatus.SENT);
-        chatMessage.setLocalId(request.getLocalId());
-        if (chatMessage.getTimestamp() == null) {
-            chatMessage.setTimestamp(LocalDateTime.now());
+        chatMsg.setConversationId(convId);
+        chatMsg.setSender(sender);
+        chatMsg.setId(new ObjectId().toHexString());
+        chatMsg.setStatus(MessageStatus.SENT);
+        chatMsg.setLocalId(request.getLocalId());
+        if (chatMsg.getTimestamp() == null) {
+            chatMsg.setTimestamp(LocalDateTime.now());
         }
-        if (chatMessage.getContent() == null) {
-            chatMessage.setContent("");
+        if (chatMsg.getContent() == null) {
+            chatMsg.setContent("");
         }
-        if (chatMessage.getContentType() == null)
-            chatMessage.setContentType(ContentType.TEXT);
+        if (chatMsg.getContentType() == null)
+            chatMsg.setContentType(ContentType.TEXT);
 
-        kafkaTemplate.send(Objects.requireNonNull(chatTopic), chatMessage).whenComplete((result, ex) -> {
-            if (ex != null) {
-                log.error("Critical Error: Cannot push message to Kafka. Topic: {}", chatTopic, ex);
-                webSocketErrorHandler.handleChatError(sender, request,
-                        Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
-            } else {
-                log.debug("Message: Kafka push successful offset: {}", result.getRecordMetadata().offset());
-            }
+        chatProducer.sendChatMessage(chatMsg).exceptionally(ex -> {
+            webSocketErrorHandler.handleChatError(sender, request,
+                    Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
+            return null;
         });
-        if (chatMessage.getMessageType() != MessageType.CHAT) {
+
+        if (chatMsg.getMessageType() != MessageType.CHAT) {
             return;
         }
 
-        log.info("Pushed message from {} to DB save queue", chatMessage.getSender());
+        log.info("Pushed message from {} to DB save queue", chatMsg.getSender());
 
         try {
             String redisKey = CHAT_RECENT_STRING + convId;
-            redisTemplate.opsForList().rightPush(redisKey, chatMessage);
+            redisTemplate.opsForList().rightPush(redisKey, chatMsg);
             redisTemplate.opsForList().trim(redisKey, -50, -1);
             redisTemplate.expire(redisKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
 
-            String key = UNREAD_COUNTS_STRING + chatMessage.getRecipient();
-            redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMessage.getSender()), 1);
+            String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
+            redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), 1);
         } catch (Exception e) {
             log.warn("Redis is encountering issues, skipping temporary cache save: {}", e.getMessage());
         }
@@ -178,24 +168,20 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public void sendSystemMessage(String currentUsername, MessageSystemRequest request) {
-        SystemMessage systemMessage = new SystemMessage();
-        systemMessage.setSender(currentUsername);
-        systemMessage.setTimestamp(Instant.now());
-        systemMessage.setExpiresAt(request.getSurvivalTime() == null ? null
+        SystemMessage systemMsg = new SystemMessage();
+        systemMsg.setSender(currentUsername);
+        systemMsg.setTimestamp(Instant.now());
+        systemMsg.setExpiresAt(request.getSurvivalTime() == null ? null
                 : Instant.now().plus(request.getSurvivalTime(), ChronoUnit.SECONDS));
-        systemMessage.setContent(request.getContent());
-        systemMessageRepository.save(Objects.requireNonNull(systemMessage));
-        MessageSystemResponse messageSystemResponse = messageMapper.systemMessageToResponse(systemMessage);
-        kafkaTemplate.send(Objects.requireNonNull(systemTopic), messageSystemResponse).whenComplete((result, ex) -> {
-            if (ex != null) {
-                log.error("Critical Error: Cannot push system message to Kafka. Topic: {}", chatTopic, ex);
-                webSocketErrorHandler.handleChatError(currentUsername, request,
-                        Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
-            } else {
-                log.debug("System message: Kafka push successful offset: {}", result.getRecordMetadata().offset());
-            }
+        systemMsg.setContent(request.getContent());
+        systemMessageRepository.save(Objects.requireNonNull(systemMsg));
+
+        chatProducer.sendSystemMessage(systemMsg).exceptionally(ex -> {
+            webSocketErrorHandler.handleChatError(currentUsername, request,
+                    Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
+            return null;
         });
-        log.info("{} Chat system message success", systemMessage.getSender());
+        log.info("{} Chat system message success", systemMsg.getSender());
     }
 
     @Override
@@ -231,12 +217,10 @@ public class MessageServiceImpl implements MessageService {
         reactionMsg.setContent(request.getReactionType() != null ? request.getReactionType().toString() : "");
         reactionMsg.setTimestamp(LocalDateTime.now());
 
-        kafkaTemplate.send(Objects.requireNonNull(chatTopic), reactionMsg).whenComplete((result, ex) -> {
-            if (ex != null) {
-                log.error("Reaction: Failed to push to Kafka. Topic: {}", chatTopic, ex);
-            } else {
-                log.debug("Reaction: Successfully pushed to Kafka");
-            }
+        chatProducer.sendReaction(reactionMsg).exceptionally(ex -> {
+            webSocketErrorHandler.handleChatError(senderUsername, request,
+                    Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
+            return null;
         });
     }
 
@@ -298,41 +282,43 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public void editMessage(String senderUsername, EditMessageRequest request) {
-        ChatMessage message = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
+        ChatMessage editMsg = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
                 .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
 
-        if (!message.getSender().equals(senderUsername)) {
+        if (!editMsg.getSender().equals(senderUsername)) {
             throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_EDIT_FORBIDDEN_STRING));
         }
 
-        message.setContent(request.getNewContent());
-        message.setEdited(true);
+        editMsg.setContent(request.getNewContent());
+        editMsg.setEdited(true);
 
-        kafkaTemplate.send(Objects.requireNonNull(chatTopic), message).whenComplete((result, ex) -> {
-            if (ex != null)
-                log.error("Failed to push edit to Kafka", ex);
+        chatProducer.sendEditMessage(editMsg).exceptionally(ex -> {
+            webSocketErrorHandler.handleChatError(senderUsername, request,
+                    Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
+            return null;
         });
     }
 
     @Override
     public void revokeMessage(String senderUsername, RevokeMessageRequest request) {
-        ChatMessage message = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
+        ChatMessage revokeMsg = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
                 .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
 
-        if (!message.getSender().equals(senderUsername)) {
+        if (!revokeMsg.getSender().equals(senderUsername)) {
             throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_DELETE_FORBIDDEN_STRING));
         }
 
-        message.setContent("");
-        message.setFileUrl(null);
-        message.setFileName(null);
-        message.setFileSize(null);
-        message.setReactions(null);
-        message.setDeleted(true);
+        revokeMsg.setContent("");
+        revokeMsg.setFileUrl(null);
+        revokeMsg.setFileName(null);
+        revokeMsg.setFileSize(null);
+        revokeMsg.setReactions(null);
+        revokeMsg.setDeleted(true);
 
-        kafkaTemplate.send(Objects.requireNonNull(chatTopic), message).whenComplete((result, ex) -> {
-            if (ex != null)
-                log.error("Failed to push revoke to Kafka", ex);
+        chatProducer.sendRevokeMessage(revokeMsg).exceptionally(ex -> {
+            webSocketErrorHandler.handleChatError(senderUsername, request,
+                    Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
+            return null;
         });
     }
 
@@ -391,8 +377,8 @@ public class MessageServiceImpl implements MessageService {
         Map<String, Object> redisMap = new HashMap<>();
 
         for (UnreadCountProjection r : dbResults) {
-            resultMap.put(r.getSender(), r.getCount());
-            redisMap.put(r.getSender(), r.getCount());
+            resultMap.put(r.sender(), r.count());
+            redisMap.put(r.sender(), r.count());
         }
 
         if (!redisMap.isEmpty()) {
@@ -421,7 +407,10 @@ public class MessageServiceImpl implements MessageService {
         statusMsg.setSender(senderUsername);
         statusMsg.setRecipient(recipientUsername);
 
-        kafkaTemplate.send(Objects.requireNonNull(chatTopic), statusMsg);
+        chatProducer.sendStatusMessage(statusMsg).exceptionally(ex -> {
+            webSocketErrorHandler.handleChatError(recipientUsername, ex, "Failed to send read receipt message");
+            return null;
+        });
 
         log.info("User marking messages");
     }
