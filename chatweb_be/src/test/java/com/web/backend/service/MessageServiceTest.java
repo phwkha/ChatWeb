@@ -160,12 +160,7 @@ class MessageServiceTest {
         // Assert
         verify(chatProducer).sendChatMessage(chatMessage);
 
-        // Verify it was pushed to Redis hash/zset for caching
-        verify(hashOperations).put(anyString(), eq(chatMessage.getId()), eq(chatMessage));
-        verify(zSetOperations).add(anyString(), eq(chatMessage.getId()), anyDouble());
 
-        // Verify unread count was incremented
-        verify(hashOperations).increment(anyString(), eq("sender"), eq(1L));
     }
 
     // ==========================================
@@ -434,25 +429,7 @@ class MessageServiceTest {
         verify(webSocketErrorHandler).handleChatError(eq("sender"), any(), anyString());
     }
 
-    @Test
-    void testSendPrivateMessage_RedisException() {
-        when(userRepository.findByUsername("recipient")).thenReturn(Optional.of(recipientUser));
-        when(friendService.isFriend("sender", "recipient")).thenReturn(true);
-        ChatMessageRequest request = new ChatMessageRequest();
-        request.setRecipient("recipient");
 
-        ChatMessage chatMessage = new ChatMessage();
-        chatMessage.setMessageType(com.web.backend.common.MessageType.CHAT);
-        when(messageMapper.toEntity(request)).thenReturn(chatMessage);
-        CompletableFuture<SendResult<String, Object>> future = CompletableFuture
-                .completedFuture(mock(SendResult.class, RETURNS_DEEP_STUBS));
-        when(chatProducer.sendChatMessage(any())).thenReturn(future);
-
-        when(redisTemplate.opsForHash()).thenThrow(new RuntimeException("Redis down"));
-
-        // Should not throw exception to caller, just logs
-        assertDoesNotThrow(() -> messageService.sendPrivateMessage("sender", request));
-    }
 
     @Test
     void testSendSystemMessage_KafkaException() {

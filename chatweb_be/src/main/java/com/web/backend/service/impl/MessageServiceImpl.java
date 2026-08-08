@@ -1,8 +1,8 @@
 package com.web.backend.service.impl;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -58,7 +58,6 @@ import com.web.backend.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.web.backend.exception.WebSocketErrorHandler;
-import java.time.ZoneId;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -84,8 +83,6 @@ public class MessageServiceImpl implements MessageService {
     private final ChatProducer chatProducer;
 
     private final WebSocketErrorHandler webSocketErrorHandler;
-
-    private static final long REDIS_TTL_MINUTES = 5;
 
     private static final String CONVERSATIONID_STRING = "conversationId";
 
@@ -162,7 +159,7 @@ public class MessageServiceImpl implements MessageService {
         chatMsg.setStatus(MessageStatus.SENT);
         chatMsg.setLocalId(request.getLocalId());
         if (chatMsg.getTimestamp() == null) {
-            chatMsg.setTimestamp(LocalDateTime.now());
+            chatMsg.setTimestamp(LocalDateTime.now(ZoneId.systemDefault()));
         }
         if (chatMsg.getContent() == null) {
             chatMsg.setContent("");
@@ -232,7 +229,7 @@ public class MessageServiceImpl implements MessageService {
         reactionMsg.setRecipient(request.getRecipient());
         reactionMsg.setMessageType(MessageType.REACTION);
         reactionMsg.setContent(request.getReactionType() != null ? request.getReactionType().toString() : "");
-        reactionMsg.setTimestamp(LocalDateTime.now());
+        reactionMsg.setTimestamp(LocalDateTime.now(ZoneId.systemDefault()));
 
         chatProducer.sendReaction(reactionMsg);
     }
@@ -240,71 +237,65 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public CursorResponse<ChatMessageResponse> findPrivateMessageWithCursor(String user1, String user2,
             String cursorStr, int size) {
-
         String conversationId = generateConversationId(user1, user2);
         Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, TIMESTAMP_STRING));
-        List<ChatMessage> finalMessages = new ArrayList<>();
 
         if (cursorStr == null || cursorStr.isEmpty()) {
-            String hashKey = CHAT_RECENT_HASH_STRING + conversationId;
-            String zsetKey = CHAT_RECENT_ZSET_STRING + conversationId;
-
-            Set<Object> messageIds = redisTemplate.opsForZSet().reverseRange(zsetKey, 0, size);
-
-            if (messageIds != null && messageIds.size() >= size + 1) {
-                List<Object> redisObjects = redisTemplate.opsForHash().multiGet(hashKey, messageIds);
-                if (redisObjects != null) {
-                    for (Object obj : redisObjects) {
-                        if (obj != null) {
-                            finalMessages.add((ChatMessage) obj);
-                        }
-                    }
-                    if (finalMessages.size() >= size + 1) {
-                        finalMessages.sort(Comparator.comparing(ChatMessage::getTimestamp).reversed());
-                        log.info("Fetching private messages (Redis-First Cache Hit)");
-                        return buildCursorResponse(finalMessages, size);
-                    }
-                }
+            List<ChatMessage> cachedMessages = fetchMessagesFromRedisCache(conversationId, 0, size);
+            if (cachedMessages.size() >= size + 1) {
+                cachedMessages.sort(Comparator.comparing(ChatMessage::getTimestamp).reversed());
+                log.info("Fetching private messages (Redis-First Cache Hit)");
+                return buildCursorResponse(cachedMessages, size);
             }
         }
 
-        List<ChatMessage> dbMessages;
-        if (cursorStr == null || cursorStr.isEmpty()) {
-            dbMessages = messageRepository.findByConversationId(conversationId, pageable);
-
-            String hashKey = CHAT_RECENT_HASH_STRING + conversationId;
-            String zsetKey = CHAT_RECENT_ZSET_STRING + conversationId;
-            Set<Object> recentIds = redisTemplate.opsForZSet().reverseRange(zsetKey, 0, -1);
-            Map<String, ChatMessage> uniqueMessagesMap = new LinkedHashMap<>();
-
-            if (recentIds != null && !recentIds.isEmpty()) {
-                List<Object> redisObjects = redisTemplate.opsForHash().multiGet(hashKey, recentIds);
-                if (redisObjects != null) {
-                    for (Object obj : redisObjects) {
-                        if (obj != null) {
-                            ChatMessage msg = (ChatMessage) obj;
-                            uniqueMessagesMap.put(msg.getId(), msg);
-                        }
-                    }
-                }
-            }
-
-            for (ChatMessage msg : dbMessages) {
-                uniqueMessagesMap.putIfAbsent(msg.getId(), msg);
-            }
-
-            finalMessages = uniqueMessagesMap.values().stream()
-                    .sorted(Comparator.comparing(ChatMessage::getTimestamp).reversed())
-                    .limit(size + 1)
-                    .toList();
-        } else {
-            LocalDateTime cursorTime = LocalDateTime.parse(cursorStr);
-            dbMessages = messageRepository.findByConversationIdAndTimestampBefore(conversationId, cursorTime, pageable);
-            finalMessages = new ArrayList<>(dbMessages);
-        }
-
+        List<ChatMessage> finalMessages = fetchMessagesFromDatabaseAndMerge(conversationId, cursorStr, size, pageable);
         log.info("Fetching private messages (DB Fallback)");
         return buildCursorResponse(finalMessages, size);
+    }
+
+    private List<ChatMessage> fetchMessagesFromRedisCache(String conversationId, long start, long end) {
+        String hashKey = CHAT_RECENT_HASH_STRING + conversationId;
+        String zsetKey = CHAT_RECENT_ZSET_STRING + conversationId;
+        Set<Object> messageIds = redisTemplate.opsForZSet().reverseRange(zsetKey, start, end);
+
+        if (messageIds == null || messageIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Object> redisObjects = redisTemplate.opsForHash().multiGet(hashKey, messageIds);
+        List<ChatMessage> messages = new ArrayList<>();
+        for (Object obj : redisObjects) {
+            if (obj != null) {
+                messages.add((ChatMessage) obj);
+            }
+        }
+        return messages;
+    }
+
+    private List<ChatMessage> fetchMessagesFromDatabaseAndMerge(String conversationId, String cursorStr, int size,
+            Pageable pageable) {
+        if (cursorStr != null && !cursorStr.isEmpty()) {
+            LocalDateTime cursorTime = LocalDateTime.parse(cursorStr);
+            return new ArrayList<>(
+                    messageRepository.findByConversationIdAndTimestampBefore(conversationId, cursorTime, pageable));
+        }
+
+        List<ChatMessage> dbMessages = messageRepository.findByConversationId(conversationId, pageable);
+        List<ChatMessage> redisMessages = fetchMessagesFromRedisCache(conversationId, 0, -1);
+
+        Map<String, ChatMessage> uniqueMessagesMap = new LinkedHashMap<>();
+        for (ChatMessage msg : redisMessages) {
+            uniqueMessagesMap.put(msg.getId(), msg);
+        }
+        for (ChatMessage msg : dbMessages) {
+            uniqueMessagesMap.putIfAbsent(msg.getId(), msg);
+        }
+
+        return uniqueMessagesMap.values().stream()
+                .sorted(Comparator.comparing(ChatMessage::getTimestamp).reversed())
+                .limit(size + 1L)
+                .toList();
     }
 
     @Override
