@@ -2,6 +2,7 @@ package com.web.backend.controller;
 
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.config.localresolverconfig.Translator;
+import com.web.backend.controller.request.FriendRequest;
 import com.web.backend.controller.response.PageResponse;
 import com.web.backend.controller.response.UserSummaryResponse;
 import com.web.backend.model.UserEntity;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
@@ -101,6 +103,40 @@ public class FriendController {
                 return ResponseEntity.ok(ApiResponse.success(
                                 HttpStatus.OK.value(),
                                 Translator.tolocale(SUCCESS_FRIEND_BLOCKED_WITH_STRING, username),
+                                null));
+        }
+
+        @Operation(summary = "Send friend request", description = "API endpoint to send a friend request")
+        @PostMapping("/request")
+        public ResponseEntity<ApiResponse<Void>> sendFriendRequest(
+                        Authentication auth,
+                        @RequestBody @Valid FriendRequest request) {
+
+                UserEntity user = (UserEntity) auth.getPrincipal();
+                log.info("User {} sending friend request to {}", user.getUsername(), request.getTargetUsername());
+
+                friendService.sendFriendRequest(user.getUsername(), request.getTargetUsername());
+
+                return ResponseEntity.ok(ApiResponse.success(
+                                HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_SYS_OPERATION_STRING),
+                                null));
+        }
+
+        @Operation(summary = "Accept friend request", description = "API endpoint to accept a friend request")
+        @PostMapping("/accept")
+        public ResponseEntity<ApiResponse<Void>> acceptFriendRequest(
+                        Authentication auth,
+                        @RequestBody @Valid FriendRequest request) {
+
+                UserEntity user = (UserEntity) auth.getPrincipal();
+                log.info("User {} accepting friend request from {}", user.getUsername(), request.getTargetUsername());
+
+                friendService.acceptFriendRequest(user.getUsername(), request.getTargetUsername());
+
+                return ResponseEntity.ok(ApiResponse.success(
+                                HttpStatus.OK.value(),
+                                Translator.tolocale(SUCCESS_SYS_OPERATION_STRING),
                                 null));
         }
 }

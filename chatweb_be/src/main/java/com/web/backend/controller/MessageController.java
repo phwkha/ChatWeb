@@ -2,6 +2,9 @@ package com.web.backend.controller;
 
 import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.request.MarkReadRequest;
+import com.web.backend.controller.request.EditMessageRequest;
+import com.web.backend.controller.request.ReactionRequest;
+import com.web.backend.controller.request.RevokeMessageRequest;
 import com.web.backend.controller.response.ChatMessageResponse;
 import com.web.backend.controller.response.form.ApiResponse;
 import com.web.backend.controller.response.CursorResponse;
@@ -31,6 +34,9 @@ public class MessageController {
         private static final String SUCCESS_MSG_GET_UNREAD_STRING = "success.msg.get_unread";
         private static final String SUCCESS_MSG_MARK_READ_STRING = "success.msg.mark_read";
         private static final String SUCCESS_MSG_GET_MESSAGE_STRING = "success.msg.get_message";
+        private static final String SUCCESS_MSG_REACTION_STRING = "success.msg.reaction";
+        private static final String SUCCESS_MSG_EDIT_STRING = "success.msg.edit";
+        private static final String SUCCESS_MSG_REVOKE_STRING = "success.msg.revoke";
 
         @Operation(summary = "Get private message", description = "API endpoint for get private message")
         @GetMapping("/private")
@@ -92,5 +98,56 @@ public class MessageController {
 
                 return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
                                 Translator.tolocale(SUCCESS_MSG_GET_MESSAGE_STRING), response));
+        }
+
+        @Operation(summary = "React to a message", description = "API endpoint for reacting to a message")
+        @PostMapping("/reaction")
+        public ResponseEntity<ApiResponse<Void>> reactToMessage(
+                        Authentication auth,
+                        @RequestBody @Valid ReactionRequest request) {
+
+                UserEntity user = (UserEntity) auth.getPrincipal();
+
+                log.info("User {} reacting to message {}", user.getUsername(), request.getMessageId());
+
+                messageService.reactToMessage(user.getUsername(), request);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_MSG_REACTION_STRING), null));
+        }
+
+        @Operation(summary = "Edit a message", description = "API endpoint to edit an existing message")
+        @PostMapping("/edit")
+        public ResponseEntity<ApiResponse<Void>> editMessage(
+                        Authentication auth,
+                        @RequestBody @Valid EditMessageRequest request) {
+
+                UserEntity user = (UserEntity) auth.getPrincipal();
+
+                log.info("User {} editing message {}", user.getUsername(), request.getMessageId());
+
+                messageService.editMessage(user.getUsername(), request);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_MSG_EDIT_STRING), null));
+        }
+
+        @Operation(summary = "Revoke a message", description = "API endpoint to revoke a message")
+        @PostMapping("/revoke")
+        public ResponseEntity<ApiResponse<Void>> revokeMessage(
+                        Authentication auth,
+                        @RequestBody @Valid RevokeMessageRequest request) {
+
+                UserEntity user = (UserEntity) auth.getPrincipal();
+
+                log.info("User {} revoking message {}", user.getUsername(), request.getMessageId());
+
+                messageService.revokeMessage(user.getUsername(), request);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(HttpStatus.OK.value(),
+                                                Translator.tolocale(SUCCESS_MSG_REVOKE_STRING), null));
         }
 }
