@@ -18,6 +18,7 @@ import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.exception.custom.ResourceConflictException;
+import com.web.backend.exception.custom.SystemOverloadException;
 import org.springframework.security.access.AccessDeniedException;
 
 @ControllerAdvice
@@ -126,6 +127,14 @@ public class WebSocketErrorHandler {
             @Header(value = "simpSessionId", required = false) String sessionId) {
 
         this.handleChatError(authentication, sessionId, null, ex.getMessage());
+    }
+
+    @MessageExceptionHandler(SystemOverloadException.class)
+    public void handleSystemOverloadException(
+            SystemOverloadException ex,
+            Authentication authentication,
+            @Header(value = "simpSessionId", required = false) String sessionId) {
+        this.handleChatError(authentication, sessionId, ex.getRequestData(), ex.getMessage());
     }
 
     @MessageExceptionHandler(Exception.class)

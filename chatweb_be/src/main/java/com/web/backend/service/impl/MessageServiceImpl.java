@@ -43,6 +43,7 @@ import com.web.backend.controller.response.MessageSystemResponse;
 import com.web.backend.controller.response.UnreadCountsResponse;
 import com.web.backend.exception.custom.AccessForbiddenException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
+import com.web.backend.exception.custom.SystemOverloadException;
 import com.web.backend.mapper.MessageMapper;
 import com.web.backend.model.ChatMessage;
 import com.web.backend.model.SystemMessage;
@@ -167,9 +168,30 @@ public class MessageServiceImpl implements MessageService {
             }
         }
 
-        chatProducer.sendChatMessage(chatMsg).whenComplete((result, ex) -> {
-            if (ex != null && chatMsg.getMessageType() == MessageType.CHAT) {
-                log.error("Kafka failed, rolling back Redis cache for message {}", chatMsg.getId());
+        try {
+            chatProducer.sendChatMessage(chatMsg).whenComplete((result, ex) -> {
+                if (ex != null && chatMsg.getMessageType() == MessageType.CHAT) {
+                    log.error("Kafka failed, rolling back Redis cache for message {}", chatMsg.getId());
+                    try {
+                        String hashKey = CHAT_RECENT_HASH_STRING + convId;
+                        String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
+                        redisTemplate.opsForHash().delete(hashKey, chatMsg.getId());
+                        redisTemplate.opsForZSet().remove(zsetKey, chatMsg.getId());
+
+                        String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
+                        redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), -1);
+                    } catch (Exception rollbackEx) {
+                        log.error("Failed to rollback Redis cache: {}", rollbackEx.getMessage());
+                    }
+                    webSocketErrorHandler.handleChatError(sender, request,
+                            Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
+                } else if (ex == null && chatMsg.getMessageType() == MessageType.CHAT) {
+                    log.info("save message success");
+                }
+            });
+        } catch (Exception syncEx) {
+            log.error("Kafka producer threw synchronous error", syncEx);
+            if (chatMsg.getMessageType() == MessageType.CHAT) {
                 try {
                     String hashKey = CHAT_RECENT_HASH_STRING + convId;
                     String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
@@ -179,14 +201,11 @@ public class MessageServiceImpl implements MessageService {
                     String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
                     redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), -1);
                 } catch (Exception rollbackEx) {
-                    log.error("Failed to rollback Redis cache: {}", rollbackEx.getMessage());
+                    log.error("Failed to rollback Redis cache after sync error: {}", rollbackEx.getMessage());
                 }
-                webSocketErrorHandler.handleChatError(sender, request,
-                        Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
-            } else if (ex == null && chatMsg.getMessageType() == MessageType.CHAT) {
-                log.info("save message success");
             }
-        });
+            throw new SystemOverloadException(Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING), request, syncEx);
+        }
     }
 
     @Override
