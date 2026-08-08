@@ -113,7 +113,34 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public void sendPrivateMessage(String sender, ChatMessageRequest request) {
+        validatePrivateMessageRequest(sender, request);
 
+        String convId = generateConversationId(sender, request.getRecipient());
+        ChatMessage chatMsg = buildChatMessage(sender, request, convId);
+
+        cacheMessageToRedis(chatMsg, convId);
+
+        try {
+            chatProducer.sendChatMessage(chatMsg).whenComplete((result, ex) -> {
+                if (ex != null) {
+                    if (chatMsg.getMessageType() == MessageType.CHAT) {
+                        log.error("Kafka failed, rolling back Redis cache for message {}", chatMsg.getId());
+                        rollbackRedisCache(chatMsg, convId, "Failed to rollback Redis cache");
+                        webSocketErrorHandler.handleChatError(sender, request,
+                                Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
+                    }
+                } else if (chatMsg.getMessageType() == MessageType.CHAT) {
+                    log.info("save message success");
+                }
+            });
+        } catch (Exception syncEx) {
+            log.error("Kafka producer threw synchronous error", syncEx);
+            rollbackRedisCache(chatMsg, convId, "Failed to rollback Redis cache after sync error");
+            throw new SystemOverloadException(Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING), request, syncEx);
+        }
+    }
+
+    private void validatePrivateMessageRequest(String sender, ChatMessageRequest request) {
         UserEntity recipientEntity = userRepository.findByUsername(request.getRecipient())
                 .orElseThrow(
                         () -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_RECIPIENT_NOT_FOUND_STRING),
@@ -129,9 +156,10 @@ public class MessageServiceImpl implements MessageService {
                 Objects.requireNonNull(request.getRecipient()))) {
             throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING), request);
         }
+    }
 
+    private ChatMessage buildChatMessage(String sender, ChatMessageRequest request, String convId) {
         ChatMessage chatMsg = messageMapper.toEntity(request);
-        String convId = generateConversationId(sender, request.getRecipient());
         chatMsg.setConversationId(convId);
         chatMsg.setSender(sender);
         chatMsg.setId(new ObjectId().toHexString());
@@ -143,68 +171,51 @@ public class MessageServiceImpl implements MessageService {
         if (chatMsg.getContent() == null) {
             chatMsg.setContent("");
         }
-        if (chatMsg.getContentType() == null)
+        if (chatMsg.getContentType() == null) {
             chatMsg.setContentType(ContentType.TEXT);
-
-        if (chatMsg.getMessageType() == MessageType.CHAT) {
-            log.info("Optimistically caching message from {} to Redis", chatMsg.getSender());
-            try {
-                String hashKey = CHAT_RECENT_HASH_STRING + convId;
-                String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
-
-                redisTemplate.opsForHash().put(hashKey, chatMsg.getId(), chatMsg);
-                long score = chatMsg.getTimestamp().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-                redisTemplate.opsForZSet().add(zsetKey, chatMsg.getId(), score);
-
-                redisTemplate.opsForZSet().removeRange(zsetKey, 0, -51);
-
-                redisTemplate.expire(hashKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
-                redisTemplate.expire(zsetKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
-
-                String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
-                redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), 1);
-            } catch (Exception e) {
-                log.warn("Redis is encountering issues, skipping temporary cache save: {}", e.getMessage());
-            }
         }
+        return chatMsg;
+    }
 
+    private void cacheMessageToRedis(ChatMessage chatMsg, String convId) {
+        if (chatMsg.getMessageType() != MessageType.CHAT) {
+            return;
+        }
+        log.info("Optimistically caching message from {} to Redis", chatMsg.getSender());
         try {
-            chatProducer.sendChatMessage(chatMsg).whenComplete((result, ex) -> {
-                if (ex != null && chatMsg.getMessageType() == MessageType.CHAT) {
-                    log.error("Kafka failed, rolling back Redis cache for message {}", chatMsg.getId());
-                    try {
-                        String hashKey = CHAT_RECENT_HASH_STRING + convId;
-                        String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
-                        redisTemplate.opsForHash().delete(hashKey, chatMsg.getId());
-                        redisTemplate.opsForZSet().remove(zsetKey, chatMsg.getId());
+            String hashKey = CHAT_RECENT_HASH_STRING + convId;
+            String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
 
-                        String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
-                        redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), -1);
-                    } catch (Exception rollbackEx) {
-                        log.error("Failed to rollback Redis cache: {}", rollbackEx.getMessage());
-                    }
-                    webSocketErrorHandler.handleChatError(sender, request,
-                            Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
-                } else if (ex == null && chatMsg.getMessageType() == MessageType.CHAT) {
-                    log.info("save message success");
-                }
-            });
-        } catch (Exception syncEx) {
-            log.error("Kafka producer threw synchronous error", syncEx);
-            if (chatMsg.getMessageType() == MessageType.CHAT) {
-                try {
-                    String hashKey = CHAT_RECENT_HASH_STRING + convId;
-                    String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
-                    redisTemplate.opsForHash().delete(hashKey, chatMsg.getId());
-                    redisTemplate.opsForZSet().remove(zsetKey, chatMsg.getId());
+            redisTemplate.opsForHash().put(hashKey, chatMsg.getId(), chatMsg);
+            long score = chatMsg.getTimestamp().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            redisTemplate.opsForZSet().add(zsetKey, chatMsg.getId(), score);
 
-                    String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
-                    redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), -1);
-                } catch (Exception rollbackEx) {
-                    log.error("Failed to rollback Redis cache after sync error: {}", rollbackEx.getMessage());
-                }
-            }
-            throw new SystemOverloadException(Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING), request, syncEx);
+            redisTemplate.opsForZSet().removeRange(zsetKey, 0, -51);
+
+            redisTemplate.expire(hashKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
+            redisTemplate.expire(zsetKey, Objects.requireNonNull(Duration.ofMinutes(REDIS_TTL_MINUTES)));
+
+            String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
+            redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), 1);
+        } catch (Exception e) {
+            log.warn("Redis is encountering issues, skipping temporary cache save: {}", e.getMessage());
+        }
+    }
+
+    private void rollbackRedisCache(ChatMessage chatMsg, String convId, String errorMessagePrefix) {
+        if (chatMsg.getMessageType() != MessageType.CHAT) {
+            return;
+        }
+        try {
+            String hashKey = CHAT_RECENT_HASH_STRING + convId;
+            String zsetKey = CHAT_RECENT_ZSET_STRING + convId;
+            redisTemplate.opsForHash().delete(hashKey, chatMsg.getId());
+            redisTemplate.opsForZSet().remove(zsetKey, chatMsg.getId());
+
+            String key = UNREAD_COUNTS_STRING + chatMsg.getRecipient();
+            redisTemplate.opsForHash().increment(key, Objects.requireNonNull(chatMsg.getSender()), -1);
+        } catch (Exception rollbackEx) {
+            log.error("{}: {}", errorMessagePrefix, rollbackEx.getMessage());
         }
     }
 
