@@ -24,7 +24,6 @@ public class UserServiceDetail implements UserDetailsService {
     private static final String USERNAME_STRING = "#username";
 
     private static final String ERROR_USER_NOT_FOUND_WITH_STRING = "error.user.not_found_with";
-    private static final String ERROR_USER_NOT_FOUND_STRING = "error.user.not_found";
     private static final String ERROR_AUTH_LOCKED_ADMIN_STRING = "error.auth.locked_admin";
     private static final String ERROR_AUTH_ACCOUNT_UNVERIFIED_STRING = "error.auth.account_unverified";
     private static final String ERROR_AUTH_ACCOUNT_INACTIVE_STRING = "error.auth.account_inactive";

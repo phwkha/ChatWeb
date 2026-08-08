@@ -10,7 +10,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.validation.BindingResult;
-import com.web.backend.config.localresolverconfig.Translator;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
@@ -20,7 +19,6 @@ import com.web.backend.exception.custom.InvalidDataException;
 import com.web.backend.exception.custom.ResourceNotFoundException;
 import com.web.backend.exception.custom.ResourceConflictException;
 import org.springframework.security.access.AccessDeniedException;
-import com.web.backend.controller.response.form.SocketResponse;
 
 @ControllerAdvice
 @RequiredArgsConstructor
