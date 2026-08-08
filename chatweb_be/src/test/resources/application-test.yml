@@ -24,14 +24,16 @@ spring:
     expiration-minutes: 5
   kafka:
     topic:
-      friend: dummy
+      friend:
+        friend-topic: dummy
+        friend-group-id: dummy
       chat:
         messages: dummy
         system-messages: dummy
         save: dummy
         messages-group-id: dummy
         system-messages-group-id: dummy
-      friend-group-id: dummy
+
       email:
         email-topic: dummy
         group-id: dummy

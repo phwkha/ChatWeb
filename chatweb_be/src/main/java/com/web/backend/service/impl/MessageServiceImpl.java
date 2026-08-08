@@ -22,7 +22,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.kafka.support.SendResult;
 import com.web.backend.kafka.producer.ChatProducer;
 import org.springframework.stereotype.Service;
 import org.springframework.data.mongodb.core.query.Query;
@@ -61,7 +60,6 @@ import com.web.backend.exception.WebSocketErrorHandler;
 import java.time.ZoneId;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j(topic = "MESSAGE-SERVICE")
 @Service
@@ -117,7 +115,8 @@ public class MessageServiceImpl implements MessageService {
 
         UserEntity recipientEntity = userRepository.findByUsername(request.getRecipient())
                 .orElseThrow(
-                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_RECIPIENT_NOT_FOUND_STRING), request));
+                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_RECIPIENT_NOT_FOUND_STRING),
+                                request));
 
         if (recipientEntity.getUserStatus() == UserStatus.INACTIVE) {
             throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_SEND_DELETED_STRING), request);
@@ -182,7 +181,8 @@ public class MessageServiceImpl implements MessageService {
                 } catch (Exception rollbackEx) {
                     log.error("Failed to rollback Redis cache: {}", rollbackEx.getMessage());
                 }
-                webSocketErrorHandler.handleChatError(sender, request, Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
+                webSocketErrorHandler.handleChatError(sender, request,
+                        Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
             } else if (ex == null && chatMsg.getMessageType() == MessageType.CHAT) {
                 log.info("save message success");
             }
@@ -199,8 +199,12 @@ public class MessageServiceImpl implements MessageService {
         systemMsg.setContent(request.getContent());
         systemMessageRepository.save(Objects.requireNonNull(systemMsg));
 
-        handleKafkaFuture(chatProducer.sendSystemMessage(systemMsg), currentUsername, request, "System Message");
-        log.info("{} Chat system message success", systemMsg.getSender());
+        chatProducer.sendSystemMessage(systemMsg).whenComplete((result, ex) -> {
+            if (ex != null) {
+                webSocketErrorHandler.handleChatError(systemMsg.getSender(), systemMsg,
+                        Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
+            }
+        });
     }
 
     @Override
@@ -208,7 +212,7 @@ public class MessageServiceImpl implements MessageService {
 
         if (!friendService.isFriend(Objects.requireNonNull(senderUsername),
                 Objects.requireNonNull(request.getRecipient()))) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING), request);
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_NOT_FRIENDS_STRING));
         }
 
         String convId = generateConversationId(senderUsername, request.getRecipient());
@@ -246,7 +250,7 @@ public class MessageServiceImpl implements MessageService {
         reactionMsg.setContent(request.getReactionType() != null ? request.getReactionType().toString() : "");
         reactionMsg.setTimestamp(LocalDateTime.now());
 
-        handleKafkaFuture(chatProducer.sendReaction(reactionMsg), senderUsername, request, "Reaction");
+        chatProducer.sendReaction(reactionMsg);
     }
 
     @Override
@@ -314,10 +318,11 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public void editMessage(String senderUsername, EditMessageRequest request) {
         ChatMessage editMsg = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING), request));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
 
         if (!editMsg.getSender().equals(senderUsername)) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_EDIT_FORBIDDEN_STRING), request);
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_EDIT_FORBIDDEN_STRING));
         }
 
         editMsg.setContent(request.getNewContent());
@@ -330,17 +335,18 @@ public class MessageServiceImpl implements MessageService {
             msg.setEdited(true);
         });
 
-        handleKafkaFuture(chatProducer.sendEditMessage(editMsg), senderUsername, request, "Edit Message");
+        chatProducer.sendEditMessage(editMsg);
 
     }
 
     @Override
     public void revokeMessage(String senderUsername, RevokeMessageRequest request) {
         ChatMessage revokeMsg = messageRepository.findById(Objects.requireNonNull(request.getMessageId()))
-                .orElseThrow(() -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING), request));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(Translator.tolocale(ERROR_MSG_NOT_FOUND_STRING)));
 
         if (!revokeMsg.getSender().equals(senderUsername)) {
-            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_DELETE_FORBIDDEN_STRING), request);
+            throw new AccessForbiddenException(Translator.tolocale(ERROR_MSG_DELETE_FORBIDDEN_STRING));
         }
 
         revokeMsg.setContent("");
@@ -361,7 +367,7 @@ public class MessageServiceImpl implements MessageService {
             msg.setDeleted(true);
         });
 
-        handleKafkaFuture(chatProducer.sendRevokeMessage(revokeMsg), senderUsername, request, "Revoke Message");
+        chatProducer.sendRevokeMessage(revokeMsg);
     }
 
     @Override
@@ -449,9 +455,8 @@ public class MessageServiceImpl implements MessageService {
         statusMsg.setSender(senderUsername);
         statusMsg.setRecipient(recipientUsername);
 
-        handleKafkaFuture(chatProducer.sendStatusMessage(statusMsg), recipientUsername, null, "Status Message");
+        chatProducer.sendStatusMessage(statusMsg);
 
-        log.info("User marking messages");
     }
 
     private CursorResponse<ChatMessageResponse> buildCursorResponse(List<ChatMessage> messages, int size) {
@@ -488,16 +493,5 @@ public class MessageServiceImpl implements MessageService {
         } catch (Exception e) {
             log.warn("Error updating Redis cache for message {}: {}", messageId, e.getMessage());
         }
-    }
-
-    private void handleKafkaFuture(CompletableFuture<SendResult<String, Object>> future, String sender, Object request, String actionName) {
-        future.whenComplete((result, ex) -> {
-            if (ex != null) {
-                log.error("Critical Error: Cannot push {} to Kafka.", actionName, ex);
-                if (sender != null) {
-                    webSocketErrorHandler.handleChatError(sender, request, Translator.tolocale(ERROR_MSG_SYSTEM_OVERLOAD_STRING));
-                }
-            }
-        });
     }
 }

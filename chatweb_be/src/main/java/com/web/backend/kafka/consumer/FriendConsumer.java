@@ -36,9 +36,6 @@ public class FriendConsumer {
     private static final String WS_ROUTING_STRING = "ws:routing:";
     private static final String CHANNEL_SERVER_STRING = "channel:server:";
 
-    private static final String ERROR_SYS_PROCESSING_REQ_STRING = "error.sys.processing_req";
-    private static final String QUEUE_ERRORS_STRING = "/queue/errors";
-
     private static final String SYS_MSG_NEW_FRIEND_INVITE_STRING = "sys.msg.new_friend_invite";
     private static final String SUCCESS_FRIEND_INVITE_SENT_STRING = "success.friend.invite_sent";
     private static final String SUCCESS_FRIEND_ACCEPTED_STRING = "success.friend.accepted";
@@ -80,14 +77,6 @@ public class FriendConsumer {
             }
         } catch (Exception e) {
             log.error("Error sending WS notification: {}", e.getMessage(), e);
-            if (payload != null && payload.senderUsername() != null) {
-                try {
-                    routeMessage(payload.senderUsername(), QUEUE_ERRORS_STRING, SocketResponse.error(
-                            Translator.tolocale(ERROR_SYS_PROCESSING_REQ_STRING), payload));
-                } catch (Exception ex) {
-                    log.error("Failed to send error notification to sender: {}", ex.getMessage());
-                }
-            }
         }
     }
 

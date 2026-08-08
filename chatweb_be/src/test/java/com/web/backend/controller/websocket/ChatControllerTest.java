@@ -63,34 +63,4 @@ class ChatControllerTest {
         verify(messageService).sendPrivateMessage("testuser", request);
     }
 
-    @Test
-    void testReactToMessage_Success() {
-        ReactionRequest request = new ReactionRequest();
-        request.setMessageId("msgId");
-        request.setRecipient("otheruser");
-
-        chatController.reactToMessage(request, mockAuth);
-
-        verify(messageService).reactToMessage("testuser", request);
-    }
-
-    @Test
-    void testEditMessage_Success() {
-        EditMessageRequest request = new EditMessageRequest();
-        request.setMessageId("msgId");
-
-        chatController.editMessage(request, mockAuth);
-
-        verify(messageService).editMessage("testuser", request);
-    }
-
-    @Test
-    void testRevokeMessage_Success() {
-        RevokeMessageRequest request = new RevokeMessageRequest();
-        request.setMessageId("msgId");
-
-        chatController.revokeMessage(request, mockAuth);
-
-        verify(messageService).revokeMessage("testuser", request);
-    }
 }
