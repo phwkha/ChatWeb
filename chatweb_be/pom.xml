@@ -306,6 +306,8 @@
 							<port>8080</port>
 						</ports>
 						<creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+						<!-- Chạy container với user thường (non-root) -->
+						<user>1000:1000</user>
 					</container>
 				</configuration>
 			</plugin>
