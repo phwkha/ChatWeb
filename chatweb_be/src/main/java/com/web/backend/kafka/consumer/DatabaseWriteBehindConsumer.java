@@ -66,14 +66,18 @@ public class DatabaseWriteBehindConsumer {
     }
 
     private void sendAcknowledgements(List<ChatMessage> messagesToSave) {
-        for (ChatMessage msg : messagesToSave) {
-            try {
-                ChatMessageResponse messageResponse = messageMapper.toResponse(msg);
-                messageResponse.setLocalId(msg.getLocalId());
-                SocketResponse<ChatMessageResponse> response = SocketResponse.message(messageResponse);
-                webSocketRoutingService.routeMessage(msg.getSender(), QUEUE_MESSAGES_STRING, response);
-            } catch (Exception ex) {
-                log.error("Error sending ACK to sender: {}", ex.getMessage());
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            for (ChatMessage msg : messagesToSave) {
+                executor.submit(() -> {
+                    try {
+                        ChatMessageResponse messageResponse = messageMapper.toResponse(msg);
+                        messageResponse.setLocalId(msg.getLocalId());
+                        SocketResponse<ChatMessageResponse> response = SocketResponse.message(messageResponse);
+                        webSocketRoutingService.routeMessage(msg.getSender(), QUEUE_MESSAGES_STRING, response);
+                    } catch (Exception ex) {
+                        log.error("Error sending ACK to sender: {}", ex.getMessage());
+                    }
+                });
             }
         }
     }
