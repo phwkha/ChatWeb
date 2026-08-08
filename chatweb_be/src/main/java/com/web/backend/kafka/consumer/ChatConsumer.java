@@ -35,10 +35,10 @@ public class ChatConsumer {
     private static final String QUEUE_ERRORS_STRING = "/queue/errors";
 
     private static final String TOPIC_PUBLIC_STRING = "/topic/public";
-    
+
     private static final String WS_ROUTING_STRING = "ws:routing:";
     private static final String CHANNEL_SERVER_STRING = "channel:server:";
-    
+
     private static final String ERROR_SYS_PROCESSING_MSG_STRING = "error.sys.processing_msg";
 
     @KafkaListener(topics = "${spring.kafka.topic.chat.messages}", groupId = "${spring.kafka.topic.chat.messages-group-id}")
@@ -61,32 +61,32 @@ public class ChatConsumer {
         } catch (Exception e) {
             log.error("Failed to send WebSocket message: {}", e.getMessage());
             if (message != null && message.getSender() != null) {
-                routeMessage(message.getSender(), QUEUE_ERRORS_STRING, SocketResponse.error(
-                        Translator.tolocale(ERROR_SYS_PROCESSING_MSG_STRING), null));
+                try {
+                    routeMessage(message.getSender(), QUEUE_ERRORS_STRING, SocketResponse.error(
+                            Translator.tolocale(ERROR_SYS_PROCESSING_MSG_STRING), message));
+                } catch (Exception ex) {
+                    log.error("Failed to send error notification to sender: {}", ex.getMessage());
+                }
             }
         }
     }
 
-    private void routeMessage(String username, String destination, Object payload) {
+    private void routeMessage(String username, String destination, Object payload) throws Exception {
         if (username == null)
             return;
-        try {
-            String targetServerId = (String) redisTemplate.opsForValue().get(WS_ROUTING_STRING + username);
-            if (targetServerId != null) {
-                if (ServerIdentity.SERVER_ID.equals(targetServerId)) {
-                    simpMessagingTemplate.convertAndSendToUser(username, destination, payload);
-                    log.info("Sent locally to {}", username);
-                } else {
-                    RedisWsMessage wsMessage = new RedisWsMessage(username, destination, payload);
-                    redisTemplate.convertAndSend(CHANNEL_SERVER_STRING + targetServerId,
-                            objectMapper.writeValueAsString(wsMessage));
-                    log.info("Routed to Server {} for user {}", targetServerId, username);
-                }
+        String targetServerId = (String) redisTemplate.opsForValue().get(WS_ROUTING_STRING + username);
+        if (targetServerId != null) {
+            if (ServerIdentity.SERVER_ID.equals(targetServerId)) {
+                simpMessagingTemplate.convertAndSendToUser(username, destination, payload);
+                log.info("Sent locally to {}", username);
             } else {
-                log.info("User {} is offline, skipped routing.", username);
+                RedisWsMessage wsMessage = new RedisWsMessage(username, destination, payload);
+                redisTemplate.convertAndSend(CHANNEL_SERVER_STRING + targetServerId,
+                        objectMapper.writeValueAsString(wsMessage));
+                log.info("Routed to Server {} for user {}", targetServerId, username);
             }
-        } catch (Exception e) {
-            log.error("Error routing message for {}: {}", username, e.getMessage());
+        } else {
+            log.info("User {} is offline, skipped routing.", username);
         }
     }
 
