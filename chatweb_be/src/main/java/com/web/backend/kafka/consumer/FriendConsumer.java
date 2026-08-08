@@ -1,18 +1,14 @@
 package com.web.backend.kafka.consumer;
 
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.data.redis.core.RedisTemplate;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.web.backend.redis.RedisWsMessage;
-import com.web.backend.config.ServerIdentity;
 
 import com.web.backend.common.NotificationsType;
 import com.web.backend.config.localresolverconfig.Translator;
 import com.web.backend.controller.response.NotificationMessageResponse;
 import com.web.backend.controller.response.form.SocketResponse;
 import com.web.backend.kafka.payload.FriendPayload;
+import com.web.backend.service.util.WebSocketRoutingService;
 
 import java.util.List;
 import java.util.Objects;
@@ -25,16 +21,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j(topic = "FRIEND-KAFKA-CONSUMER")
 public class FriendConsumer {
 
-    private final SimpMessagingTemplate simpMessagingTemplate;
-
-    private final RedisTemplate<String, Object> redisTemplate;
-
-    private final ObjectMapper objectMapper;
+    private final WebSocketRoutingService webSocketRoutingService;
 
     private static final String DESTINATION_MUST_NOT_BE_NULL_STRING = "Destination must not be null";
-
-    private static final String WS_ROUTING_STRING = "ws:routing:";
-    private static final String CHANNEL_SERVER_STRING = "channel:server:";
 
     private static final String SYS_MSG_NEW_FRIEND_INVITE_STRING = "sys.msg.new_friend_invite";
     private static final String SUCCESS_FRIEND_INVITE_SENT_STRING = "success.friend.invite_sent";
@@ -66,36 +55,17 @@ public class FriendConsumer {
 
             if (recipients != null && !recipients.isEmpty() && recipientResp != null) {
                 for (String r : recipients) {
-                    routeMessage(r, destination, recipientResp);
+                    webSocketRoutingService.routeMessage(r, destination, recipientResp);
                 }
             } else if (recipient != null && recipientResp != null) {
-                routeMessage(recipient, destination, recipientResp);
+                webSocketRoutingService.routeMessage(recipient, destination, recipientResp);
             }
 
             if (sender != null && senderResp != null) {
-                routeMessage(sender, destination, senderResp);
+                webSocketRoutingService.routeMessage(sender, destination, senderResp);
             }
         } catch (Exception e) {
             log.error("Error sending WS notification: {}", e.getMessage(), e);
-        }
-    }
-
-    private void routeMessage(String username, String destination, Object payload) throws Exception {
-        if (username == null)
-            return;
-        String targetServerId = (String) redisTemplate.opsForValue().get(WS_ROUTING_STRING + username);
-        if (targetServerId != null) {
-            if (ServerIdentity.SERVER_ID.equals(targetServerId)) {
-                simpMessagingTemplate.convertAndSendToUser(username, destination, payload);
-                log.info("Sent locally to {}", username);
-            } else {
-                RedisWsMessage wsMessage = new RedisWsMessage(username, destination, payload);
-                redisTemplate.convertAndSend(CHANNEL_SERVER_STRING + targetServerId,
-                        objectMapper.writeValueAsString(wsMessage));
-                log.info("Routed to Server {} for user {}", targetServerId, username);
-            }
-        } else {
-            log.info("User {} is offline, skipped routing.", username);
         }
     }
 
